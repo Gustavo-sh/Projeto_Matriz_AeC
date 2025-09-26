@@ -137,7 +137,6 @@ def register_user(request: Request, username: str = Form(...), password: str = F
         except Exception as e:
             funcao = f"Erro ao obter funcao: {e}"
 
-        print(funcao)
         funcao_upper = funcao.upper() if funcao else ""
 
         if "COORDENADOR DE QUALIDADE" in funcao_upper or "GERENTE DE QUALIDADE" in funcao_upper:

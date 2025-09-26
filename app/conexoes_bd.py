@@ -128,8 +128,8 @@ def get_resultados(atributo, id_indicador):
 -- Criação da tabela temporária #fct
 ------------------------------------------------------------
 SET NOCOUNT ON;
-DECLARE @atributo VARCHAR(100) = '%{atributo}%'
-DECLARE @id_indicador VARCHAR(100) = {id_indicador}
+DECLARE @atributo VARCHAR(100) = '%PREMIUM - AGIBANK SAC - AGIBANK_SAC - CG%'
+DECLARE @id_indicador VARCHAR(100) = 25
 SELECT 
       [data],
       [atributo],
@@ -324,6 +324,7 @@ LEFT JOIN [Robbyson].[rby].[indicador] AS id WITH (NOLOCK)
 LEFT JOIN #fct fct 
        ON fct.data     = mat.data_inicio 
       AND fct.atributo = mat.atributo
+      AND fct.id = mat.id_indicador
 
 WHERE mat.data_inicio BETWEEN DATEADD(d,1,EOMONTH(GETDATE(),-1)) 
                           AND EOMONTH(DATEADD(MM, 0, GETDATE()))
@@ -333,6 +334,7 @@ WHERE mat.data_inicio BETWEEN DATEADD(d,1,EOMONTH(GETDATE(),-1))
   AND mat.id_indicador = @id_indicador
 
 DROP TABLE #fct;
+
 
     """)
 
