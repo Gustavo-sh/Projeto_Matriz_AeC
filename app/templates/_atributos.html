@@ -1,0 +1,9 @@
+<div class="form-group">
+    <label for="atributo_select">Atributo:</label>
+    <select name="atributo" id="atributo_select">
+        <option value="">Selecione ou pesquise...</option>
+        {% for at in atributos %}
+            <option value="{{ at }}">{{ at }}</option>
+        {% endfor %}
+    </select>
+</div>

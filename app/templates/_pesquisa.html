@@ -1,0 +1,19 @@
+{% for r in registros %}
+<tr>
+    <td>{{ r.id_indicador or ""}}</td>
+    <td>{{ r.nome_indicador or ""}}</td>
+    <td>{{ r.meta or ""}}</td>
+    <td>{{ r.ganho_g1 or ""}}</td>
+    <td>{{ r.responsavel or ""}}</td>
+    <td>{{ r.escala or ""}}</td>
+    <td>{{ r.acumulado or ""}}</td>
+    <td>{{ r.data_inicio or ""}}</td>
+    <td>{{ r.data_fim or ""}}</td>
+    <td>{{ r.tipo_matriz or ""}}</td>
+    <td>{{ r.esquema_acumulado or ""}}</td>
+    <td>{{ r.descricao or "" }}</td>
+    <td>{{ r.ativo or ""}}</td>
+    <td>{{ r.chamado or ""}}</td>
+
+</tr>
+{% endfor %}

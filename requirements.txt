@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+openpyxl
+passlib[bcrypt]
+pyodbc
+fakeredis
+bcrypt==3.2.2
