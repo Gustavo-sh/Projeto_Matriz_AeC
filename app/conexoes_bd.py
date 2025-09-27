@@ -128,8 +128,8 @@ def get_resultados(atributo, id_indicador):
 -- Criação da tabela temporária #fct
 ------------------------------------------------------------
 SET NOCOUNT ON;
-DECLARE @atributo VARCHAR(100) = '%PREMIUM - AGIBANK SAC - AGIBANK_SAC - CG%'
-DECLARE @id_indicador VARCHAR(100) = 25
+DECLARE @atributo VARCHAR(100) = '%{atributo}%'
+DECLARE @id_indicador VARCHAR(100) = {id_indicador}
 SELECT 
       [data],
       [atributo],
