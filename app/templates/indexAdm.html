@@ -16,12 +16,9 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <link rel="icon" type="image/png" href="/static/images/fav.png">
 </head>
 <body>
-    {% if erro %}
-    <script>alert("{{ erro }}");</script>
-    {% endif %}
-    
     <!-- botão logout -->
     <form action="/logout" method="post">
         <button type="submit" class="logout-btn">Logout</button>
@@ -37,7 +34,7 @@
             <label>Usuário:</label>
             <input type="text" name="username" value="{{ username or '' }}" readonly>
 
-            <label>Operação:</label>
+            <!-- <label>Operação:</label>
             <select name="operacao" id="operacao_select">
                 <option value="">Selecione a operação...</option>
                 {% for op in operacoes %}
@@ -45,7 +42,6 @@
                 {% endfor %}
             </select>
 
-            <!-- Botão para carregar atributos -->
             <button
                 type="button"
                 hx-post="/get_atributos"
@@ -53,17 +49,21 @@
                 hx-swap="innerHTML"
                 hx-include="[name='operacao']">
                 Carregar Atributos
-            </button>
+            </button> -->
 
             <div id="atributos-container">
-                <label>Atributo:</label>
+                <label>Atributo: *</label>
                 <select name="atributo" id="atributo_select">
                     <option value="">Selecione ou pesquise...</option>
                     {% for at in atributos %}
-                        <option value="{{ at }}">{{ at }}</option>
+                        <option value="{{ at['atributo'] }}"
+                        data-gerente="{{ at['gerente'] }}"
+                        data-tipo="{{ at['tipo'] }}">{{ at['atributo'] }}</option>
                     {% endfor %}
                 </select>
             </div>
+
+            <div id="mensagens-filtro" class="mensagens-filtro"></div>
 
             <!-- Botão Pesquisar -->
             <button
@@ -74,16 +74,19 @@
                 hx-include="[name='atributo']">
                 Pesquisar
             </button>
+
+            <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
         </div>
 
         <div class="form-container">
-            <h4>Indicadores</h4>  
+            <h4>Gerar um novo indicador</h4>  
+            <h5>Campos com * são obrigatórios!</h5>  
             <!-- form dividido em 2 colunas -->
             <form hx-post="/add" hx-target="#registros" hx-swap="innerHTML" class="form-grid">
                 
                 <!-- Coluna 1 -->
                 <div>
-                    <label>ID - Nome Indicador:</label>
+                    <label>ID - Nome Indicador: *</label>
                     <select name="nome" id="indicadores">
                         <option value="">Selecione ou pesquise...</option>
                         {% for ind in indicadores %}
@@ -96,51 +99,52 @@
                         {% endfor %}
                     </select>
 
-                    <label>Meta:</label>
+                    <label>Meta: *</label>
                     <input type="text" name="meta" id="meta_input" placeholder="Selecione um indicador">
 
-                    <label>Moedas:</label>
+                    <label>Moedas: *</label>
                     <input type="number" name="moeda">
 
                     <label>Tipo Indicador:</label>
                     <input type="text" name="tipo_indicador" id="formato_input" value="" readonly>
 
-                    <label>Escala:</label>
+                    <label>Acumulado:</label>
+                    <input type="text" name="acumulado" id="acumulado_input" value="" readonly>
+
+                    <label>Esquema Acumulado:</label>
+                    <input type="text" name="esquema_acumulado" id="esquema_input" value="" readonly>
+
+                    <label>Tipo Matriz:</label>
+                    <input type="text" name="tipo_matriz" id="tipomatriz_select" value="" readonly>
+
+                    <label>Data Início: *</label>
+                    <input type="text" id="data_inicio" name="data_inicio" value="">
+
+                    <label>Data Fim: *</label>
+                    <input type="text" id="data_fim" name="data_fim" value="">
+
+                    <label>Periodo:</label>
+                    <input type="text" name="periodo" id="periodo_input" value="" readonly>
+                </div>
+
+                <!-- Coluna 2 -->
+                <div>
+                    
+                    <label>Escala: *</label>
                     <select name="escala" id="escala_select">
                         <option value="6x1">6x1</option>
                         <option value="5x2">5x2</option>
                     </select>
 
-                    <label>Tipo de Faturamento:</label>
+                    <label>Tipo de Faturamento: *</label>
                     <select name="tipo_faturamento" id="tipo_faturamento">
                         <option value="">Selecione...</option>
                         <option value="Ônus">Ônus</option>
                         <option value="Ônus e Bônus">Ônus e Bônus</option>
                         <option value="Receita">Receita</option>
                         <option value="Relacionamento">Relacionamento</option>
+                        <option value="Controle">Controle</option>
                     </select>
-
-                    <label>Data Início:</label>
-                    <input type="text" id="data_inicio" name="data_inicio" value="2025-10-01">
-
-                    <label>Data Fim:</label>
-                    <input type="text" id="data_fim" name="data_fim" value="2025-10-31">
-
-                    <label>Tipo Matriz:</label>
-                    <select name="tipo_matriz" id="tipomatriz_select">
-                        <option value="Operacional">Operacional</option>
-                        <option value="Administrativo">Administrativo</option>
-                    </select>
-                </div>
-
-                <!-- Coluna 2 -->
-                <div>
-                    
-                    <label>Acumulado:</label>
-                    <input type="text" name="acumulado" id="acumulado_input" value="" readonly>
-
-                    <label>Esquema Acumulado:</label>
-                    <input type="text" name="esquema_acumulado" id="esquema_input" value="" readonly>
 
                     <label>Descrição:</label>
                     <input type="text" name="descricao">
@@ -151,14 +155,15 @@
                     <label>Chamado:</label>
                     <input type="text" name="chamado">
                     
-                    <label>Critério Final:</label>
+                    <label>Critério: *</label>
                     <select name="criterio_final" id="criterio_final">
                         <option value="">Selecione...</option>
                         <option value="Meta AeC">Meta AeC</option>
                         <option value="Meta Cliente">Meta Cliente</option>
+                        <option value="Meta Smart">Meta Smart</option>
                     </select>
 
-                    <label>Área:</label>
+                    <label>Área: *</label>
                     <select name="area" id="area">
                         <option value="">Selecione...</option>
                         <option value="Operação">Operação</option>
@@ -166,7 +171,10 @@
                         <option value="Planejamento">Planejamento</option>
                     </select>
 
-                    <label>Possui DMM:</label>
+                    <label>Responsavel: *</label>
+                    <input type="text" name="responsavel">
+
+                    <label>Possui DMM: *</label>
                     <div class="radio-group">
                         <label><input type="radio" name="possuiDmm" value="Sim"> Sim</label>
                         <label><input type="radio" name="possuiDmm" value="Não" checked> Não</label>
@@ -177,6 +185,52 @@
 
                     <!-- hidden que será atualizado pelo script -->
                     <input type="hidden" id="atributo_hidden" name="atributo" value="">
+                </div>
+
+                <div >
+                        <div id="bloco-metas">
+                    
+                        <label>Meta Sugerida:</label>
+                        <input type="text" name="meta_sugerida" id="meta_sugerida_input" value="" readonly>
+
+                        <label>Meta Escolhida:</label>
+                        <input type="text" name="meta_escolhida" id="meta_escolhida_input" value="" readonly>
+
+                        <label>Atingimento Projetado:</label>
+                        <input type="text" name="atingimento_projetado" id="atingimento_projetado_input" value="" readonly>
+
+                        <label>Resultado M0:</label>
+                        <input type="text" name="resultadom0" id="resultadom0_input" value="" readonly>
+
+                        <label>Atingimento M0:</label>
+                        <input type="text" name="atingimentom0" id="atingimentom0_input" value="" readonly>
+
+                        <label>Resultado M1:</label>
+                        <input type="text" name="resultadom1" id="resultadom1_input" value="" readonly>
+
+                        <label>Atingimento M1:</label>
+                        <input type="text" name="atingimentom1" id="atingimentom1_input" value="" readonly>
+
+                        <label>Max Data:</label>
+                        <input type="text" name="max_data" id="max_data_input" value="" readonly>
+                    
+                        </div>
+
+                    <label>Gerente:</label>
+                    <input type="text" name="gerente" id="gerente_input" value="" readonly>
+
+                    <button
+                        type="button"
+                        hx-post="/trazer_resultados"
+                        hx-include="closest form"
+                        hx-target="#bloco-metas"
+                        hx-swap="innerHTML"
+                        hx-include="#atributo, #indicadores"
+                        hx-on::htmx:responseError="document.getElementById('mensagens-indicador').innerText = JSON.parse(event.detail.xhr.response).detail">
+                        Trazer Resultados
+                    </button>
+                    
+                    <div class="mensagens-indicador" id="mensagens-indicador"></div>
                 </div>
 
                 <!-- Botão centralizado embaixo -->
@@ -197,20 +251,28 @@
             <table class="tabela-pesquisa">
                 <thead>
                     <tr>
-                        <th>ID Indicador</th>
-                        <th>Nome Indicador</th>
+                        <th>Atributo</th>
+                        <th>Id - Nome Indicador</th>
                         <th>Meta</th>
-                        <th>Ganho G1</th>
-                        <th>Responsável</th>
-                        <th>Escala</th>
+                        <th>Moedas</th>
+                        <th>Tipo Indicador</th>
                         <th>Acumulado</th>
-                        <th>Data Início</th>
-                        <th>Data Fim</th>
-                        <th>Tipo Matriz</th>
                         <th>Esquema Acumulado</th>
+                        <th>Tipo Matriz</th>
+                        <th>Data Inicio</th>
+                        <th>Data Fim</th>
+                        <th>Periodo</th>
+                        <th>Escala</th>
+                        <th>Tipo de Faturamento</th>
                         <th>Descrição</th>
                         <th>Ativo</th>
                         <th>Chamado</th>
+                        <th>Criterio</th>
+                        <th>Area</th>
+                        <th>Responsavel</th>
+                        <th>Gerente</th>
+                        <th>Possui DMM</th>
+                        <th>DMM</th>
                     </tr>
                 </thead>
                 <tbody id="tabela-pesquisa">
@@ -230,25 +292,28 @@
                 <thead>
                     <tr>
                         <th>Ações</th>
-                        <th>Id Nome Indicador</th>
+                        <th>Atributo</th>
+                        <th>Id - Nome Indicador</th>
                         <th>Meta</th>
-                        <th>Moeda</th>
-                        <th>Critério Final</th>
-                        <th>Área</th>
-                        <th>Tipo Faturamento</th>
-                        <th>Escala</th>
-                        <th>Acumulado</th>
+                        <th>Moedas</th>
                         <th>Tipo Indicador</th>
-                        <th>Data Início</th>
-                        <th>Data Fim</th>
-                        <th>Tipo Matriz</th>
+                        <th>Acumulado</th>
                         <th>Esquema Acumulado</th>
+                        <th>Tipo Matriz</th>
+                        <th>Data Inicio</th>
+                        <th>Data Fim</th>
+                        <th>Periodo</th>
+                        <th>Escala</th>
+                        <th>Tipo de Faturamento</th>
                         <th>Descrição</th>
                         <th>Ativo</th>
                         <th>Chamado</th>
+                        <th>Criterio</th>
+                        <th>Area</th>
+                        <th>Responsavel</th>
+                        <th>Gerente</th>
                         <th>Possui DMM</th>
                         <th>DMM</th>
-                        <th>Atributo</th>
                     </tr>
                 </thead>
                 <tbody id="registros">
@@ -279,22 +344,74 @@
     </script>
 
     <!-- erro 422 -->
-    <!-- <script>
+    <script>
     document.body.addEventListener("htmx:responseError", function(evt) {
+        const indicadorDiv = document.getElementById("mensagens-indicador");
+        const filtroDiv = document.getElementById("mensagens-filtro");
         if (evt.detail.xhr.status === 422) {
-            alert("Os campos 'Nome', 'Meta' e 'Moeda' são obrigatórios!");
+            if (evt.detail.xhr.response.includes("Filtro")) {
+                try {
+                    const data = JSON.parse(evt.detail.xhr.response);
+                    filtroDiv.innerText = data.detail;
+                } catch {
+                    filtroDiv.innerText = evt.detail.xhr.response;
+                }
+            } else {
+                try {
+                    const data = JSON.parse(evt.detail.xhr.response);
+                    indicadorDiv.innerText = data.detail || "Erro inesperado.";
+                } catch {
+                    indicadorDiv.innerText = evt.detail.xhr.response;
+                }
+            }
         }
+        setTimeout(() => {
+        indicadorDiv.innerText = "";
+        filtroDiv.innerText = "";
+        }, 3000);
     });
-    </script> -->
+    </script>
 
     <!-- Flatpickr -->
     <script>
-    flatpickr("#dmm", {
+    const dmmPicker = flatpickr("#dmm", {
         mode: "multiple",
         dateFormat: "Y-m-d",
         locale: "pt",
         altInput: true,
-        altFormat: "d/m/Y"
+        altFormat: "d/m/Y",
+        clickOpens: false, // começa bloqueado
+        onChange: function(selectedDates, dateStr, instance) {
+            if (selectedDates.length > 5) {
+                selectedDates.pop();
+                instance.setDate(selectedDates); 
+                alert("Você só pode selecionar no máximo 5 datas.");
+            }
+        }
+    });
+
+    function updateDmmLimits() {
+        const inicio = document.getElementById("data_inicio").value;
+        const fim = document.getElementById("data_fim").value;
+        const possuiDmm = document.querySelector("input[name='possuiDmm']:checked")?.value;
+
+        if (inicio && fim && possuiDmm === "Sim") {
+            dmmPicker.set("minDate", inicio);
+            dmmPicker.set("maxDate", fim);
+            dmmPicker.set("clickOpens", true); // habilita calendário
+        } else {
+            dmmPicker.clear();
+            dmmPicker.set("clickOpens", false); // bloqueia calendário
+        }
+    }
+
+    // Observa mudanças nos campos de data
+    document.getElementById("data_inicio").addEventListener("change", updateDmmLimits);
+    document.getElementById("data_fim").addEventListener("change", updateDmmLimits);
+
+    // Observa mudança no radio "Possui DMM"
+    document.querySelectorAll("input[name='possuiDmm']").forEach(radio => {
+        radio.addEventListener("change", updateDmmLimits);
     });
     </script>
 
@@ -307,7 +424,6 @@
             "#area",
             "#tipo_faturamento",
             "#atributo_select",
-            "#tipomatriz_select",
             "#escala_select"
         ];
         selects.forEach(sel => {
@@ -317,7 +433,8 @@
                     searchPlaceholderValue: "Selecione...",
                     itemSelectText: "",
                     shouldSort: false,
-                    position: "bottom"
+                    position: "bottom",
+                    searchResultLimit: 15
                 });
                 el.dataset.choicesInitialized = "true";
             }
@@ -343,7 +460,8 @@
                 evt.detail.target.innerHTML = "";
             }, 3000); // 3 segundos
         }
-    });
+    }
+    );
     </script>
 
     <script>
@@ -391,24 +509,34 @@
 
 
     <script>
-    flatpickr("#data_inicio", {
+    const dataFim = flatpickr("#data_fim", {
         dateFormat: "Y-m-d",
-        defaultDate: "2025-10-01",
         locale: "pt",
         altInput: true,
         altFormat: "d/m/Y"
     });
-    flatpickr("#data_fim", {
+
+    flatpickr("#data_inicio", {
         dateFormat: "Y-m-d",
-        defaultDate: "2025-10-31",
         locale: "pt",
         altInput: true,
-        altFormat: "d/m/Y"
+        altFormat: "d/m/Y",
+        onChange: function(selectedDates) {
+            if (selectedDates.length > 0) {
+                const inicio = selectedDates[0];
+
+                // último dia do mês
+                const ultimoDia = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 0);
+
+                // atualiza limites do data_fim
+                dataFim.set("minDate", inicio);
+                dataFim.set("maxDate", ultimoDia);
+            }
+        }
     });
     </script>
 
     <script>
-    // Preenche acumulado e esquema acumulado automaticamente
     document.getElementById("indicadores").addEventListener("change", function() {
         const selected = this.options[this.selectedIndex];
         let acumulado = selected.getAttribute("data-acumulado");
@@ -461,6 +589,93 @@
         else {
             metaInput.type = "text";
             metaInput.placeholder = "Selecione um indicador";
+        }
+    });
+    </script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const dataInicio = document.getElementById("data_inicio");
+        const periodo = document.getElementById("periodo_input");
+
+        dataInicio.addEventListener("change", function() {
+            if (dataInicio.value) {
+                // pega a string yyyy-mm-dd
+                const [yyyy, mm, dd] = dataInicio.value.split("-").map(Number);
+
+                // sempre primeiro dia do mês
+                const periodoStr = `${yyyy}-${String(mm).padStart(2, "0")}-01`;
+
+                periodo.value = periodoStr;
+            }
+        });
+    });
+    </script>
+
+    <script>
+    function bindAtributoToGerente() {
+        const atributoSelect = document.getElementById("atributo_select");
+        const gerenteInput = document.getElementById("gerente_input"); 
+        const tipoInput = document.getElementById("tipomatriz_select");
+
+        if (atributoSelect && gerenteInput) {
+            atributoSelect.addEventListener("change", function() {
+                const selectedOption = this.options[this.selectedIndex];
+                gerenteInput.value = selectedOption ? (selectedOption.dataset.gerente || "") : "";
+            });
+        }
+        if (atributoSelect && tipoInput) {
+            atributoSelect.addEventListener("change", function() {
+                const selectedOption = this.options[this.selectedIndex];
+                tipoInput.value = selectedOption ? (selectedOption.dataset.tipo || "") : "";
+            });
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        initChoices("#atributo_select");
+        syncAtributoHidden();
+        bindAtributoToGerente();
+    });
+
+    // reaplica sempre que os atributos forem recarregados pelo botão
+    document.body.addEventListener("htmx:afterSwap", function(evt) {
+        if (evt.detail.target.id === "atributos-container") {
+            initChoices("#atributo_select");
+            syncAtributoHidden();
+            bindAtributoToGerente();
+        }
+    });
+    </script>
+
+    <script>
+    document.body.addEventListener('mostrarSucesso', function(evt) {
+        // A mensagem de sucesso está em evt.detail.value (se o header for JSON)
+        const mensagem = evt.detail.value; 
+        const indicadorDiv = document.getElementById("mensagens-indicador");
+        const filtroDiv = document.getElementById("mensagens-filtro");
+
+        if (indicadorDiv && mensagem) {
+            // Cria o HTML da mensagem de sucesso
+            const successMessageHTML = `
+                <div>
+                    ${mensagem}
+                </div>
+            `;
+            
+            // Injeta a mensagem na div do indicador (topo da tela)
+            if (successMessageHTML.toLocaleLowerCase().includes("pesquisa")) {
+                filtroDiv.innerHTML = successMessageHTML;
+            }
+            else {
+                indicadorDiv.innerHTML = successMessageHTML;
+            }
+            
+            // Limpa a mensagem após 3 segundos
+            setTimeout(() => {
+                indicadorDiv.innerHTML = "";
+                filtroDiv.innerHTML = "";
+            }, 3000);
         }
     });
     </script>

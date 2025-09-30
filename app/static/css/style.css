@@ -12,10 +12,21 @@ body {
 }
 
 h2, h3 {
+  margin-top: 5px;
+  margin-bottom: 15px;
   font-weight: bold;
   color: #fff;
   text-align: center;
-  width: 95%;
+  width: 100%;
+}
+
+h4 , h5{
+  margin-top: 3px;
+  margin-bottom: 15px;
+  font-weight: bold;
+  color: #254c98;
+  text-align: center;
+  width: 100%;
 }
 
 .titulo-principal {
@@ -407,13 +418,6 @@ body.register-page {
     padding: 20px;
 }
 
-.mensagem-sucesso {
-  text-align: center;
-  margin-top: 10px;
-  font-weight: bold;
-  color: green;
-}
-
 .erro-login {
     color: red;
     font-weight: bold;
@@ -496,8 +500,9 @@ body.register-page {
   margin-top: 8px; /* cria espaço acima dos grupos de formulário */
 }
 
-.erro-indicador {
-  color: red;
+.mensagens-indicador,
+.mensagens-filtro{
+  color: rgb(30, 214, 196);
   font-weight: 100;
   margin-top: 8px;
 }

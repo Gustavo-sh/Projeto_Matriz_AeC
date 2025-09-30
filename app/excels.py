@@ -54,7 +54,7 @@ def generate_registros_excel():
             "Tipo Faturamento", "Classificação", "Meta Classificação",
             "Escala", "Acumulado", "Tipo Indicador","Data Início", "Data Fim", "Tipo Matriz",
             "Esquema Acumulado", "Descrição", "Ativo", "Chamado",
-            "Possui DMM", "Multiplicador", "DMM", "Atributo", "Matricula"
+            "Possui DMM", "Multiplicador", "DMM", "Atributo", "Matricula", "Gerente", "Responsavel"
         ]
         ws.append(headers)
         wb.save(REGISTROS_FILE)
@@ -96,7 +96,9 @@ def save_registros_to_excel(registros, matricula):
             "DMM": "dmm",
             "Atributo": "atributo",
             "Matricula": "matricula",
-            "Tipo Indicador": "tipo_indicador"
+            "Tipo Indicador": "tipo_indicador",
+            "Gerente": "gerente",
+            "Responsavel": "responsavel"
         }
 
         for r in registros:

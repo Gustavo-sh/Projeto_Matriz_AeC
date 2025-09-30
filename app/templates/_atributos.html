@@ -3,7 +3,8 @@
     <select name="atributo" id="atributo_select">
         <option value="">Selecione ou pesquise...</option>
         {% for at in atributos %}
-            <option value="{{ at }}">{{ at }}</option>
+            <option value="{{ at['atributo'] }}"
+             data-gerente="{{ at['gerente'] }}">{{ at['atributo'] }}</option>
         {% endfor %}
     </select>
 </div>

@@ -61,15 +61,42 @@ def get_atributos(operacao):
     conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
     cur = conn.cursor()
     cur.execute(f"""
-        select distinct atributo from [robbyson].[rlt].[hmn] (nolock) 
+        select distinct atributo, case when GERENTE is not null then GERENTE
+when GERENTEPLENO is not null then GERENTEPLENO
+when GERENTESENIOR is not null then GERENTESENIOR
+else null end as Gerente from [robbyson].[rlt].[hmn] (nolock) 
         where data = convert(date, getdate()-1) and operacaohominum like '%{operacao}%'
     """)
-    resultados = [i[0] for i in cur.fetchall()]
+    resultados = [{"atributo": i[0], "gerente": i[1]} for i in cur.fetchall()]
     cur.close()
     conn.close()
 
     set_cache(cache_key, resultados)
     return resultados
+
+def get_atributos_matricula(matricula):
+    cache_key = f"atributos:{matricula}"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+
+    conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
+    cur = conn.cursor()
+    cur.execute(f"""
+    select distinct atributo, case when GERENTE is not null then GERENTE
+    when GERENTEPLENO is not null then GERENTEPLENO
+    when GERENTESENIOR is not null then GERENTESENIOR
+    else null end as Gerente, TipoHierarquia from [robbyson].[rlt].[hmn] (nolock) 
+    where (data = convert(date, getdate()-1)) and (atributo is not null) 
+    and (MatrGERENTE = {matricula} or MatrGERENTEPLENO = {matricula} or MatrGERENTESENIOR = {matricula} or MatrCOORDENADOR = {matricula})
+    """)
+    resultados = [{"atributo": i[0], "gerente": i[1], "tipo": i[2]} for i in cur.fetchall()]
+    cur.close()
+    conn.close()
+
+    set_cache(cache_key, resultados)
+    return resultados
+
 
 def get_funcao(matricula):
     cache_key = f"funcao:{matricula}"

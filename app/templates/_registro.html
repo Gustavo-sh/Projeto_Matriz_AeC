@@ -7,25 +7,27 @@
                     hx-swap="innerHTML">Excluir</button>
         </div>
     </td>
+    <td>{{ row.atributo or "" }}</td>
     <td>{{ row.nome or "" }}</td>
     <td>{{ row.meta or "" }}</td>
     <td>{{ row.moeda or "" }}</td>
-    <td>{{ row.criterio_final or "" }}</td>
-    <td>{{ row.area or "" }}</td>
-    <td>{{ row.tipo_faturamento or "" }}</td>
-    <td>{{ row.escala or "" }}</td>
-    <td>{{ row.acumulado or "" }}</td>
     <td>{{ row.tipo_indicador or "" }}</td>
+    <td>{{ row.acumulado or "" }}</td>
+    <td>{{ row.esquema_acumulado or "" }}</td>
+    <td>{{ row.tipo_matriz or "" }}</td>
     <td>{{ row.data_inicio or "" }}</td>
     <td>{{ row.data_fim or "" }}</td>
     <td>{{ row.periodo or "" }}</td>
-    <td>{{ row.tipo_matriz or "" }}</td>
-    <td>{{ row.esquema_acumulado or "" }}</td>
+    <td>{{ row.escala or "" }}</td>
+    <td>{{ row.tipo_faturamento or "" }}</td>
     <td>{{ row.descricao or "" }}</td>
     <td>{{ row.ativo or "" }}</td>
     <td>{{ row.chamado or "" }}</td>
+    <td>{{ row.criterio_final or "" }}</td>
+    <td>{{ row.area or "" }}</td>
+    <td>{{ row.responsavel or "" }}</td>
+    <td>{{ row.gerente or "" }}</td>
     <td>{{ row.possuiDmm or "" }}</td>
     <td>{{ row.dmm or "" }}</td>
-    <td>{{ row.atributo or "" }}</td>
 </tr>
 {% endfor %}

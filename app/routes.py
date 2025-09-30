@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Request, Form, Query, HTTPException, status
+from fastapi import APIRouter, Request, Form, Query, HTTPException, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from typing import Optional
@@ -14,7 +14,7 @@ from app.cache import (
     get_from_cache, set_cache, load_registros, save_registros,
     set_session, get_current_user
 )
-from app.conexoes_bd import get_atributos, get_indicadores, get_operacao, get_funcao, get_operacoes_adm, get_resultados
+from app.conexoes_bd import get_atributos, get_indicadores, get_operacao, get_funcao, get_operacoes_adm, get_resultados, get_atributos_matricula
 from app.excels import (
     generate_registros_excel, generate_users_excel, get_user,
     save_user, save_registros_to_excel
@@ -167,15 +167,17 @@ def matriz_page(request: Request):
     _check_role_or_forbid(user, ["operacao"])
     username = request.cookies.get("username")
     indicadores = get_indicadores()
-    operacoes = get_operacao(username)
+    #operacoes = get_operacao(username)
+    lista_atributos = get_atributos_matricula(username)
+    atributos = sorted(lista_atributos, key=lambda item: item.get('atributo') or '')
     registros = load_registros(request)
     return templates.TemplateResponse("index.html", {
         "request": request,
         "registros": registros,
         "indicadores": indicadores,
         "username": username,
-        "atributos": [],
-        "operacoes": operacoes
+        "atributos": atributos,
+        #"operacoes": operacoes
     })
 
 @router.get("/indexApoio")
@@ -189,15 +191,17 @@ def index_apoio(request: Request):
     _check_role_or_forbid(user, ["apoio qualidade", "apoio planejamento"])
     username = request.cookies.get("username")
     indicadores = get_indicadores()
-    operacoes = get_operacao(username)
+    # operacoes = get_operacao(username)
+    lista_atributos = get_atributos_matricula(username)
+    atributos = sorted(lista_atributos, key=lambda item: item.get('atributo') or '')
     registros = load_registros(request)
     return templates.TemplateResponse("indexApoio.html", {
         "request": request,
         "registros": registros,
         "indicadores": indicadores,
         "username": username,
-        "atributos": [],
-        "operacoes": operacoes
+        "atributos": atributos,
+        #"operacoes": operacoes
     })
 
 @router.get("/indexAdm")
@@ -222,20 +226,20 @@ def index_adm(request: Request):
         "operacoes": operacoes
     })
 
-@router.post("/get_atributos", response_class=HTMLResponse)
-def get_atributos_by_operacao(request: Request, operacao: str = Form(...)):
-    atributos = get_atributos(operacao)
-    return templates.TemplateResponse("_atributos.html", {
-        "request": request,
-        "atributos": atributos
-    })
+# @router.post("/get_atributos", response_class=HTMLResponse)
+# def get_atributos_by_operacao(request: Request, operacao: str = Form(...)):
+#     atributos = get_atributos(operacao)
+#     return templates.TemplateResponse("_atributos.html", {
+#         "request": request,
+#         "atributos": atributos
+#     })
 
 @router.post("/add", response_class=HTMLResponse)
 def add_registro(
     request: Request,
     nome: str = Form(...),
     meta: str = Form(...),
-    moeda: int = Form(...),
+    moeda: str = Form(...),
     criterio_final: Optional[str] = Form(None),
     area: str = Form(...),
     tipo_faturamento: str = Form(...),
@@ -252,35 +256,55 @@ def add_registro(
     tipo_indicador: str = Form(...),
     data_inicio: str = Form(...),
     data_fim: str = Form(...),
-    periodo: str = Form(...)
+    periodo: str = Form(...),
+    gerente: str = Form(...),
+    responsavel: str = Form(...)
 ):
     registros = load_registros(request)
 
     novo = {
         "id": len(registros) + 1,
-        "nome": nome, "meta": meta, "moeda": moeda,
-        "criterio_final": criterio_final, "area": area,
-        "tipo_faturamento": tipo_faturamento, "escala": escala,
-        "acumulado": acumulado, "tipo_matriz": tipo_matriz,
-        "esquema_acumulado": esquema_acumulado, "descricao": descricao,
-        "ativo": ativo or "", "chamado": chamado, "possuiDmm": possuiDmm,
-        "dmm": dmm, "atributo": atributo,
-        "tipo_indicador": tipo_indicador,
-        "data_inicio": data_inicio,
-        "data_fim": data_fim,
-        "periodo": periodo
+        "atributo": atributo, "nome": nome, "meta": meta, "moeda": moeda,"tipo_indicador": tipo_indicador,"acumulado": acumulado,"esquema_acumulado": esquema_acumulado,
+        "tipo_matriz": tipo_matriz,"data_inicio": data_inicio,"data_fim": data_fim,"periodo": periodo,"escala": escala,"tipo_faturamento": tipo_faturamento,
+        "descricao": descricao,"ativo": ativo or "","chamado": chamado,"criterio_final": criterio_final,"area": area,"responsavel": responsavel,"gerente": gerente,
+        "possuiDmm": possuiDmm,"dmm": dmm
+         
     }
+
+    if not atributo or not nome or not meta or not moeda or not data_inicio or not data_fim or not escala or not tipo_faturamento or not criterio_final or not responsavel or not possuiDmm:  
+        raise HTTPException(
+            status_code=422,
+            detail="Preencha todos os campos obrigatórios!"
+    )
+
+    if len(dmm.split(",")) < 5 and len(dmm.split(",")) > 1:
+        raise HTTPException(
+            status_code=422,
+            detail="Selecione exatamente 5 DMM!"
+        )
+    
     registros.append(novo)
     save_registros(request, registros)
 
-    return templates.TemplateResponse("_registro.html", {"request": request, "registros": registros})
-
+    html_content = templates.TemplateResponse(
+    "_registro.html", 
+    {"request": request, "registros": registros} # Não precisa mais passar "sucesso" para o template!
+    )
+    response = Response(content=html_content.body, media_type="text/html")
+    response.headers["HX-Trigger"] = '{"mostrarSucesso": "Novo registro adicionado com sucesso!"}'
+    return response
 
 @router.post("/pesquisar", response_class=HTMLResponse)
 def pesquisar(request: Request, atributo: str = Form(...)):
     cache_key = f"pesquisa:{atributo}"
     registros = []
 
+    if not atributo:
+        raise HTTPException(
+            status_code=422,
+            detail="Erro Filtro: Selecione um atributo primeiro!"
+        )
+    
     cached = get_from_cache(cache_key)
     if cached:
         registros = cached
@@ -297,9 +321,11 @@ def pesquisar(request: Request, atributo: str = Form(...)):
               AND Data_inicio = dateadd(d,1,eomonth(GETDATE(),-1))
         """)
         resultados = cur.fetchall()
+        print(resultados)
         cur.close()
         conn.close()
-
+        print(resultados)
+        print(atributo)
         registros = [{
             "id_indicador": row[0], "nome_indicador": row[1], "meta": row[2],
             "ganho_g1": row[3], "responsavel": row[4], "escala": row[5],
@@ -310,7 +336,14 @@ def pesquisar(request: Request, atributo: str = Form(...)):
 
         set_cache(cache_key, registros)
 
-    return templates.TemplateResponse("_pesquisa.html", {"request": request, "registros": registros})
+    html_content = templates.TemplateResponse(
+    "_pesquisa.html", 
+    {"request": request, "registros": registros} # Não precisa mais passar "sucesso" para o template!
+    )
+    response = Response(content=html_content.body, media_type="text/html")
+    response.headers["HX-Trigger"] = '{"mostrarSucesso": "Pesquisa realizada com sucesso!"}'
+
+    return response
 
 
 @router.post("/submit_table", response_class=HTMLResponse)
@@ -320,7 +353,14 @@ def submit_table(request: Request):
 
     if not registros:
         return "<p>Nenhum registro para submeter.</p>"
+    
+    moedas = 0
+    for dic in registros:
+        moedas += dic["moeda"]
 
+    if moedas > 30 or moedas < 30:
+        return "<p>A soma de moedas deve ser igual a 30.</p>"
+    
     save_registros_to_excel(registros, username)
 
     return "<p>Tabela submetida com sucesso!</p>"
@@ -331,17 +371,19 @@ def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = F
     if len(nome.split(" - ")) == 1:
         raise HTTPException(
             status_code=422,
-            detail="Selecione um atributo e um indicador primeiro!"
+            detail="Erro Indicador: Selecione um atributo e um indicador primeiro!"
         )
     
-    print(nome.split(" - "))
     id_indicador = nome.split(" - ")[0]
     query = get_resultados(atributo, id_indicador)
 
     # Supondo que a query retorna uma lista de dicts ou tuplas
     # Pegamos o primeiro registro (ou você pode tratar mais se precisar)
     if not query:
-        return HTMLResponse("<div>Nenhum resultado encontrado</div>")
+        raise HTTPException(
+            status_code=422,
+            detail="Nenhum resultado encontrado para o indicador e atributo selecionados."
+        )
     
     row = query[0]  # pega o primeiro resultado
 
