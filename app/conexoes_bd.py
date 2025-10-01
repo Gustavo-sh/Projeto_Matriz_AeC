@@ -52,6 +52,26 @@ def get_operacao(matricula):
     set_cache(cache_key, resultados)
     return resultados
 
+def get_operacoes_adm(matricula='adm'):
+    cache_key = f"operacao:{matricula}"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+
+    pattern = re.compile(r"( CPG| SP| MSS| JPA| MOC| ARP| BH| RJ| JN| ORION| PLAN| PLANEJAMENTO| QUALIDADE)")
+    conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
+    cur = conn.cursor()
+    cur.execute(f"""
+        select distinct descricao_cr_funcionariorm from [robbyson].[rlt].[hmn] (nolock) 
+        where data = convert(date, getdate()-1)
+    """)
+    resultados = [pattern.sub("", i[0]) for i in cur.fetchall()]
+    cur.close()
+    conn.close()
+
+    set_cache(cache_key, resultados)
+    return resultados
+
 def get_atributos(operacao):
     cache_key = f"atributos:{operacao}"
     cached = get_from_cache(cache_key)
@@ -121,26 +141,6 @@ def get_funcao(matricula):
         return resultados[0]
 
     return None
-
-def get_operacoes_adm(matricula='adm'):
-    cache_key = f"operacao:{matricula}"
-    cached = get_from_cache(cache_key)
-    if cached:
-        return cached
-
-    pattern = re.compile(r"( CPG| SP| MSS| JPA| MOC| ARP| BH| RJ| JN| ORION| PLAN| PLANEJAMENTO| QUALIDADE)")
-    conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
-    cur = conn.cursor()
-    cur.execute(f"""
-        select distinct descricao_cr_funcionariorm from [robbyson].[rlt].[hmn] (nolock) 
-        where data = convert(date, getdate()-1)
-    """)
-    resultados = [pattern.sub("", i[0]) for i in cur.fetchall()]
-    cur.close()
-    conn.close()
-
-    set_cache(cache_key, resultados)
-    return resultados
 
 def get_resultados(atributo, id_indicador):
     cache_key = f"resultados:{atributo+id_indicador}"
