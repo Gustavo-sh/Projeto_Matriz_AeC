@@ -1,7 +1,123 @@
+from datetime import datetime
 import pyodbc
 from app.cache import get_from_cache, set_cache
 import re
 
+# Parte de Registro e Usuarios
+def get_user_bd(username):
+    cache_key = "user: " + username
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+
+    conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
+    cur = conn.cursor()
+    cur.execute(f"""
+        select * from Robbyson.dbo.Acessos_Matriz (nolock) where username = '{username}' 
+    """)
+    resultados = [{"username": i[0], "password": i[1], "role": i[2]} for i in cur.fetchall()]
+    cur.close()
+    conn.close()
+
+    if len(resultados) == 1:
+        return resultados[0]
+    set_cache(cache_key, None)
+    return None
+
+def save_user_bd(username, hashed_password, role):
+    conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
+    cur = conn.cursor()
+    cur.execute(f"""
+        insert into Robbyson.dbo.Acessos_Matriz (username, password, role) values ('{username}', '{hashed_password}', '{role}')
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def save_registros_bd(registros, username):
+    data = datetime.now()
+    conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
+    cur = conn.cursor()
+    for i in registros:
+        cur.execute(f"""
+            insert into Robbyson.dbo.Matriz_Geral values ('{i["atributo"]}', '{i["nome"]}', '{i["meta"]}', '{i["moeda"]}', '{i["tipo_indicador"]}', '{i["acumulado"]}', '{i["esquema_acumulado"]}',
+            '{i["tipo_matriz"]}', '{i["data_inicio"]}', '{i["data_fim"]}', '{i["periodo"]}', '{i["escala"]}', '{i["tipo_faturamento"]}', '{i["descricao"]}', '{i["ativo"]}', '{i["chamado"]}',
+            '{i["criterio_final"]}', '{i["area"]}', '{i["responsavel"]}', '{i["gerente"]}', '{i["possuiDmm"]}', '{i["dmm"]}', '{username}', '{data}', '', '', '', '', '', '', '', '', '')
+        """)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+# Parte de consultas gerais
+
+def query_m0(atributo):
+    conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
+    cur = conn.cursor()
+    cur.execute(f"""
+        select * from Robbyson.dbo.Matriz_Geral (nolock)
+        WHERE Atributo = '{atributo}'
+        AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
+    """)
+
+    resultados = cur.fetchall()
+    print(resultados)
+    cur.close()
+    conn.close()
+
+    registros = [{
+        "atributo": row[0], "nome": row[1], "meta": row[2], "moeda": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
+        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
+        "criterio_final": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possuiDmm": row[20], "dmm": row[21],
+        "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
+        "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32]
+    } for row in resultados]
+
+    return registros
+
+def query_m1(atributo):
+    conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
+    cur = conn.cursor()
+    cur.execute(f"""
+        select * from Robbyson.dbo.Matriz_Geral (nolock)
+        WHERE Atributo = '{atributo}'
+        AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
+    """)
+
+    resultados = cur.fetchall()
+    print(resultados)
+    cur.close()
+    conn.close()
+
+    registros = [{
+        "atributo": row[0], "nome": row[1], "meta": row[2], "moeda": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
+        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
+        "criterio_final": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possuiDmm": row[20], "dmm": row[21],
+        "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
+        "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32]
+    } for row in resultados]
+
+    return registros
+
+def validar_submit(atributo, periodo, id_nome_indicador):
+    conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
+    cur = conn.cursor()
+    cur.execute(f"""
+        select * from Robbyson.dbo.Matriz_Geral (nolock)
+        WHERE Atributo = '{atributo}'
+        AND periodo = '{periodo}'
+        AND id_nome_indicador = '{id_nome_indicador}'
+    """)
+
+    resultados = cur.fetchall()
+    print(resultados)
+    cur.close()
+    conn.close()
+
+    if len(resultados) > 0:
+        return True
+    return False
+
+    
 def get_indicadores():
     cache_key = "indicadores"
     cached = get_from_cache(cache_key)
@@ -32,25 +148,25 @@ def get_indicadores():
     set_cache(cache_key, indicadores)
     return indicadores
 
-def get_operacao(matricula):
-    cache_key = f"operacao:{matricula}"
-    cached = get_from_cache(cache_key)
-    if cached:
-        return cached
+# def get_operacao(matricula):
+#     cache_key = f"operacao:{matricula}"
+#     cached = get_from_cache(cache_key)
+#     if cached:
+#         return cached
 
-    pattern = re.compile(r"( CPG| SP| MSS| JPA| MOC| ARP| BH| RJ| JN| ORION| PLAN| PLANEJAMENTO| QUALIDADE)")
-    conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
-    cur = conn.cursor()
-    cur.execute(f"""
-        select descricao_cr_funcionariorm from [robbyson].[rlt].[hmn] (nolock) 
-        where data = convert(date, getdate()-1) and matricula = {matricula}
-    """)
-    resultados = [pattern.sub("", i[0]) for i in cur.fetchall()]
-    cur.close()
-    conn.close()
+#     pattern = re.compile(r"( CPG| SP| MSS| JPA| MOC| ARP| BH| RJ| JN| ORION| PLAN| PLANEJAMENTO| QUALIDADE)")
+#     conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
+#     cur = conn.cursor()
+#     cur.execute(f"""
+#         select descricao_cr_funcionariorm from [robbyson].[rlt].[hmn] (nolock) 
+#         where data = convert(date, getdate()-1) and matricula = {matricula}
+#     """)
+#     resultados = [pattern.sub("", i[0]) for i in cur.fetchall()]
+#     cur.close()
+#     conn.close()
 
-    set_cache(cache_key, resultados)
-    return resultados
+#     set_cache(cache_key, resultados)
+#     return resultados
 
 def get_operacoes_adm(matricula='adm'):
     cache_key = f"operacao:{matricula}"
@@ -72,27 +188,27 @@ def get_operacoes_adm(matricula='adm'):
     set_cache(cache_key, resultados)
     return resultados
 
-def get_atributos(operacao):
-    cache_key = f"atributos:{operacao}"
-    cached = get_from_cache(cache_key)
-    if cached:
-        return cached
+# def get_atributos(operacao):
+#     cache_key = f"atributos:{operacao}"
+#     cached = get_from_cache(cache_key)
+#     if cached:
+#         return cached
 
-    conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
-    cur = conn.cursor()
-    cur.execute(f"""
-        select distinct atributo, case when GERENTE is not null then GERENTE
-when GERENTEPLENO is not null then GERENTEPLENO
-when GERENTESENIOR is not null then GERENTESENIOR
-else null end as Gerente from [robbyson].[rlt].[hmn] (nolock) 
-        where data = convert(date, getdate()-1) and operacaohominum like '%{operacao}%'
-    """)
-    resultados = [{"atributo": i[0], "gerente": i[1]} for i in cur.fetchall()]
-    cur.close()
-    conn.close()
+#     conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
+#     cur = conn.cursor()
+#     cur.execute(f"""
+#         select distinct atributo, case when GERENTE is not null then GERENTE
+# when GERENTEPLENO is not null then GERENTEPLENO
+# when GERENTESENIOR is not null then GERENTESENIOR
+# else null end as Gerente from [robbyson].[rlt].[hmn] (nolock) 
+#         where data = convert(date, getdate()-1) and operacaohominum like '%{operacao}%'
+#     """)
+#     resultados = [{"atributo": i[0], "gerente": i[1]} for i in cur.fetchall()]
+#     cur.close()
+#     conn.close()
 
-    set_cache(cache_key, resultados)
-    return resultados
+#     set_cache(cache_key, resultados)
+#     return resultados
 
 def get_atributos_matricula(matricula):
     cache_key = f"atributos:{matricula}"

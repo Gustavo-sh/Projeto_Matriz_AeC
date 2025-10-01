@@ -9,8 +9,14 @@
     </td>
     <td>{{ row.atributo or "" }}</td>
     <td>{{ row.nome or "" }}</td>
-    <td>{{ row.meta or "" }}</td>
-    <td>{{ row.moeda or "" }}</td>
+    <td hx-trigger="dblclick"
+        hx-get="/edit_campo/{{ row.id }}/meta"  hx-target="this"
+        hx-swap="outerHTML">
+        {{ row.meta or "" }}</td>
+    <td hx-trigger="dblclick"
+        hx-get="/edit_campo/{{ row.id }}/moeda" hx-target="this"
+        hx-swap="outerHTML">
+        {{ row.moeda or "" }}</td>
     <td>{{ row.tipo_indicador or "" }}</td>
     <td>{{ row.acumulado or "" }}</td>
     <td>{{ row.esquema_acumulado or "" }}</td>

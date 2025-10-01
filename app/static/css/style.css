@@ -90,7 +90,8 @@ h4 , h5{
 }
 
 .form-container input:not([type="radio"]),
-.user-info input {
+.user-info input,
+.flatpickr-input-data {
   width: 100%;
   padding: 10px;
   margin-bottom: 14px;
@@ -101,7 +102,8 @@ h4 , h5{
   transition: all 0.2s ease-in-out;
 }
 .form-container input:focus,
-.user-info input:focus {
+.user-info input:focus,
+.flatpickr-input-data:focus  {
   border-color: #007bff;
   box-shadow: 0 0 4px rgba(0,123,255,0.4);
   outline: none;
@@ -399,8 +401,9 @@ body.register-page {
   font-size: 15px;
 }
 
-.submit-tabela button {
-  width: 150px;
+.submit-tabela button ,
+.btn-duplicar-tabela {
+  width: 300px;
   padding: 10px;
   background: #63cf1b;
   color: #fff;
@@ -501,8 +504,24 @@ body.register-page {
 }
 
 .mensagens-indicador,
-.mensagens-filtro{
+.mensagens-filtro,
+.mensagens-registros,
+.mensagens-pesquisa {
+  text-align: center;
   color: rgb(30, 214, 196);
   font-weight: 100;
   margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.in-place-edit-input {
+    /* Estilo para garantir que o input caiba na célula da tabela */
+    width: 90%; 
+    padding: 4px;
+    margin: 0;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 14px; /* Garante que o texto dentro do input seja consistente */
+    text-align: center;
 }

@@ -1,19 +1,37 @@
 {% for r in registros %}
 <tr>
-    <td>{{ r.id_indicador or ""}}</td>
-    <td>{{ r.nome_indicador or ""}}</td>
+    <td>{{ r.atributo or ""}}</td>
+    <td>{{ r.nome or ""}}</td>
     <td>{{ r.meta or ""}}</td>
-    <td>{{ r.ganho_g1 or ""}}</td>
-    <td>{{ r.responsavel or ""}}</td>
-    <td>{{ r.escala or ""}}</td>
+    <td>{{ r.moeda or ""}}</td>
+    <td>{{ r.tipo_indicador or ""}}</td>
     <td>{{ r.acumulado or ""}}</td>
+    <td>{{ r.esquema_acumulado or ""}}</td>
+    <td>{{ r.tipo_matriz or ""}}</td>
     <td>{{ r.data_inicio or ""}}</td>
     <td>{{ r.data_fim or ""}}</td>
-    <td>{{ r.tipo_matriz or ""}}</td>
-    <td>{{ r.esquema_acumulado or ""}}</td>
+    <td>{{ r.periodo or ""}}</td>
+    <td>{{ r.escala or ""}}</td>
+    <td>{{ r.tipo_faturamento or ""}}</td>
     <td>{{ r.descricao or "" }}</td>
     <td>{{ r.ativo or ""}}</td>
     <td>{{ r.chamado or ""}}</td>
-
+    <td>{{ r.criterio_final or ""}}</td>
+    <td>{{ r.area or ""}}</td>
+    <td>{{ r.responsavel or ""}}</td>
+    <td>{{ r.gerente or ""}}</td>
+    <td>{{ r.possuiDmm or ""}}</td>
+    <td>{{ r.dmm or ""}}</td>
+    <td>{{ r.submetido_por or ""}}</td>
+    <td>{{ r.data_submetido_por or ""}}</td>
+    <td>{{ r.qualidade or ""}}</td>
+    <td>{{ r.da_qualidade or ""}}</td>
+    <td>{{ r.data_da_qualidade or ""}}</td>
+    <td>{{ r.planejamento or ""}}</td>
+    <td>{{ r.da_planejamento or ""}}</td>
+    <td>{{ r.data_da_planejamento or ""}}</td>
+    <td>{{ r.exop or ""}}</td>
+    <td>{{ r.da_exop or ""}}</td>
+    <td>{{ r.data_da_exop or ""}}</td>
 </tr>
 {% endfor %}

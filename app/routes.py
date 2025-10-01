@@ -3,21 +3,17 @@ from fastapi import APIRouter, Request, Form, Query, HTTPException, Response, st
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 from passlib.context import CryptContext
-import pyodbc
-import calendar
 import uuid
 
-# IMPORTS FROM CACHE: mantive as antes e adicionei set_session e get_current_user
 from app.cache import (
     get_from_cache, set_cache, load_registros, save_registros,
     set_session, get_current_user
 )
-from app.conexoes_bd import get_atributos, get_indicadores, get_operacao, get_funcao, get_operacoes_adm, get_resultados, get_atributos_matricula
-from app.excels import (
-    generate_registros_excel, generate_users_excel, get_user,
-    save_user, save_registros_to_excel
+from app.conexoes_bd import (
+    get_indicadores, get_funcao, get_operacoes_adm, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd,
+    query_m0, query_m1, validar_submit
 )
 
 router = APIRouter()
@@ -26,19 +22,15 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SESSION_COOKIE = "logged_in"
 adms = ["277561"]
 
-
-# --- Helper para checar role (usado dentro das rotas para preservar comportamento de redirect) ---
 def _check_role_or_forbid(user: dict, allowed_roles: list[str]):
     """
     Lança HTTPException(403) se o usuário não estiver autenticado ou não tiver a role permitida.
     """
     if not user:
-        # sem sessão -> tratamos como não autenticado (quem chama deve redirecionar)
         return False
     if user.get("role") not in allowed_roles:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado.")
     return True
-
 
 @router.post("/delete/{id}", response_class=HTMLResponse)
 def delete_registro(request: Request, id: int):
@@ -47,17 +39,13 @@ def delete_registro(request: Request, id: int):
     save_registros(request, registros)
     return templates.TemplateResponse("_registro.html", {"request": request, "registros": registros})
 
-
 @router.get("/")
 def home():
-    generate_users_excel()
     return RedirectResponse("/login", status_code=303)
-
 
 @router.get("/login")
 def login_page(request: Request, msg: Optional[str] = Query(None), erro: Optional[str] = Query(None)):
     return templates.TemplateResponse("login.html", {"request": request, "msg": msg, "erro": erro})
-
 
 @router.post("/login")
 def login(
@@ -65,8 +53,8 @@ def login(
     username: str = Form(...),
     password: str = Form(...)
 ):
-    generate_registros_excel()
-    user = get_user(username)
+    #generate_registros_excel()
+    user = get_user_bd(username)
 
     if not user:
         return RedirectResponse("/login?erro=Usuário não cadastrado!", status_code=303)
@@ -87,7 +75,6 @@ def login(
     resp.set_cookie("username", username, httponly=True)
     return resp
 
-
 @router.get("/redirect_by_role")
 def redirect_by_role(request: Request):
     # tenta recuperar usuário via session_token (armazenado no redis)
@@ -105,7 +92,6 @@ def redirect_by_role(request: Request):
     else:
         raise HTTPException(status_code=403, detail="Role inválida")
 
-
 @router.post("/logout")
 def logout(request: Request):
     resp = RedirectResponse("/login", status_code=303)
@@ -115,19 +101,15 @@ def logout(request: Request):
     resp.delete_cookie("session_token")
     return resp
 
-
 @router.get("/register")
 def register_page(request: Request, erro: Optional[str] = Query(None)):
     return templates.TemplateResponse("register.html", {"request": request, "erro": erro})
 
-
 @router.post("/register")
 def register_user(request: Request, username: str = Form(...), password: str = Form(...)):
-    if get_user(username):
+    if get_user_bd(username):
         return RedirectResponse("/register?erro=Usuário já cadastrado!", status_code=303)
-
     role = None
-
     if username in adms:
         role = "adm"
     else:
@@ -136,24 +118,21 @@ def register_user(request: Request, username: str = Form(...), password: str = F
             funcao = get_funcao(username)
         except Exception as e:
             funcao = f"Erro ao obter funcao: {e}"
-
         funcao_upper = funcao.upper() if funcao else ""
-
         if "COORDENADOR DE QUALIDADE" in funcao_upper or "GERENTE DE QUALIDADE" in funcao_upper:
             role = "apoio qualidade"
         elif "COORDENADOR DE PLANEJAMENTO" in funcao_upper or "GERENTE DE PLANEJAMENTO" in funcao_upper:
             role = "apoio planejamento"
         elif "COORDENADOR DE OPERACAO" in funcao_upper or "GERENTE DE OPERACAO" in funcao_upper:
             role = "operacao"
+        elif "ANALISTA DESENVOLVIMENTO OPERACIONAL" in funcao_upper:
+            role = "adm"
         else:
             role = None
-
     if not role:
         return RedirectResponse("/register?erro=Função não autorizada para cadastro.", status_code=303)
-
     hashed_password = pwd_context.hash(password)
-    save_user(username, hashed_password, role)
-
+    save_user_bd(username, hashed_password, role)
     return RedirectResponse("/login?msg=Usuário cadastrado com sucesso!", status_code=303)
 
 @router.get("/matriz")
@@ -259,137 +238,123 @@ def add_registro(
     periodo: str = Form(...),
     gerente: str = Form(...),
     responsavel: str = Form(...)
-):
+    ):
     registros = load_registros(request)
-
+    novo_id = str(uuid.uuid4())
     novo = {
-        "id": len(registros) + 1,
+        "id": novo_id,
         "atributo": atributo, "nome": nome, "meta": meta, "moeda": moeda,"tipo_indicador": tipo_indicador,"acumulado": acumulado,"esquema_acumulado": esquema_acumulado,
         "tipo_matriz": tipo_matriz,"data_inicio": data_inicio,"data_fim": data_fim,"periodo": periodo,"escala": escala,"tipo_faturamento": tipo_faturamento,
         "descricao": descricao,"ativo": ativo or "","chamado": chamado,"criterio_final": criterio_final,"area": area,"responsavel": responsavel,"gerente": gerente,
         "possuiDmm": possuiDmm,"dmm": dmm
          
     }
-
     if not atributo or not nome or not meta or not moeda or not data_inicio or not data_fim or not escala or not tipo_faturamento or not criterio_final or not responsavel or not possuiDmm:  
         raise HTTPException(
             status_code=422,
             detail="Preencha todos os campos obrigatórios!"
     )
-
     if len(dmm.split(",")) < 5 and len(dmm.split(",")) > 1:
         raise HTTPException(
             status_code=422,
             detail="Selecione exatamente 5 DMM!"
         )
-    
     registros.append(novo)
     save_registros(request, registros)
-
     html_content = templates.TemplateResponse(
     "_registro.html", 
-    {"request": request, "registros": registros} # Não precisa mais passar "sucesso" para o template!
+    {"request": request, "registros": registros} 
     )
     response = Response(content=html_content.body, media_type="text/html")
     response.headers["HX-Trigger"] = '{"mostrarSucesso": "Novo registro adicionado com sucesso!"}'
     return response
 
-@router.post("/pesquisar", response_class=HTMLResponse)
-def pesquisar(request: Request, atributo: str = Form(...)):
-    cache_key = f"pesquisa:{atributo}"
+@router.post("/pesquisarm0", response_class=HTMLResponse)
+def pesquisar_m0(request: Request, atributo: str = Form(...)):
+    cache_key = f"pesquisam0_:{atributo}"
     registros = []
-
     if not atributo:
         raise HTTPException(
             status_code=422,
             detail="Erro Filtro: Selecione um atributo primeiro!"
         )
-    
     cached = get_from_cache(cache_key)
     if cached:
         registros = cached
     else:
-        conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
-        cur = conn.cursor()
-        cur.execute(f"""
-            SELECT distinct [Id_Indicador], [Nome_indicador], [Meta], [Ganho_G1],
-                            [Responsavel], [Escala], [Acumulado], [Data_inicio], [Data_fim],
-                            [tipo_matriz], [esquema_acumulado], [descricao], [ativo],
-                            [chamado]
-            FROM [Robbyson].[rby].[Import_Matriz]
-            WHERE Atributo = '{atributo}'
-              AND Data_inicio = dateadd(d,1,eomonth(GETDATE(),-1))
-        """)
-        resultados = cur.fetchall()
-        print(resultados)
-        cur.close()
-        conn.close()
-        print(resultados)
-        print(atributo)
-        registros = [{
-            "id_indicador": row[0], "nome_indicador": row[1], "meta": row[2],
-            "ganho_g1": row[3], "responsavel": row[4], "escala": row[5],
-            "acumulado": row[6], "data_inicio": row[7], "data_fim": row[8],
-            "tipo_matriz": row[9], "esquema_acumulado": row[10],
-            "descricao": row[11], "ativo": row[12], "chamado": row[13],
-        } for row in resultados]
-
+        registros = query_m0(atributo)
         set_cache(cache_key, registros)
-
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
-    {"request": request, "registros": registros} # Não precisa mais passar "sucesso" para o template!
+    {"request": request, "registros": registros} 
     )
     response = Response(content=html_content.body, media_type="text/html")
-    response.headers["HX-Trigger"] = '{"mostrarSucesso": "Pesquisa realizada com sucesso!"}'
-
+    if len(registros) > 0:
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Pesquisa realizada com sucesso!"}'
+    else:
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Sua pesquisa não trouxe resultados!"}'
     return response
 
+@router.post("/pesquisarm1", response_class=HTMLResponse)
+def pesquisar_m1(request: Request, atributo: str = Form(...)):
+    cache_key = f"pesquisa_m1:{atributo}"
+    registros = []
+    if not atributo:
+        raise HTTPException(
+            status_code=422,
+            detail="Erro Filtro: Selecione um atributo primeiro!"
+        )
+    cached = get_from_cache(cache_key)
+    if cached:
+        registros = cached
+    else:
+        registros = query_m1(atributo)
+        set_cache(cache_key, registros)
+    html_content = templates.TemplateResponse(
+    "_pesquisa.html", 
+    {"request": request, "registros": registros} 
+    )
+    response = Response(content=html_content.body, media_type="text/html")
+    if len(registros) > 0:
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Pesquisa realizada com sucesso!"}'
+    else:
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Sua pesquisa não trouxe resultados!"}'
+    return response
 
 @router.post("/submit_table", response_class=HTMLResponse)
 def submit_table(request: Request):
     registros = load_registros(request)
     username = request.cookies.get("username", "anon")
-
     if not registros:
         return "<p>Nenhum registro para submeter.</p>"
-    
     moedas = 0
     for dic in registros:
-        moedas += dic["moeda"]
-
+        moedas += int(dic["moeda"])
+    for dic in registros:
+        if validar_submit(dic["atributo"], dic["periodo"], dic["nome"]):
+            return "<p>Este indicador ja foi submetido para o periodo e atributo selecionado.</p>"
     if moedas > 30 or moedas < 30:
         return "<p>A soma de moedas deve ser igual a 30.</p>"
-    
-    save_registros_to_excel(registros, username)
-
+    save_registros_bd(registros, username)
     return "<p>Tabela submetida com sucesso!</p>"
 
 @router.post("/trazer_resultados", response_class=HTMLResponse)
 def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = Form(...)):
-    # Aqui você chama sua função que traz os dados
     if len(nome.split(" - ")) == 1:
         raise HTTPException(
             status_code=422,
             detail="Erro Indicador: Selecione um atributo e um indicador primeiro!"
         )
-    
     id_indicador = nome.split(" - ")[0]
     query = get_resultados(atributo, id_indicador)
-
-    # Supondo que a query retorna uma lista de dicts ou tuplas
-    # Pegamos o primeiro registro (ou você pode tratar mais se precisar)
     if not query:
         raise HTTPException(
             status_code=422,
             detail="Nenhum resultado encontrado para o indicador e atributo selecionados."
         )
-    
-    row = query[0]  # pega o primeiro resultado
-
-    # Renderiza um template parcial que contém os inputs preenchidos
+    row = query[0]
     return templates.TemplateResponse(
-        "_resultados.html",  # novo template parcial só para os campos de metas
+        "_resultados.html", 
         {
             "request": request,
             "meta_sugerida": row[9],
@@ -402,3 +367,130 @@ def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = F
             "max_data": row[17]
         }
     )
+
+@router.post("/duplicate_search_results", response_class=HTMLResponse)
+def duplicate_search_results(
+    request: Request, 
+    atributo: str = Form(...), 
+    tipo_pesquisa: str = Form(...),
+    data_inicio: str = Form(...), 
+    data_fim: str = Form(...), 
+    periodo: str = Form(...) 
+    ):
+    if not data_inicio or not data_fim or not periodo:
+         raise HTTPException(
+            status_code=422,
+            detail="Selecione as datas de início, fim e o período antes de duplicar!"
+        )
+    if tipo_pesquisa == "m0":
+        cache_key = f"pesquisam0_:{atributo}"
+    elif tipo_pesquisa == "m1":
+        cache_key = f"pesquisa_m1:{atributo}"
+    else:
+        raise HTTPException(
+            status_code=422,
+            detail="Tipo de pesquisa inválido (deve ser 'm0' ou 'm1')."
+        )
+    registros_da_pesquisa = get_from_cache(cache_key)
+    
+    if not registros_da_pesquisa:
+        raise HTTPException(
+            status_code=422,
+            detail="Nenhum resultado de pesquisa encontrado no cache para duplicar. Execute a pesquisa primeiro!"
+        )
+    registros_atuais = load_registros(request)
+    for novo_registro in registros_da_pesquisa:
+        registro_copia = novo_registro.copy()
+        registro_copia["id"] = str(uuid.uuid4())
+        registro_copia["data_inicio"] = data_inicio
+        registro_copia["data_fim"] = data_fim
+        registro_copia["periodo"] = periodo 
+        registros_atuais.append(registro_copia)
+    save_registros(request, registros_atuais)
+    html_content = templates.TemplateResponse(
+        "_registro.html", 
+        {"request": request, "registros": registros_atuais} 
+    )
+    response = Response(content=html_content.body, media_type="text/html")
+    response.headers["HX-Trigger"] = '{"mostrarSucesso": "Registros da pesquisa duplicados e adicionados com sucesso!"}'
+    return response
+
+@router.post("/update_registro/{registro_id}/{campo}", response_class=HTMLResponse)
+def update_registro(request: Request, registro_id: str, campo: str, novo_valor: str = Form(..., alias="value")):
+    registros = load_registros(request)
+    registro_encontrado = None
+    for reg in registros:
+        if str(reg.get("id")) == registro_id:
+            registro_encontrado = reg
+            break
+    if not registro_encontrado:
+        return Response(status_code=404, content=f"Registro ID {registro_id} não encontrado.")
+    if campo not in ["meta", "moeda"]:
+        return Response(status_code=400, content="Campo inválido para edição.")
+    valor_limpo = novo_valor.strip()
+    tipo_indicador = registro_encontrado.get("tipo_indicador")
+    if tipo_indicador in ["Percentual"]:
+        try:
+            float(valor_limpo.replace(',', '.')) 
+        except ValueError:
+            error_message = f"O campo {campo} para o tipo '{tipo_indicador}' deve ser um número válido."
+            response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
+            response.headers["HX-Retarget"] = "#mensagens-registros" 
+            response.headers["HX-Reswap"] = "innerHTML"
+            response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
+            return response
+            
+    elif tipo_indicador in ["Inteiro"]:
+        try:
+            int(valor_limpo.replace(',', '.'))
+        except ValueError:
+            error_message = f"O campo {campo} para o tipo '{tipo_indicador}' deve ser um valor número válido."
+            response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
+            response.headers["HX-Retarget"] = "#mensagens-registros"
+            response.headers["HX-Reswap"] = "innerHTML"
+            response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
+            return response
+    elif tipo_indicador in ["Decimal"]:
+        try:
+            float(valor_limpo.replace(',', '.'))
+        except ValueError:
+            error_message = f"O campo {campo} para o tipo '{tipo_indicador}' deve ser um valor número válido."
+            response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
+            response.headers["HX-Retarget"] = "#mensagens-registros"
+            response.headers["HX-Reswap"] = "innerHTML"
+            response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
+            return response
+    elif tipo_indicador in ["Hora"]:
+        if len(valor_limpo.split(':')) < 2:
+            error_message = f"O campo {campo} para o tipo '{tipo_indicador}' deve ser um valor número válido."
+            response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
+            response.headers["HX-Retarget"] = "#mensagens-registros"
+            response.headers["HX-Reswap"] = "innerHTML"
+            response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
+            return response      
+    registro_encontrado[campo] = valor_limpo
+    save_registros(request, registros)
+    return f'{registro_encontrado.get(campo) or ""}'
+
+@router.get("/edit_campo/{registro_id}/{campo}", response_class=HTMLResponse)
+def edit_campo_get(request: Request, registro_id: str, campo: str):
+    registros = load_registros(request)
+    valor = ""
+    for reg in registros:
+        if str(reg.get("id")) == registro_id:
+            valor = reg.get(campo)
+            break
+    return f"""
+    <td hx-trigger="dblclick" hx-get="/edit_campo/{registro_id}/{campo}" hx-target="this" hx-swap="outerHTML">
+        <form hx-post="/update_registro/{registro_id}/{campo}" hx-target="this" hx-swap="outerHTML">
+            <input name="value" 
+                   type="text" 
+                   value="{valor or ''}"
+                   class="in-place-edit-input" 
+                   autofocus
+                   hx-trigger="blur, keyup[enter]" 
+                   hx-swap="outerHTML"
+                   hx-confirm="Confirma a alteração do campo {campo}?">
+        </form>
+    </td>
+    """
