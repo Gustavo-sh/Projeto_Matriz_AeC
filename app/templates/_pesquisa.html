@@ -1,5 +1,10 @@
 {% for r in registros %}
 <tr>
+     {% if show_checkbox %}
+    <td>
+        <input type="checkbox" name="registro_ids" value="{{ r.id }}" class="registro-checkbox"> 
+    </td>
+    {% endif %}
     <td>{{ r.atributo or ""}}</td>
     <td>{{ r.nome or ""}}</td>
     <td>{{ r.meta or ""}}</td>

@@ -68,20 +68,20 @@
             <!-- Botão Pesquisar -->
             <button
                 type="button"
-                hx-post="/pesquisarm0" 
+                hx-post="/pesquisarm0admapoio" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
-                Pesquisar M0
+                Pesquisar Mes Atual
             </button>
 
             <button
                 type="button"
-                hx-post="/pesquisarm1" 
+                hx-post="/pesquisarm1admapoio" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
-                Pesquisar M1
+                Pesquisar Mes Seguinte
             </button>
 
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
@@ -155,14 +155,14 @@
                         <option value="Controle">Controle</option>
                     </select>
 
-                    <!-- <label>Descrição:</label>
+                    <label>Descrição:</label>
                     <input type="text" name="descricao">
 
                     <label>Ativo:</label>
                     <input type="number" name="ativo">
 
                     <label>Chamado:</label>
-                    <input type="text" name="chamado"> -->
+                    <input type="text" name="chamado">
                     
                     <label>Critério: *</label>
                     <select name="criterio_final" id="criterio_final">
@@ -256,52 +256,83 @@
     </div>
     <div class="registros">
         <h4>Resultado por Atributo</h4>
-        <div class="table-container">
-            <table class="tabela-pesquisa">
-                <thead>
-                    <tr>
-                        <th>Atributo</th>
-                        <th>Id - Nome Indicador</th>
-                        <th>Meta</th>
-                        <th>Moedas</th>
-                        <th>Tipo Indicador</th>
-                        <th>Acumulado</th>
-                        <th>Esquema Acumulado</th>
-                        <th>Tipo Matriz</th>
-                        <th>Data Inicio</th>
-                        <th>Data Fim</th>
-                        <th>Periodo</th>
-                        <th>Escala</th>
-                        <th>Tipo de Faturamento</th>
-                        <th>Descrição</th>
-                        <th>Ativo</th>
-                        <th>Chamado</th>
-                        <th>Criterio</th>
-                        <th>Area</th>
-                        <th>Responsavel</th>
-                        <th>Gerente</th>
-                        <th>Possui DMM</th>
-                        <th>DMM</th>
-                        <th>Submetido Por</th>
-                        <th>Data Sub Por</th>
-                        <th>Qualidade</th>
-                        <th>Da Qualidade</th>
-                        <th>Data Da Qualidade</th>
-                        <th>Planejamento</th>
-                        <th>Da Planejamento</th>
-                        <th>Data Da Planejamento</th>
-                        <th>Exop</th>
-                        <th>Da Exop</th>
-                        <th>Data Da Exop</th>
-                    </tr>
-                </thead>
-                <tbody id="tabela-pesquisa">
-                    <!-- preenchido via HTMX -->
-                </tbody>
-            </table>
-        </div>
+        <form id="form-acordo" 
+            hx-post="/processar_acordo" 
+            hx-target="#tabela-pesquisa" 
+            hx-swap="innerHTML"
+            hx-include="#tabela-pesquisa input[name='registro_ids']:checked">
 
-        <div id="container-duplicar-pesquisa" style="margin-top: 20px; text-align: center;">
+            <div class="table-container">
+                <table class="tabela-pesquisa">
+                    <thead>
+                        <tr>
+                            <th>Selects</th>
+                            <th>Atributo</th>
+                            <th>Id - Nome Indicador</th>
+                            <th>Meta</th>
+                            <th>Moedas</th>
+                            <th>Tipo Indicador</th>
+                            <th>Acumulado</th>
+                            <th>Esquema Acumulado</th>
+                            <th>Tipo Matriz</th>
+                            <th>Data Inicio</th>
+                            <th>Data Fim</th>
+                            <th>Periodo</th>
+                            <th>Escala</th>
+                            <th>Tipo de Faturamento</th>
+                            <th>Descrição</th>
+                            <th>Ativo</th>
+                            <th>Chamado</th>
+                            <th>Criterio</th>
+                            <th>Area</th>
+                            <th>Responsavel</th>
+                            <th>Gerente</th>
+                            <th>Possui DMM</th>
+                            <th>DMM</th>
+                            <th>Submetido Por</th>
+                            <th>Data Sub Por</th>
+                            <th>Qualidade</th>
+                            <th>Da Qualidade</th>
+                            <th>Data Da Qualidade</th>
+                            <th>Planejamento</th>
+                            <th>Da Planejamento</th>
+                            <th>Data Da Planejamento</th>
+                            <th>Exop</th>
+                            <th>Da Exop</th>
+                            <th>Data Da Exop</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-pesquisa">
+                        <!-- preenchido via HTMX -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <input type="hidden" name="cache_key" id="cache_key_pesquisa" value="">
+            <input type="hidden" name="tipo_pesquisa_admapoio" id="tipo_pesquisa_admapoio" value="">
+
+            <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
+                <button type="submit" 
+                        name="status_acao" 
+                        value="Acordo" 
+                        class="btn-acordo"
+                        hx-confirm="Confirma o Acordo para os registros selecionados?">
+                    Acordo
+                </button>
+
+                <button type="submit" 
+                        name="status_acao" 
+                        value="Nao Acordo" 
+                        class="btn-nao-acordo"
+                        hx-confirm="Confirma o Não Acordo para os registros selecionados?">
+                    Não Acordo
+                </button>
+            </div>
+        </form>
+
+        
+
+        <div id="container-duplicar-pesquisa" class="container-duplicar-pesquisa" style="margin-top: 20px; text-align: center;">
     
             <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;">
                 <label>Data Início:
@@ -402,25 +433,25 @@
         const filtroDiv = document.getElementById("mensagens-filtro");
         const pesquisaDiv = document.getElementById("mensagens-pesquisa");
         if (evt.detail.xhr.status === 422) {
-            if (evt.detail.xhr.response.includes("Filtro")) {
+            if (evt.detail.xhr.response.includes("xFiltrox")) {
                 try {
                     const data = JSON.parse(evt.detail.xhr.response);
-                    filtroDiv.innerText = data.detail;
+                    filtroDiv.innerText = data.detail || "Erro inesperado x1x.";
                 } catch {
                     filtroDiv.innerText = evt.detail.xhr.response;
                 }
-            } else if (evt.detail.xhr.response.includes("duplicar")){
+            } else if (evt.detail.xhr.response.includes("xPesquisax")){
                 try {
                     const data = JSON.parse(evt.detail.xhr.response);
-                    pesquisaDiv.innerText = data.detail || "Erro inesperado.";
+                    pesquisaDiv.innerText = data.detail || "Erro inesperado x2x.";
                 } catch {
                     pesquisaDiv.innerText = evt.detail.xhr.response;
                 }
             }
-            else {
+            else if (evt.detail.xhr.response.includes("xIndicadorx")) {
                 try {
                     const data = JSON.parse(evt.detail.xhr.response);
-                    indicadorDiv.innerText = data.detail || "Erro inesperado.";
+                    indicadorDiv.innerText = data.detail || "Erro inesperado x3x.";
                 } catch {
                     indicadorDiv.innerText = evt.detail.xhr.response;
                 }
@@ -818,24 +849,50 @@
     </script>
 
     <script>
-        // index.html - Adicionar este novo listener ao corpo dos seus scripts
+        // indexAdm.html - Listener htmx:afterRequest (CORRIGIDO)
         document.body.addEventListener("htmx:afterRequest", function(evt) {
-            const url = evt.detail.elt.getAttribute('hx-post');
+            const url = evt.detail.xhr.responseURL;
             const xhr = evt.detail.xhr;
 
             const atributoInput = document.getElementById("duplicar_atributo");
-            const tipoPesquisaInput = document.getElementById("duplicar_tipo_pesquisa");
+            const tipoPesquisaInputAdmApoio = document.getElementById("tipo_pesquisa_admapoio");
             
-            // 1. Verifica se a requisição foi uma pesquisa e se foi bem-sucedida (Status 2xx)
+            // O campo antigo 'duplicar_tipo_pesquisa' será preenchido condicionalmente para evitar erros.
+            const tipoPesquisaInputAntigo = document.getElementById("duplicar_tipo_pesquisa"); 
+
             if (xhr.status >= 200 && xhr.status < 300) {
-                if (url && tipoPesquisaInput) {
-                    if (url.includes("/pesquisarm0")) {
-                            tipoPesquisaInput.value = "m0";
-                            atributoInput.value = document.getElementById("atributo_select").value;
-                        } else if (url.includes("/pesquisarm1")) {
-                            tipoPesquisaInput.value = "m1";
-                            atributoInput.value = document.getElementById("atributo_select").value;
-                        }
+                if (url && tipoPesquisaInputAdmApoio && atributoInput) { 
+                    
+                    let tipoValor = null;
+
+                    if (url.includes("/pesquisarm0admapoio")) {
+                        tipoValor = "m0";
+                    } else if (url.includes("/pesquisarm1admapoio")) {
+                        tipoValor = "m1";
+                    }
+                    // Adicionei as rotas sem 'admapoio' por segurança, caso você as use
+                    else if (url.includes("/pesquisarm0")) {
+                        tipoValor = "m0";
+                    } else if (url.includes("/pesquisarm1")) {
+                        tipoValor = "m1";
+                    }
+
+                    if (tipoValor) {
+                        // 1. SALVA OS VALORES ESSENCIAIS NOS HIDDEN
+                        tipoPesquisaInputAdmApoio.value = tipoValor; 
+                        atributoInput.value = document.getElementById("atributo_select").value;
+                        
+                        // Salva no antigo, se ele existir, apenas para não quebrar outras dependências
+                        if (tipoPesquisaInputAntigo) tipoPesquisaInputAntigo.value = tipoValor; 
+
+                        // 2. DISPARA UM EVENTO CUSTOMIZADO QUE VAI MONTAR A CHAVE
+                        document.body.dispatchEvent(new CustomEvent('buildCacheKey', {
+                            detail: { 
+                                tipo: tipoValor,
+                                atributo: atributoInput.value // Usa o valor já salvo
+                            }
+                        }));
+                    }
                 }
             }
         });
@@ -858,6 +915,44 @@
                 indicadorDiv.innerHTML = "";
             }, 5000);
         }
+    });
+    </script>
+
+    <script>
+    // indexAdm.html - Dentro de um bloco <script>
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Escuta o evento de Selecionar Todos
+        document.body.addEventListener('change', function(evt) {
+            if (evt.target.id === 'select-all-pesquisa') {
+                const isChecked = evt.target.checked;
+                // Busca todas as checkboxes com name="registro_ids" dentro da div que contém a tabela
+                const checkboxes = document.querySelectorAll('#tabela-pesquisa input[type="checkbox"][name="registro_ids"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+            }
+        });
+
+        // Função para atualizar o campo hidden da cache key após uma pesquisa
+        // indexAdm.html - Novo Listener para Evento Customizado (SUBSTITUI A LÓGICA DE htmx:afterSwap)
+        document.body.addEventListener('buildCacheKey', function(evt) {
+            const cacheKeyInput = document.getElementById('cache_key_pesquisa');
+            
+            // Lê os valores passados diretamente no evento customizado (garantido que existem)
+            const tipo = evt.detail.tipo;
+            const atributo = evt.detail.atributo;
+
+            if (cacheKeyInput && tipo && atributo) {
+                // Formato final: pesquisa_m0_adm_apoio:ATRIBUTO
+                const novaCacheKey = `pesquisa_${tipo}_adm_apoio:${atributo}`; 
+                
+                cacheKeyInput.value = novaCacheKey;
+                console.log("CHAVE DE CACHE CONSTRUÍDA COM SUCESSO:", novaCacheKey); 
+            } else {
+                console.error("ERRO: Componentes necessários para construir a cache key estão faltando.");
+            }
+        });
     });
     </script>
 

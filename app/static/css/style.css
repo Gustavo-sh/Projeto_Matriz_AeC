@@ -77,7 +77,8 @@ h4 , h5{
 
 /* ===== Labels e Inputs ===== */
 .form-container label,
-.user-info label {
+.user-info label,
+.container-duplicar-pesquisa label {
   display: block;
   font-size: 13px;
   font-weight: bold;
@@ -508,7 +509,7 @@ body.register-page {
 .mensagens-registros,
 .mensagens-pesquisa {
   text-align: center;
-  color: rgb(30, 214, 196);
+  color: rgb(34, 101, 94);
   font-weight: 100;
   margin-top: 8px;
   margin-bottom: 8px;
@@ -524,4 +525,28 @@ body.register-page {
     box-sizing: border-box;
     font-size: 14px; /* Garante que o texto dentro do input seja consistente */
     text-align: center;
+}
+
+/* --- Estilos Comuns para os Botões de Ação --- */
+.btn-acordo,
+.btn-nao-acordo {
+    font-weight: bold;
+    color: #2924bc; /* Texto branco */
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px; /* Cantos levemente arredondados */
+    cursor: pointer;
+    margin: 5px; /* Espaçamento entre eles */
+    transition: all 0.3s ease; /* Transição suave para hover */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
+    min-width: 120px; /* Garante que ambos tenham largura mínima */
+    text-transform: uppercase; /* Deixa o texto em maiúsculas */
+}
+
+/* Estado desabilitado (se necessário) */
+.btn-acordo:disabled,
+.btn-nao-acordo:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
 }

@@ -72,7 +72,7 @@
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
-                Pesquisar M0
+                Pesquisar Mes Atual
             </button>
 
             <button
@@ -81,7 +81,7 @@
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
-                Pesquisar M1
+                Pesquisar Mes Anterior
             </button>
 
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
@@ -301,6 +301,9 @@
             </table>
         </div>
 
+        <div id="tabela-pesquisa-corpo">
+    </div>
+
         <div id="container-duplicar-pesquisa" style="margin-top: 20px; text-align: center;">
     
             <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;">
@@ -402,25 +405,25 @@
         const filtroDiv = document.getElementById("mensagens-filtro");
         const pesquisaDiv = document.getElementById("mensagens-pesquisa");
         if (evt.detail.xhr.status === 422) {
-            if (evt.detail.xhr.response.includes("Filtro")) {
+            if (evt.detail.xhr.response.includes("xFiltrox")) {
                 try {
                     const data = JSON.parse(evt.detail.xhr.response);
-                    filtroDiv.innerText = data.detail;
+                    filtroDiv.innerText = data.detail || "Erro inesperado x1x.";
                 } catch {
                     filtroDiv.innerText = evt.detail.xhr.response;
                 }
-            } else if (evt.detail.xhr.response.includes("duplicar")){
+            } else if (evt.detail.xhr.response.includes("xPesquisax")){
                 try {
                     const data = JSON.parse(evt.detail.xhr.response);
-                    pesquisaDiv.innerText = data.detail || "Erro inesperado.";
+                    pesquisaDiv.innerText = data.detail || "Erro inesperado x2x.";
                 } catch {
                     pesquisaDiv.innerText = evt.detail.xhr.response;
                 }
             }
-            else {
+            else if (evt.detail.xhr.response.includes("xIndicadorx")) {
                 try {
                     const data = JSON.parse(evt.detail.xhr.response);
-                    indicadorDiv.innerText = data.detail || "Erro inesperado.";
+                    indicadorDiv.innerText = data.detail || "Erro inesperado x3x.";
                 } catch {
                     indicadorDiv.innerText = evt.detail.xhr.response;
                 }
