@@ -2,7 +2,6 @@ from datetime import datetime
 import uuid
 import pyodbc
 from app.cache import get_from_cache, set_cache
-import re
 from datetime import datetime, date
 import calendar
 

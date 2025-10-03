@@ -4,22 +4,18 @@
     <title>Matriz de Distribuição</title>
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
 
-    <!-- Flatpickr -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
 
-    <!-- Choices.js -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
-    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
     <link rel="icon" type="image/png" href="/static/images/fav.png">
 </head>
 <body>
-    <!-- botão logout -->
     <form action="/logout" method="post">
         <button type="submit" class="logout-btn">Logout</button>
     </form>
@@ -65,7 +61,6 @@
 
             <div id="mensagens-filtro" class="mensagens-filtro"></div>
 
-            <!-- Botão Pesquisar -->
             <button
                 type="button"
                 hx-post="/pesquisarm0admapoio" 
@@ -90,10 +85,8 @@
         <div class="form-container">
             <h4>Gerar um novo indicador</h4>  
             <h5>Campos com * são obrigatórios!</h5>  
-            <!-- form dividido em 2 colunas -->
             <form hx-post="/add" hx-target="#registros" hx-swap="innerHTML" class="form-grid">
                 
-                <!-- Coluna 1 -->
                 <div>
                     <label>ID - Nome Indicador: *</label>
                     <select name="nome" id="indicadores">
@@ -136,7 +129,6 @@
                     <input type="text" name="periodo" id="periodo_input" value="" readonly>
                 </div>
 
-                <!-- Coluna 2 -->
                 <div>
                     
                     <label>Escala: *</label>
@@ -192,7 +184,6 @@
                     <label>DMM:</label>
                     <input type="text" id="dmm" name="dmm" placeholder="Selecione as datas, caso haja">
 
-                    <!-- hidden que será atualizado pelo script -->
                     <input type="hidden" id="atributo_hidden" name="atributo" value="">
                 </div>
 
@@ -417,7 +408,6 @@
         </div>
     </div>
 
-    <!-- segurança -->
     <script>
     document.body.addEventListener("htmx:afterRequest", function(evt) {
         if (evt.detail.xhr.status === 401) {
@@ -426,7 +416,6 @@
     });
     </script>
 
-    <!-- erro 422 -->
     <script>
     document.body.addEventListener("htmx:responseError", function(evt) {
         const indicadorDiv = document.getElementById("mensagens-indicador");
@@ -465,7 +454,6 @@
     });
     </script>
 
-    <!-- Flatpickr -->
     <script>
     const dmmPicker = flatpickr("#dmm", {
         mode: "multiple",
@@ -473,7 +461,7 @@
         locale: "pt",
         altInput: true,
         altFormat: "d/m/Y",
-        clickOpens: false, // começa bloqueado
+        clickOpens: false, 
         onChange: function(selectedDates, dateStr, instance) {
             if (selectedDates.length > 5) {
                 selectedDates.pop();
@@ -491,24 +479,20 @@
         if (inicio && fim && possuiDmm === "Sim") {
             dmmPicker.set("minDate", inicio);
             dmmPicker.set("maxDate", fim);
-            dmmPicker.set("clickOpens", true); // habilita calendário
+            dmmPicker.set("clickOpens", true);
         } else {
             dmmPicker.clear();
-            dmmPicker.set("clickOpens", false); // bloqueia calendário
+            dmmPicker.set("clickOpens", false); 
         }
     }
 
-    // Observa mudanças nos campos de data
     document.getElementById("data_inicio").addEventListener("change", updateDmmLimits);
     document.getElementById("data_fim").addEventListener("change", updateDmmLimits);
-
-    // Observa mudança no radio "Possui DMM"
     document.querySelectorAll("input[name='possuiDmm']").forEach(radio => {
         radio.addEventListener("change", updateDmmLimits);
     });
     </script>
 
-    <!-- Ativa Choices.js e sincroniza atributo_select -> atributo_hidden -->
     <script>
     document.addEventListener("DOMContentLoaded", function () {
         const selects = [
@@ -547,18 +531,16 @@
 
     <script>
     document.body.addEventListener("htmx:afterSwap", function(evt) {
-        // Se a resposta foi injetada no div da mensagem
         if (evt.detail.target.id === "mensagens-registros") {
             setTimeout(() => {
                 evt.detail.target.innerHTML = "";
-            }, 5000); // 3 segundos
+            }, 5000); 
         }
     }
     );
     </script>
 
     <script>
-    // Inicializa Choices.js em um select se ainda não foi inicializado
     function initChoices(selector) {
         const el = document.querySelector(selector);
         if (el && !el.dataset.choicesInitialized) {
@@ -572,7 +554,6 @@
         }
     }
 
-    // Atualiza o campo hidden com o valor do atributo selecionado
     function syncAtributoHidden() {
         const atributoSelect = document.getElementById("atributo_select");
         const atributoHidden = document.getElementById("atributo_hidden");
@@ -584,14 +565,12 @@
         }
     }
 
-    // Inicializa selects na carga inicial
     document.addEventListener("DOMContentLoaded", function () {
         initChoices("#operacao_select");
         initChoices("#atributo_select");
         syncAtributoHidden();
     });
 
-    // Reaplica comportamento após o HTMX injetar atributos
     document.body.addEventListener("htmx:afterSwap", function(evt) {
         if (evt.detail.target.id === "atributos-container") {
             initChoices("#atributo_select");
@@ -599,7 +578,6 @@
         }
     });
     </script>
-
 
     <script>
     const dataFim = flatpickr("#data_fim", {
@@ -617,11 +595,7 @@
         onChange: function(selectedDates) {
             if (selectedDates.length > 0) {
                 const inicio = selectedDates[0];
-
-                // último dia do mês
                 const ultimoDia = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 0);
-
-                // atualiza limites do data_fim
                 dataFim.set("minDate", inicio);
                 dataFim.set("maxDate", ultimoDia);
             }
@@ -657,7 +631,7 @@
         document.getElementById("esquema_input").value = esquema || "";
 
         const metaInput = document.getElementById("meta_input");
-        metaInput.value = ""; // limpa sempre que trocar indicador
+        metaInput.value = ""; 
 
         if (formato === "Decimal") {
             metaInput.type = "number";
@@ -676,7 +650,7 @@
         } 
         else if (formato === "Hora") {
             metaInput.type = "time";
-            metaInput.step = "60"; // minuto em minuto
+            metaInput.step = "60"; 
             metaInput.placeholder = "Digite a hora";
         } 
         else {
@@ -693,12 +667,8 @@
 
         dataInicio.addEventListener("change", function() {
             if (dataInicio.value) {
-                // pega a string yyyy-mm-dd
                 const [yyyy, mm, dd] = dataInicio.value.split("-").map(Number);
-
-                // sempre primeiro dia do mês
                 const periodoStr = `${yyyy}-${String(mm).padStart(2, "0")}-01`;
-
                 periodo.value = periodoStr;
             }
         });
@@ -712,66 +682,43 @@
             
             if (inicioInput && fimInput) {
                 
-                // Inicializa a Data de Início
                 flatpickr(inicioInput, {
                     dateFormat: "Y-m-d",
                     locale: "pt",
                     onChange: function(selectedDates, dateStr, instance) {
                         const fimInputValue = document.getElementById('data_fim_duplicar').value;
                         
-                        // Opção 1: Se data_fim estiver vazia, preenche com o mesmo valor (como no formulário de adição)
                         if (!fimInputValue) {
                             flatpickr(document.getElementById('data_fim_duplicar')).setDate(dateStr);
                         }
                         
-                        // Garante que o período seja sincronizado APENAS com a mudança de data de INÍCIO
                         syncDuplicarPeriodo(dateStr); 
                     }
                 });
 
-                // Inicializa a Data de Fim
-                // A data de fim não define o período, mas o flatpickr ainda precisa ser inicializado
                 flatpickr(fimInput, {
                     dateFormat: "Y-m-d",
                     locale: "pt",
-                    // Mantém a sincronização no onChange da data FIM, caso o usuário a mude
                     onChange: function(selectedDates, dateStr, instance) {
                         const inicioInputValue = document.getElementById('data_inicio_duplicar').value;
-                        // Re-sincroniza o período, que é definido pela data de INÍCIO
                         syncDuplicarPeriodo(inicioInputValue); 
                     }
                 });
             }
         }
 
-
         function syncDuplicarPeriodo(dataInicioStr) {
         const periodoInput = document.getElementById('periodo_duplicar');
         
         if (periodoInput && dataInicioStr) {
-            
-            // 1. Cria a data no formato YYYY-MM-DD para evitar o problema de fuso horário.
-            // Se a data for '2025-10-01', criamos como '2025/10/01 12:00:00' (meio-dia)
-            // O meio-dia evita o 'cruzamento' da meia-noite com o fuso horário.
             const dataObj = new Date(dataInicioStr + ' 12:00:00'); 
-            
-            // Verifica se a data é válida
             if (isNaN(dataObj)) {
                 periodoInput.value = "";
                 return;
             }
-            
-            // 2. Extrai o Ano e o Mês
             const ano = dataObj.getFullYear();
-            // O mês em JavaScript é 0-indexado (0 = Janeiro), então somamos 1.
-            // Este valor agora deve ser o mês correto (10 para Outubro).
             const mes = dataObj.getMonth() + 1; 
-
-            // 3. Formata o mês para ter 2 dígitos (ex: 01, 02, ..., 10)
             const mesFormatado = String(mes).padStart(2, '0');
-            
-            // 4. Define o Período como o primeiro dia do mês da Data Início
-            // Exemplo: 2025-10-01
             periodoInput.value = `${ano}-${mesFormatado}-01`;
         } else {
             periodoInput.value = "";
@@ -806,7 +753,6 @@
         initDuplicarDataPickers(); 
     });
 
-    // reaplica sempre que os atributos forem recarregados pelo botão
     document.body.addEventListener("htmx:afterSwap", function(evt) {
         if (evt.detail.target.id === "atributos-container") {
             initChoices("#atributo_select");
@@ -818,20 +764,17 @@
 
     <script>
     document.body.addEventListener('mostrarSucesso', function(evt) {
-        // A mensagem de sucesso está em evt.detail.value (se o header for JSON)
         const mensagem = evt.detail.value; 
         const indicadorDiv = document.getElementById("mensagens-indicador");
         const filtroDiv = document.getElementById("mensagens-filtro");
 
         if (indicadorDiv && mensagem) {
-            // Cria o HTML da mensagem de sucesso
             const successMessageHTML = `
                 <div>
                     ${mensagem}
                 </div>
             `;
             
-            // Injeta a mensagem na div do indicador (topo da tela)
             if (successMessageHTML.toLocaleLowerCase().includes("pesquisa")) {
                 filtroDiv.innerHTML = successMessageHTML;
             }
@@ -839,7 +782,6 @@
                 indicadorDiv.innerHTML = successMessageHTML;
             }
             
-            // Limpa a mensagem após 3 segundos
             setTimeout(() => {
                 indicadorDiv.innerHTML = "";
                 filtroDiv.innerHTML = "";
@@ -849,7 +791,6 @@
     </script>
 
     <script>
-        // indexAdm.html - Listener htmx:afterRequest (CORRIGIDO)
         document.body.addEventListener("htmx:afterRequest", function(evt) {
             const url = evt.detail.xhr.responseURL;
             const xhr = evt.detail.xhr;
@@ -857,7 +798,6 @@
             const atributoInput = document.getElementById("duplicar_atributo");
             const tipoPesquisaInputAdmApoio = document.getElementById("tipo_pesquisa_admapoio");
             
-            // O campo antigo 'duplicar_tipo_pesquisa' será preenchido condicionalmente para evitar erros.
             const tipoPesquisaInputAntigo = document.getElementById("duplicar_tipo_pesquisa"); 
 
             if (xhr.status >= 200 && xhr.status < 300) {
@@ -870,7 +810,6 @@
                     } else if (url.includes("/pesquisarm1admapoio")) {
                         tipoValor = "m1";
                     }
-                    // Adicionei as rotas sem 'admapoio' por segurança, caso você as use
                     else if (url.includes("/pesquisarm0")) {
                         tipoValor = "m0";
                     } else if (url.includes("/pesquisarm1")) {
@@ -878,18 +817,15 @@
                     }
 
                     if (tipoValor) {
-                        // 1. SALVA OS VALORES ESSENCIAIS NOS HIDDEN
                         tipoPesquisaInputAdmApoio.value = tipoValor; 
                         atributoInput.value = document.getElementById("atributo_select").value;
                         
-                        // Salva no antigo, se ele existir, apenas para não quebrar outras dependências
                         if (tipoPesquisaInputAntigo) tipoPesquisaInputAntigo.value = tipoValor; 
 
-                        // 2. DISPARA UM EVENTO CUSTOMIZADO QUE VAI MONTAR A CHAVE
                         document.body.dispatchEvent(new CustomEvent('buildCacheKey', {
                             detail: { 
                                 tipo: tipoValor,
-                                atributo: atributoInput.value // Usa o valor já salvo
+                                atributo: atributoInput.value 
                             }
                         }));
                     }
@@ -901,16 +837,10 @@
     <script>
         document.body.addEventListener('mostrarErro', function(evt) {
         const mensagem = evt.detail.value; 
-        const indicadorDiv = document.getElementById("mensagens-registros"); // O ID da sua div de erro
-        
+        const indicadorDiv = document.getElementById("mensagens-registros"); 
         if (indicadorDiv && mensagem) {
-            // Cria o HTML da mensagem de erro (pode ser com cor vermelha, se tiver CSS)
             const errorMessageHTML = `<div style="color: red; font-weight: bold;">Erro: ${mensagem}</div>`;
-            
-            // Injeta a mensagem
             indicadorDiv.innerHTML = errorMessageHTML;
-            
-            // Limpa a mensagem após 5 segundos
             setTimeout(() => {
                 indicadorDiv.innerHTML = "";
             }, 5000);
@@ -919,14 +849,11 @@
     </script>
 
     <script>
-    // indexAdm.html - Dentro de um bloco <script>
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Escuta o evento de Selecionar Todos
         document.body.addEventListener('change', function(evt) {
             if (evt.target.id === 'select-all-pesquisa') {
                 const isChecked = evt.target.checked;
-                // Busca todas as checkboxes com name="registro_ids" dentro da div que contém a tabela
                 const checkboxes = document.querySelectorAll('#tabela-pesquisa input[type="checkbox"][name="registro_ids"]');
                 checkboxes.forEach(checkbox => {
                     checkbox.checked = isChecked;
@@ -934,17 +861,13 @@
             }
         });
 
-        // Função para atualizar o campo hidden da cache key após uma pesquisa
-        // indexAdm.html - Novo Listener para Evento Customizado (SUBSTITUI A LÓGICA DE htmx:afterSwap)
         document.body.addEventListener('buildCacheKey', function(evt) {
             const cacheKeyInput = document.getElementById('cache_key_pesquisa');
             
-            // Lê os valores passados diretamente no evento customizado (garantido que existem)
             const tipo = evt.detail.tipo;
             const atributo = evt.detail.atributo;
 
             if (cacheKeyInput && tipo && atributo) {
-                // Formato final: pesquisa_m0_adm_apoio:ATRIBUTO
                 const novaCacheKey = `pesquisa_${tipo}_adm_apoio:${atributo}`; 
                 
                 cacheKeyInput.value = novaCacheKey;
