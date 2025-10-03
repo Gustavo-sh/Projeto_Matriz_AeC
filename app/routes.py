@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Request, Form, Query, HTTPException, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -6,7 +5,7 @@ from typing import Optional
 from datetime import datetime
 from passlib.context import CryptContext
 import uuid
-
+from typing import List 
 from app.cache import (
     get_from_cache, set_cache, load_registros, save_registros,
     set_session, get_current_user
@@ -53,23 +52,15 @@ def login(
     username: str = Form(...),
     password: str = Form(...)
 ):
-    #generate_registros_excel()
     user = get_user_bd(username)
-
     if not user:
         return RedirectResponse("/login?erro=Usuário não cadastrado!", status_code=303)
-
     if not pwd_context.verify(password, user["password"]):
         return RedirectResponse("/login?erro=Senha incorreta!", status_code=303)
-
-    # cria sessão no redis com token e role
     session_token = str(uuid.uuid4())
     set_session(session_token, {"usuario": username, "role": user.get("role")})
-
     resp = RedirectResponse("/redirect_by_role", status_code=303)
-    # Cookie da sessão (utilizado pelo get_current_user)
     resp.set_cookie("session_token", session_token, httponly=True)
-    # manter cookies originais para compatibilidade (username, logged_in, last_active)
     resp.set_cookie("logged_in", "true", httponly=True)
     resp.set_cookie("last_active", datetime.utcnow().isoformat(), httponly=True)
     resp.set_cookie("username", username, httponly=True)
@@ -77,7 +68,6 @@ def login(
 
 @router.get("/redirect_by_role")
 def redirect_by_role(request: Request):
-    # tenta recuperar usuário via session_token (armazenado no redis)
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=303)
@@ -173,7 +163,7 @@ def index_apoio(request: Request):
     indicadores = get_indicadores()
     # operacoes = get_operacao(username)
     lista_atributos = get_atributos_matricula(username)
-    atributos = sorted(lista_atributos, key=lambda item: item.get('atributo') or '')
+    atributos = get_atributos_adm_apoio() #sorted(lista_atributos, key=lambda item: item.get('atributo') or '')
     registros = load_registros(request)
     return templates.TemplateResponse("indexApoio.html", {
         "request": request,
@@ -249,7 +239,6 @@ def add_registro(
         "tipo_matriz": tipo_matriz,"data_inicio": data_inicio,"data_fim": data_fim,"periodo": periodo,"escala": escala,"tipo_faturamento": tipo_faturamento,
         "descricao": descricao,"ativo": ativo or "","chamado": chamado,"criterio_final": criterio_final,"area": area,"responsavel": responsavel,"gerente": gerente,
         "possuiDmm": possuiDmm,"dmm": dmm
-         
     }
     if not atributo or not nome or not meta or not moeda or not data_inicio or not data_fim or not escala or not tipo_faturamento or not criterio_final or not responsavel or not possuiDmm:  
         raise HTTPException(
@@ -282,7 +271,7 @@ def pesquisar_m0(request: Request, atributo: str = Form(...)):
     registros = query_m0(atributo)
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
-    {"request": request, "registros": registros} 
+    {"request": request, "registros": registros, "show_checkbox": True} 
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
@@ -302,7 +291,7 @@ def pesquisar_m1(request: Request, atributo: str = Form(...)):
     registros = query_m1(atributo)
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
-    {"request": request, "registros": registros} 
+    {"request": request, "registros": registros, "show_checkbox": True} 
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
@@ -351,7 +340,6 @@ def pesquisar_m0_adm_apoio(request: Request, atributo: str = Form(...)):
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
     return response
 
-
 @router.post("/submit_table", response_class=HTMLResponse)
 def submit_table(request: Request):
     registros = load_registros(request)
@@ -360,15 +348,20 @@ def submit_table(request: Request):
         return "<p>Nenhum registro para submeter.</p>"
     moedas = 0
     for dic in registros:
-        moedas += int(dic["moeda"])
-        if validar_submit(dic["atributo"], dic["periodo"], dic["nome"]):
+        if dic["moeda"] == "":
+            pass
+        else:
+            moedas += int(dic["moeda"])
+        if validar_submit(dic["atributo"], dic["periodo"], dic["nome"], dic["data_inicio"], dic["data_fim"]):
             return "<p>Este indicador ja foi submetido para o periodo e atributo selecionado.</p>"
         if dic["tipo_indicador"] == "Hora":
             try:
-                horas = int(dic["meta"].split(':')[0])
-                minutos = int(dic["meta"].split(':')[1])
-                total_segundos = (horas * 3600) + (minutos * 60)
-                dic["meta"] = total_segundos
+                # horas = int(dic["meta"].split(':')[0])
+                # minutos = int(dic["meta"].split(':')[1])
+                # total_segundos = (horas * 3600) + (minutos * 60)
+                # dic["meta"] = total_segundos
+                if len(dic["meta"].split(':')) < 2:
+                    return "<p>O valor digitado em meta não foi um valro de hora no formato HH:MM.</p>"
             except Exception as e:
                 return "<p>Erro ao converter o tempo: " + str(e) + "</p>"
     if moedas == 30 or moedas == 35:
@@ -377,7 +370,6 @@ def submit_table(request: Request):
     else:
         return "<p>A soma de moedas deve ser igual a 30.</p>"
     
-
 @router.post("/trazer_resultados", response_class=HTMLResponse)
 def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = Form(...)):
     if len(nome.split(" - ")) == 1:
@@ -392,21 +384,37 @@ def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = F
             status_code=422,
             detail="xIndicadorx: Nenhum resultado encontrado para o indicador e atributo selecionados."
         )
-    row = query[0]
+    # row = query[0]
+    m1 = query[0] if len(query) > 1 else None
+    m0 = query[1] if len(query) > 1 else query[0]
     return templates.TemplateResponse(
         "_resultados.html", 
         {
             "request": request,
-            "meta_sugerida": row[9],
-            "meta_escolhida": row[10],
-            "atingimento_projetado": row[21],
-            "resultado_m0": row[12],
-            "atingimento_m0": row[13],
-            "resultado_m1": row[15],
-            "atingimento_m1": row[16],
-            "max_data": row[17]
+            "meta_sugerida": m0[6] if m0[6] else "",
+            "meta_escolhida": m0[9] if m0[9] else "",
+            "atingimento_projetado": round(m0[8]*100, 2) if m0[8] else "",
+            "resultado_m0": round(m0[4], 2) if m1 else "",
+            "atingimento_m0": round(m0[5]*100, 2) if m1 else "",
+            "resultado_m1": round(m1[4], 2) if m1 else round(m0[4], 2),
+            "atingimento_m1": round(m1[5]*100, 2) if m1 else round(m0[5]*100, 2),
+            "max_data": m1[10] if m1 else m0[10]
         }
     )
+    # return templates.TemplateResponse(
+    #     "_resultados.html", 
+    #     {
+    #         "request": request,
+    #         "meta_sugerida": row[9],
+    #         "meta_escolhida": row[10],
+    #         "atingimento_projetado": row[21],
+    #         "resultado_m0": row[12],
+    #         "atingimento_m0": row[13],
+    #         "resultado_m1": row[15],
+    #         "atingimento_m1": row[16],
+    #         "max_data": row[17]
+    #     }
+    # )
 
 @router.post("/duplicate_search_results", response_class=HTMLResponse)
 def duplicate_search_results(
@@ -415,50 +423,59 @@ def duplicate_search_results(
     tipo_pesquisa: str = Form(...),
     data_inicio: str = Form(...), 
     data_fim: str = Form(...), 
-    periodo: str = Form(...) 
+    periodo: str = Form(...),
+    registro_ids: List[str] = Form([], alias="registro_ids"),
     ):
     if not data_inicio or not data_fim or not periodo:
-         raise HTTPException(
+          raise HTTPException(
+              status_code=422,
+              detail="xPesquisax: Selecione as datas de início e fim antes de duplicar!"
+          )
+    if not registro_ids:
+        raise HTTPException(
             status_code=422,
-            detail="xPesquisax: Selecione as datas de início e fim  antes de duplicar!"
+            detail="xPesquisax: Selecione pelo menos um registro para duplicar."
         )
     cache_key = ""
     user = get_current_user(request)
-    role = user.get("role")
+    role = user.get("role")    
     if tipo_pesquisa == "m0":
         if role == 'operacao':
             cache_key = f"pesquisa_m0:{atributo}"
-        elif role == 'adm' or role == 'apoio':
+        elif role == 'adm' or role == 'apoio qualidade' or role == 'apoio planejamento':
             cache_key = f"pesquisa_m0_adm_apoio:{atributo}"
         else:
-            raise HTTPException(
-                status_code=422,
-                detail="xPesquisax: Role invalida!"
-            )
+            raise HTTPException(status_code=422, detail="xPesquisax: Role invalida!")
     elif tipo_pesquisa == "m1":
         if role == 'operacao':
             cache_key = f"pesquisa_m1:{atributo}"
-        elif role == 'adm' or role == 'apoio':
+        elif role == 'adm' or role == 'apoio qualidade' or role == 'apoio planejamento':
             cache_key = f"pesquisa_m1_adm_apoio:{atributo}"
         else:
-            raise HTTPException(
-                status_code=422,
-                detail="xPesquisax: Role invalida!"
-            )
+            raise HTTPException(status_code=422, detail="xPesquisax: Role invalida!")
     else:
         raise HTTPException(
             status_code=422,
             detail="xPesquisax: Tipo de pesquisa inválido (deve ser 'm0' ou 'm1')."
         )
     registros_da_pesquisa = get_from_cache(cache_key)
-    
     if not registros_da_pesquisa:
         raise HTTPException(
             status_code=422,
             detail="xPesquisax: Nenhum resultado de pesquisa encontrado no cache para duplicar. Execute a pesquisa primeiro!"
         )
+    ids_selecionados = set(registro_ids)
+    registros_a_duplicar = [
+        r for r in registros_da_pesquisa 
+        if str(r.get("id")) in ids_selecionados
+    ]
+    if not registros_a_duplicar:
+        raise HTTPException(
+            status_code=422,
+            detail="xPesquisax: Os registros selecionados não foram encontrados no cache da pesquisa."
+        )
     registros_atuais = load_registros(request)
-    for novo_registro in registros_da_pesquisa:
+    for novo_registro in registros_a_duplicar:
         registro_copia = novo_registro.copy()
         registro_copia["id"] = str(uuid.uuid4())
         registro_copia["data_inicio"] = data_inicio
@@ -469,7 +486,7 @@ def duplicate_search_results(
     html_content = templates.TemplateResponse(
         "_registro.html", 
         {"request": request, "registros": registros_atuais} 
-    )
+    ) 
     response = Response(content=html_content.body, media_type="text/html")
     response.headers["HX-Trigger"] = '{"mostrarSucesso": "xPesquisax: Registros da pesquisa duplicados e adicionados com sucesso!"}'
     return response
@@ -490,7 +507,7 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
     tipo_indicador = registro_encontrado.get("tipo_indicador")
     if campo == 'moeda':
         try:
-            int(valor_limpo)
+            pass
         except ValueError:
             error_message = f"O campo {campo} deve ser um número inteiro."
             response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
@@ -563,27 +580,16 @@ def edit_campo_get(request: Request, registro_id: str, campo: str):
     </td>
     """
 
-# routes.py
-
-# ... (outros imports)
-from typing import List 
-from fastapi import APIRouter, Request, Form, HTTPException, status
-from fastapi.responses import HTMLResponse
-
-# ... (restante do seu código) ...
-
 @router.post("/processar_acordo", response_class=HTMLResponse)
 def processar_acordo(
     request: Request, 
     registro_ids: List[str] = Form([], alias="registro_ids"),
     status_acao: str = Form(..., alias="status_acao"),
-    # Assumindo que você passa a chave de cache via campo hidden no form:
     cache_key: str = Form(..., alias="cache_key") 
 ):
     user = get_current_user(request)
-    _check_role_or_forbid(user, ["adm", "apoio"]) # Use suas roles de acesso corretas
+    _check_role_or_forbid(user, ["adm", "apoio qualidade", "apoio planejamento"])
     role = user.get("role", "default")
-    
     if not registro_ids:
         raise HTTPException(
             status_code=422,
@@ -592,35 +598,22 @@ def processar_acordo(
     print(status_acao)
     registros_pesquisa = get_from_cache(cache_key)
     if not registros_pesquisa:
-         # Retorna a tabela vazia ou uma mensagem de erro
          raise HTTPException(status_code=404, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
-
-    # Converte a lista de IDs selecionados para um conjunto para busca O(1)
     ids_selecionados = set(registro_ids)
-    
     registros_apos_acao = []
-    
     for r in registros_pesquisa:
         if str(r.get("id")) not in ids_selecionados:
-            # Mantém os registros não selecionados na lista de pesquisa
             registros_apos_acao.append(r)
         else:
             atributo, id, periodo = r.get("atributo"), r.get("nome"), r.get("periodo")
             update_da_adm_apoio(atributo, periodo, id, role, status_acao, user.get("usuario"))
-            # OPTIONAL: Se precisar registrar a ação em um banco de dados
-            # Este é o lugar para chamar uma função como:
-            # save_acordo_status_db(r, status_acao, user.get("matricula"))
             pass
-
-    # Salva o cache de pesquisa ATUALIZADO (com os itens removidos)
     set_cache(cache_key, registros_apos_acao)
-
-    # Retorna a tabela ATUALIZADA para o HTMX fazer o swap no frontend
     return templates.TemplateResponse(
         "_pesquisa.html", 
         {
             "request": request, 
             "registros": registros_apos_acao,
-            "show_checkbox": True # Deve ser True para recarregar a tabela com a checkbox no indexAdm/Apoio
+            "show_checkbox": True
         }
     )

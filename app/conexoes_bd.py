@@ -3,8 +3,11 @@ import uuid
 import pyodbc
 from app.cache import get_from_cache, set_cache
 import re
+from datetime import datetime, date
+import calendar
 
 # Parte de Registro e Usuarios
+
 def get_user_bd(username):
     cache_key = "user: " + username
     cached = get_from_cache(cache_key)
@@ -63,11 +66,9 @@ def query_m0(atributo):
         WHERE Atributo = '{atributo}'
         AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
     """)
-
     resultados = cur.fetchall()
     cur.close()
     conn.close()
-
     registros = [{
         "atributo": row[0], "nome": row[1], "meta": row[2], "moeda": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
         "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
@@ -83,7 +84,6 @@ def query_m1(atributo):
     cached = get_from_cache(cache_key)
     if cached:
         return cached
-    
     conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
     cur = conn.cursor()
     cur.execute(f"""
@@ -91,11 +91,9 @@ def query_m1(atributo):
         WHERE Atributo = '{atributo}'
         AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
     """)
-
     resultados = cur.fetchall()
     cur.close()
     conn.close()
-
     registros = [{
         "atributo": row[0], "nome": row[1], "meta": row[2], "moeda": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
         "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
@@ -111,7 +109,6 @@ def query_m1_adm_apoio(atributo):
     # cached = get_from_cache(cache_key)
     # if cached:
     #     return cached
-    
     conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
     cur = conn.cursor()
     cur.execute(f"""
@@ -119,11 +116,9 @@ def query_m1_adm_apoio(atributo):
         WHERE Atributo = '{atributo}'
         AND periodo = dateadd(d,1,eomonth(GETDATE()))
     """)
-
     resultados = cur.fetchall()
     cur.close()
     conn.close()
-
     registros = [{
         "atributo": row[0], "nome": row[1], "meta": row[2], "moeda": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
         "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
@@ -147,11 +142,9 @@ def query_m0_adm_apoio(atributo):
         WHERE Atributo = '{atributo}'
         AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
     """)
-
     resultados = cur.fetchall()
     cur.close()
     conn.close()
-
     registros = [{
         "atributo": row[0], "nome": row[1], "meta": row[2], "moeda": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
         "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
@@ -165,9 +158,9 @@ def query_m0_adm_apoio(atributo):
 def update_da_adm_apoio(atributo, periodo, id_nome_indicador, role, tipo, username):
     role_defined = None
     tipo_defined = None
-    if role == "apoio_qualidade":
+    if role == "apoio qualidade":
         role_defined = "qualidade"
-    elif role == "apoio_planejamento":
+    elif role == "apoio planejamento":
         role_defined = "planejamento"
     elif role == "adm":
         role_defined = "exop"
@@ -186,14 +179,17 @@ def update_da_adm_apoio(atributo, periodo, id_nome_indicador, role, tipo, userna
     WHERE Atributo = '{atributo}'
     AND periodo = '{periodo}'
     AND id_nome_indicador = '{id_nome_indicador}'
-""")
-
+    """)
     conn.commit()
     cur.close()
     conn.close()
 
 
-def validar_submit(atributo, periodo, id_nome_indicador):
+def validar_submit(atributo, periodo, id_nome_indicador, data_inicio_sbmit, data_fim_submit):
+    cache_key = f"validar_submit:{atributo}+{periodo}+{id_nome_indicador}+{data_inicio_sbmit}+{data_fim_submit}"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
     conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
     cur = conn.cursor()
     cur.execute(f"""
@@ -202,14 +198,33 @@ def validar_submit(atributo, periodo, id_nome_indicador):
         AND periodo = '{periodo}'
         AND id_nome_indicador = '{id_nome_indicador}'
     """)
-
     resultados = cur.fetchall()
     cur.close()
     conn.close()
-
     if len(resultados) > 0:
+        for i in resultados:
+            data_inicio_bd = i[8]
+            data_fim_bd = i[9]
+            if validar_datas(data_inicio_bd, data_fim_bd, data_inicio_sbmit, data_fim_submit):
+                set_cache(cache_key, True)
+                return True
+    set_cache(cache_key, False)
+    return False  
+
+def validar_datas(data_inicio_bd, data_fim_bd, data_inicio_sbmit, data_fim_submit):
+    data_original = datetime.strptime(data_inicio_sbmit, '%Y-%m-%d').date()
+    ano = data_original.year
+    mes = data_original.month
+    _, ultimo_dia_do_mes = calendar.monthrange(ano, mes) 
+    ultimo_dia_data = date(ano, mes, ultimo_dia_do_mes)
+    ultimo_dia_str = ultimo_dia_data.strftime('%Y-%m-%d')
+    if data_inicio_sbmit > data_inicio_bd and data_inicio_sbmit > data_fim_bd and data_inicio_sbmit <= data_fim_submit and data_inicio_sbmit <= ultimo_dia_str:
+        if data_fim_submit > data_inicio_bd and data_fim_submit > data_fim_bd and data_fim_submit <= ultimo_dia_str:
+            pass
+        else:
+            return True
+    else:
         return True
-    return False
 
 def get_indicadores():
     cache_key = "indicadores"
@@ -342,7 +357,6 @@ def get_funcao(matricula):
     cached = get_from_cache(cache_key)
     if cached:
         return cached
-
     conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
     cur = conn.cursor()
     cur.execute(f"""
@@ -354,11 +368,9 @@ def get_funcao(matricula):
     resultados = [i[0] for i in cur.fetchall()]
     cur.close()
     conn.close()
-
     if resultados:
         set_cache(cache_key, resultados[0])
         return resultados[0]
-
     return None
 
 def get_resultados(atributo, id_indicador):
@@ -366,227 +378,19 @@ def get_resultados(atributo, id_indicador):
     cached = get_from_cache(cache_key)
     if cached:
         return cached
-
     conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
     cur = conn.cursor()
     cur.execute(f"""
-------------------------------------------------------------
--- Criação da tabela temporária #fct
-------------------------------------------------------------
-SET NOCOUNT ON;
-DECLARE @atributo VARCHAR(100) = '{atributo}'
-DECLARE @id_indicador VARCHAR(100) = {id_indicador}
-SELECT 
-      [data],
-      [atributo],
-      [id],
-      factibilidade,
-      CASE 
-          WHEN factibilidade = 'Meta AeC' THEN NULL
-          ELSE
-              CASE id.[tipo_medida_indicador]
-                  WHEN 'admin_generic_percentage' THEN FORMAT(ff.[MetaSugerida], '0.00%')
-                  WHEN 'admin_generic_hour'       THEN CONVERT(VARCHAR(8), DATEADD(SECOND, ff.[MetaSugerida], '00:00:00'), 108)
-                  WHEN 'admin_generic_integer'    THEN FORMAT(ff.[MetaSugerida], '0')
-                  WHEN 'admin_generic_float'      THEN FORMAT(ff.[MetaSugerida], '0.0')
-                  WHEN 'admin_generic_coin'       THEN FORMAT(ff.[MetaSugerida], '0.0')
-                  ELSE CAST(ff.[MetaSugerida] AS VARCHAR)
-              END
-      END AS [MetaSugerida],
-
-      CASE 
-          WHEN factibilidade = 'Meta AeC' THEN 'Meta AeC' 
-          ELSE Meta_Escolhida 
-      END AS Meta_Escolhida,
-
-      CASE id.[tipo_medida_indicador]
-          WHEN 'admin_generic_percentage' THEN FORMAT(ff.[MetaDesv], '0.00%')
-          WHEN 'admin_generic_hour'       THEN CONVERT(VARCHAR(8), DATEADD(SECOND, ff.[MetaDesv], '00:00:00'), 108)
-          WHEN 'admin_generic_integer'    THEN FORMAT(ff.[MetaDesv], '0')
-          WHEN 'admin_generic_float'      THEN FORMAT(ff.[MetaDesv], '0.0')
-          WHEN 'admin_generic_coin'       THEN FORMAT(ff.[MetaDesv], '0.0')
-          ELSE CAST(ff.[MetaDesv] AS VARCHAR)
-      END AS [MetaDesv],
-
-      CASE id.[tipo_medida_indicador]
-          WHEN 'admin_generic_percentage' THEN FORMAT(ff.[MetaG1G2], '0.00%')
-          WHEN 'admin_generic_hour'       THEN CONVERT(VARCHAR(8), DATEADD(SECOND, ff.[MetaG1G2], '00:00:00'), 108)
-          WHEN 'admin_generic_integer'    THEN FORMAT(ff.[MetaG1G2], '0')
-          WHEN 'admin_generic_float'      THEN FORMAT(ff.[MetaG1G2], '0.0')
-          WHEN 'admin_generic_coin'       THEN FORMAT(ff.[MetaG1G2], '0.0')
-          ELSE CAST(ff.[MetaG1G2] AS VARCHAR)
-      END AS [MetaG1G2],
-
-      CASE id.[tipo_medida_indicador]
-          WHEN 'admin_generic_percentage' THEN FORMAT(ff.[MetaG1G2G3], '0.00%')
-          WHEN 'admin_generic_hour'       THEN CONVERT(VARCHAR(8), DATEADD(SECOND, ff.[MetaG1G2G3], '00:00:00'), 108)
-          WHEN 'admin_generic_integer'    THEN FORMAT(ff.[MetaG1G2G3], '0')
-          WHEN 'admin_generic_float'      THEN FORMAT(ff.[MetaG1G2G3], '0.0')
-          WHEN 'admin_generic_coin'       THEN FORMAT(ff.[MetaG1G2G3], '0.0')
-          ELSE CAST(ff.[MetaG1G2G3] AS VARCHAR)
-      END AS [MetaG1G2G3],
-
-      CASE id.[tipo_medida_indicador]
-          WHEN 'admin_generic_percentage' THEN FORMAT(ff.[MetaG1G2_historico], '0.00%')
-          WHEN 'admin_generic_hour'       THEN CONVERT(VARCHAR(8), DATEADD(SECOND, ff.[MetaG1G2_historico], '00:00:00'), 108)
-          WHEN 'admin_generic_integer'    THEN FORMAT(ff.[MetaG1G2_historico], '0')
-          WHEN 'admin_generic_float'      THEN FORMAT(ff.[MetaG1G2_historico], '0.0')
-          WHEN 'admin_generic_coin'       THEN FORMAT(ff.[MetaG1G2_historico], '0.0')
-          ELSE CAST(ff.[MetaG1G2_historico] AS VARCHAR)
-      END AS [MetaG1G2_historico],
-
-      CASE id.[tipo_medida_indicador]
-          WHEN 'admin_generic_percentage' THEN FORMAT(ff.[MetaG1G2_historico], '0.00%')
-          WHEN 'admin_generic_hour'       THEN CONVERT(VARCHAR(8), DATEADD(SECOND, ff.[MetaG1G2_historico], '00:00:00'), 108)
-          WHEN 'admin_generic_integer'    THEN FORMAT(ff.[MetaG1G2_historico], '0')
-          WHEN 'admin_generic_float'      THEN FORMAT(ff.[MetaG1G2_historico], '0.0')
-          WHEN 'admin_generic_coin'       THEN FORMAT(ff.[MetaG1G2_historico], '0.0')
-          ELSE CAST(ff.[MetaG1G2_historico] AS VARCHAR)
-      END AS [MetaG1G2G3_historico],
-
-      FORMAT([atingimento_projetado], '0%') AS atingimento_projetado
-
-INTO #fct
-FROM [Robbyson].[dbo].[factibilidadeEfaixas] AS ff WITH (NOLOCK)
-LEFT JOIN [Robbyson].[rby].[indicador] AS id WITH (NOLOCK) 
-       ON ff.id = id.id_indicador
-WHERE data >= DATEADD(DD, 1, EOMONTH(DATEADD(MM, -1, GETDATE())))
--- AND factibilidade NOT IN ('Meta AeC')
-AND atributo like @atributo
-AND id_indicador = @id_indicador
--- AND id IN ('215')
-ORDER BY data, atributo, id;
-
-
-------------------------------------------------------------
--- Seleção final
-------------------------------------------------------------
-SELECT DISTINCT 
-      mat.[id_indicador],
-      id.[indicador_nome],
-      mat.meta,
-      mat.[Atributo],
-      mat.ganho_g1,
-      mat.escala,
-      mat.acumulado,
-      mat.data_inicio,
-      mat.data_fim,
-      fct.metasugerida,
-      fct.Meta_Escolhida,
-      fct.atingimento_projetado,
-
-      CASE id.[tipo_medida_indicador]
-          WHEN 'admin_generic_percentage' THEN FORMAT(rc.[resultado], '0.00%')
-          WHEN 'admin_generic_hour'       THEN CONVERT(VARCHAR(8), DATEADD(SECOND, [resultado], '00:00:00'), 108)
-          WHEN 'admin_generic_integer'    THEN FORMAT(rc.[resultado], '0')
-          WHEN 'admin_generic_float'      THEN FORMAT(rc.[resultado], '0.0')
-          WHEN 'admin_generic_coin'       THEN FORMAT(rc.[resultado], '0.0')
-          ELSE CAST(rc.[resultado] AS VARCHAR)
-      END AS [resultado_m0],
-
-      FORMAT([atingimento], '0%') AS atingimento_m0,
-
-      CASE id.[tipo_medida_indicador]
-          WHEN 'admin_generic_percentage' THEN FORMAT(rc.[meta], '0.00%')
-          WHEN 'admin_generic_hour'       THEN CONVERT(VARCHAR(8), DATEADD(SECOND, rc.[meta], '00:00:00'), 108)
-          WHEN 'admin_generic_integer'    THEN FORMAT(rc.[meta], '0')
-          WHEN 'admin_generic_float'      THEN FORMAT(rc.[meta], '0.0')
-          WHEN 'admin_generic_coin'       THEN FORMAT(rc.[meta], '0.0')
-          ELSE CAST(rc.[meta] AS VARCHAR)
-      END AS [meta_formatada],
-
-      CASE id.[tipo_medida_indicador]
-          WHEN 'admin_generic_percentage' THEN FORMAT(rc.[resultado_anterior], '0.00%')
-          WHEN 'admin_generic_hour'       THEN CONVERT(VARCHAR(8), DATEADD(SECOND, [resultado_anterior], '00:00:00'), 108)
-          WHEN 'admin_generic_integer'    THEN FORMAT(rc.[resultado_anterior], '0')
-          WHEN 'admin_generic_float'      THEN FORMAT(rc.[resultado_anterior], '0.0')
-          WHEN 'admin_generic_coin'       THEN FORMAT(rc.[resultado_anterior], '0.0')
-          ELSE CAST(rc.[resultado_anterior] AS VARCHAR)
-      END AS [resultado_m1],
-
-      FORMAT([atingimento_anterior], '0%') AS atingimento_m1,
-      [MaxData],
-      rc.mes, 
-      rc.mes_anterior,
-      CASE 
-          WHEN mes IS NULL THEN MONTH(mat.Data_inicio) 
-          ELSE MONTH(rc.mes) 
-      END AS mesreal,
-      id.[tipo_medida_indicador]
-
-FROM [ROBBYSON].[RBY].[IMPORT_MATRIZ] AS mat WITH (NOLOCK)
-
-LEFT JOIN (
-    SELECT 
-          rc.*, 
-          MONTH(rc.mes) AS mesreal,
-          rc_ant.atingimento AS atingimento_anterior,
-          rc_ant.resultado   AS resultado_anterior,
-          rc_ant.meta        AS meta_anterior,
-          rc_ant.mes         AS mes_anterior
-    FROM [Robbyson].[dbo].[resultado_consolidado] rc WITH (NOLOCK)
-    LEFT JOIN [Robbyson].[dbo].[resultado_consolidado] rc_ant WITH (NOLOCK)
-           ON rc_ant.id_indicador = rc.id_indicador
-          AND rc_ant.atributo     = rc.atributo
-          AND rc_ant.mes          = DATEADD(DAY, 1, EOMONTH(DATEADD(MONTH, -2, GETDATE())))
-    WHERE rc.mes = DATEADD(DAY, 1, EOMONTH(DATEADD(MONTH, -1, GETDATE())))
-) AS rc
-       ON rc.id_indicador = mat.id_indicador 
-      AND rc.atributo     = mat.atributo 
-      AND MONTH(mat.Data_inicio) = rc.mesreal
-
-LEFT JOIN (
-    SELECT
-          atributo,
-          cliente,
-          operacaohominum,
-          segmento1,
-          site,
-          COUNT(DISTINCT data) AS idade
-    FROM [Robbyson].[rlt].[hmn] (NOLOCK)
-    WHERE data BETWEEN DATEADD(d,1,EOMONTH(GETDATE(),-1)) 
-                   AND EOMONTH(DATEADD(MM, 0, GETDATE()))
-      AND NivelHierarquico = 'operacional'
-      AND TipoHierarquia   = 'operação'
-      AND atributo IS NOT NULL
-      AND SituacaoHominum = 'ativo'
-      AND FuncaoRM NOT LIKE 'analista de aten%'
-      AND FuncaoRM NOT LIKE 'auxiliar%'
-      AND FuncaoRM NOT LIKE 'analista de op%'
-      AND atributo NOT LIKE '%novo_tempo%'
-      AND atributo NOT IN ('premium - banco fibra - banco_fibra - sp5')
-    GROUP BY
-          atributo,
-          cliente,
-          operacaohominum,
-          segmento1,
-          site
-) AS hm 
-       ON hm.atributo = mat.atributo
-
-LEFT JOIN [Robbyson].[rby].[indicador] AS id WITH (NOLOCK) 
-       ON mat.id_indicador = id.id_indicador
-
-LEFT JOIN #fct fct 
-       ON fct.data     = mat.data_inicio 
-      AND fct.atributo = mat.atributo
-      AND fct.id = mat.id_indicador
-
-WHERE mat.data_inicio BETWEEN DATEADD(d,1,EOMONTH(GETDATE(),-1)) 
-                          AND EOMONTH(DATEADD(MM, 0, GETDATE()))
-  AND mat.ativo NOT IN (0, 6, 8) 
-  AND mat.tipo_matriz = 'Operacional'
-  AND mat.Atributo LIKE @atributo
-  AND mat.id_indicador = @id_indicador
-
-DROP TABLE #fct;
-
-
+    select data, atributo, id, nome_indicador, resultado as resultados, atingimento as atingimentos, MetaSugerida, Meta_Escolhida, atingimento_projetado, meta,
+    data_atualizacao as MaxData from [Robbyson].[dbo].[factibilidadeEfaixas] where data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, -2, GETDATE())))
+    and id = {id_indicador} and atributo like '%{atributo}%'
+    union ALL
+    select data, atributo, id, nome_indicador, resultado as resultados, atingimento as atingimentos, null as metasugerida, null as meta_escolhida, null as atingimento_projetado, meta,
+    data_atualizacao as MaxData from [Robbyson].[dbo].[factibilidadeEfaixas] where data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, -1, GETDATE())))
+    and id = {id_indicador} and atributo like '%{atributo}%'
     """)
-
     resultados = cur.fetchall()
     cur.close()
     conn.close()
-
     set_cache(cache_key, resultados)
     return resultados
