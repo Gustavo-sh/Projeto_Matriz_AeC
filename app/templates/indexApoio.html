@@ -222,10 +222,9 @@
                     <button
                         type="button"
                         hx-post="/trazer_resultados"
-                        hx-include="closest form"
                         hx-target="#bloco-metas"
                         hx-swap="innerHTML"
-                        hx-include="#atributo, #indicadores"
+                        hx-include="#atributo_hidden, #indicadores"
                         hx-on::htmx:responseError="document.getElementById('mensagens-indicador').innerText = JSON.parse(event.detail.xhr.response).detail">
                         Trazer Resultados
                     </button>

@@ -252,11 +252,9 @@ def add_registro(
         )
     registros.append(novo)
     save_registros(request, registros)
-    html_content = templates.TemplateResponse(
-    "_registro.html", 
-    {"request": request, "registros": registros} 
+    response = templates.TemplateResponse(
+        "_registro.html", {"request": request, "registros": registros}
     )
-    response = Response(content=html_content.body, media_type="text/html")
     response.headers["HX-Trigger"] = '{"mostrarSucesso": "xIndicadorx: Novo registro adicionado com sucesso!"}'
     return response
 
@@ -269,11 +267,10 @@ def pesquisar_m0(request: Request, atributo: str = Form(...)):
             detail="xFiltrox : Selecione um atributo primeiro!"
         )
     registros = query_m0(atributo)
-    html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": True} 
+    response = templates.TemplateResponse(
+        "_pesquisa.html",
+        {"request": request, "registros": registros, "show_checkbox": True},
     )
-    response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
     else:
@@ -289,11 +286,10 @@ def pesquisar_m1(request: Request, atributo: str = Form(...)):
             detail="xFiltrox: Selecione um atributo primeiro!"
         )
     registros = query_m1(atributo)
-    html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": True} 
+    response = templates.TemplateResponse(
+        "_pesquisa.html",
+        {"request": request, "registros": registros, "show_checkbox": True},
     )
-    response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
     else:
@@ -309,11 +305,10 @@ def pesquisar_m1_adm_apoio(request: Request, atributo: str = Form(...)):
             detail="xFiltrox: Selecione um atributo primeiro!"
         )
     registros = query_m1_adm_apoio(atributo)
-    html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
-    {"request": request, "registros": registros,  "show_checkbox": True} 
+    response = templates.TemplateResponse(
+        "_pesquisa.html",
+        {"request": request, "registros": registros, "show_checkbox": True},
     )
-    response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
     else:
@@ -329,11 +324,10 @@ def pesquisar_m0_adm_apoio(request: Request, atributo: str = Form(...)):
             detail="xFiltrox: Selecione um atributo primeiro!"
         )
     registros = query_m0_adm_apoio(atributo)
-    html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
-    {"request": request, "registros": registros,  "show_checkbox": True} 
+    response = templates.TemplateResponse(
+        "_pesquisa.html",
+        {"request": request, "registros": registros, "show_checkbox": True},
     )
-    response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
     else:
@@ -368,7 +362,7 @@ def submit_table(request: Request):
         save_registros_bd(registros, username)
         return "<p>Tabela submetida com sucesso!</p>"
     else:
-        return "<p>A soma de moedas deve ser igual a 30.</p>"
+        return "<p>A soma de moedas deve ser igual a 30 ou 35.</p>"
     
 @router.post("/trazer_resultados", response_class=HTMLResponse)
 def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = Form(...)):
@@ -388,18 +382,24 @@ def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = F
     m1 = query[0] if len(query) > 1 else None
     m0 = query[1] if len(query) > 1 else query[0]
     return templates.TemplateResponse(
-        "_resultados.html", 
+        "_resultados.html",
         {
             "request": request,
-            "meta_sugerida": m0[6] if m0[6] else "",
-            "meta_escolhida": m0[9] if m0[9] else "",
-            "atingimento_projetado": round(m0[8]*100, 2) if m0[8] else "",
+            # Campos de meta existem somente no registro de M-1 (primeira consulta)
+            "meta_sugerida": (m1[6] if (m1 and m1[6]) else (m0[6] if (m0 and m0[6]) else "")),
+            "meta_escolhida": (m1[7] if (m1 and m1[7]) else (m0[7] if (m0 and m0[7]) else "")),
+            "atingimento_projetado": (
+                round(m1[8] * 100, 2) if (m1 and m1[8]) else (round(m0[8] * 100, 2) if (m0 and m0[8]) else "")
+            ),
+            # Resultado/atingimento de M0 (mês anterior) só quando há M1 para comparação
             "resultado_m0": round(m0[4], 2) if m1 else "",
-            "atingimento_m0": round(m0[5]*100, 2) if m1 else "",
+            "atingimento_m0": round(m0[5] * 100, 2) if m1 else "",
+            # Resultado/atingimento de M1 (dois meses anteriores) ou fallback para único registro
             "resultado_m1": round(m1[4], 2) if m1 else round(m0[4], 2),
-            "atingimento_m1": round(m1[5]*100, 2) if m1 else round(m0[5]*100, 2),
-            "max_data": m1[10] if m1 else m0[10]
-        }
+            "atingimento_m1": round(m1[5] * 100, 2) if m1 else round(m0[5] * 100, 2),
+            # Exibir a data mais recente quando houver as duas
+            "max_data": (m0[10] if m0 else (m1[10] if m1 else "")),
+        },
     )
     # return templates.TemplateResponse(
     #     "_resultados.html", 
@@ -483,11 +483,9 @@ def duplicate_search_results(
         registro_copia["periodo"] = periodo 
         registros_atuais.append(registro_copia)
     save_registros(request, registros_atuais)
-    html_content = templates.TemplateResponse(
-        "_registro.html", 
-        {"request": request, "registros": registros_atuais} 
-    ) 
-    response = Response(content=html_content.body, media_type="text/html")
+    response = templates.TemplateResponse(
+        "_registro.html", {"request": request, "registros": registros_atuais}
+    )
     response.headers["HX-Trigger"] = '{"mostrarSucesso": "xPesquisax: Registros da pesquisa duplicados e adicionados com sucesso!"}'
     return response
 
@@ -507,11 +505,11 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
     tipo_indicador = registro_encontrado.get("tipo_indicador")
     if campo == 'moeda':
         try:
-            pass
+            int(valor_limpo)
         except ValueError:
             error_message = f"O campo {campo} deve ser um número inteiro."
             response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
-            response.headers["HX-Retarget"] = "#mensagens-registros" 
+            response.headers["HX-Retarget"] = "#mensagens-registros"
             response.headers["HX-Reswap"] = "innerHTML"
             response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
             return response
