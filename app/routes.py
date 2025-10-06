@@ -403,6 +403,7 @@ def duplicate_search_results(
               status_code=422,
               detail="xPesquisax: Selecione as datas de início e fim antes de duplicar!"
           )
+    print(registro_ids)
     if not registro_ids:
         raise HTTPException(
             status_code=422,
@@ -415,14 +416,14 @@ def duplicate_search_results(
         if role == 'operacao':
             cache_key = f"pesquisa_m0:{atributo}"
         elif role == 'adm' or role == 'apoio qualidade' or role == 'apoio planejamento':
-            cache_key = f"pesquisa_m0_adm_apoio:{atributo}"
+            cache_key = f"pesquisa_m0:{atributo}"
         else:
             raise HTTPException(status_code=422, detail="xPesquisax: Role invalida!")
     elif tipo_pesquisa == "m1":
         if role == 'operacao':
             cache_key = f"pesquisa_m1:{atributo}"
         elif role == 'adm' or role == 'apoio qualidade' or role == 'apoio planejamento':
-            cache_key = f"pesquisa_m1_adm_apoio:{atributo}"
+            cache_key = f"pesquisa_m1:{atributo}"
         else:
             raise HTTPException(status_code=422, detail="xPesquisax: Role invalida!")
     else:
