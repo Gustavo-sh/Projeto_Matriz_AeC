@@ -12,7 +12,7 @@ from app.cache import (
 )
 from app.conexoes_bd import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd,
-    query_m0, query_m1, validar_submit, get_atributos_adm_apoio, query_m1_adm_apoio, query_m0_adm_apoio, update_da_adm_apoio
+    query_m0, query_m1, validar_submit, get_atributos_adm_apoio, update_da_adm_apoio, #query_m1_adm_apoio, query_m0_adm_apoio,
 )
 
 router = APIRouter()
@@ -47,12 +47,12 @@ def login_page(request: Request, msg: Optional[str] = Query(None), erro: Optiona
     return templates.TemplateResponse("login.html", {"request": request, "msg": msg, "erro": erro})
 
 @router.post("/login")
-def login(
+async def login(
     request: Request,
     username: str = Form(...),
     password: str = Form(...)
 ):
-    user = get_user_bd(username)
+    user = await get_user_bd(username)
     if not user:
         return RedirectResponse("/login?erro=Usuário não cadastrado!", status_code=303)
     if not pwd_context.verify(password, user["password"]):
@@ -71,7 +71,6 @@ def redirect_by_role(request: Request):
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=303)
-
     role = user.get("role")
     if role == "operacao":
         return RedirectResponse("/matriz")
@@ -97,8 +96,8 @@ def register_page(request: Request, erro: Optional[str] = Query(None)):
     return templates.TemplateResponse("register.html", {"request": request, "erro": erro})
 
 @router.post("/register")
-def register_user(request: Request, username: str = Form(...), password: str = Form(...)):
-    if get_user_bd(username):
+async def register_user(request: Request, username: str = Form(...), password: str = Form(...)):
+    if await get_user_bd(username):
         return RedirectResponse("/register?erro=Usuário já cadastrado!", status_code=303)
     role = None
     if username in adms:
@@ -106,7 +105,7 @@ def register_user(request: Request, username: str = Form(...), password: str = F
     else:
         funcao = None
         try:
-            funcao = get_funcao(username)
+            funcao = await get_funcao(username)
         except Exception as e:
             funcao = f"Erro ao obter funcao: {e}"
         funcao_upper = funcao.upper() if funcao else ""
@@ -123,11 +122,11 @@ def register_user(request: Request, username: str = Form(...), password: str = F
     if not role:
         return RedirectResponse("/register?erro=Função não autorizada para cadastro.", status_code=303)
     hashed_password = pwd_context.hash(password)
-    save_user_bd(username, hashed_password, role)
+    await save_user_bd(username, hashed_password, role)
     return RedirectResponse("/login?msg=Usuário cadastrado com sucesso!", status_code=303)
 
 @router.get("/matriz")
-def matriz_page(request: Request):
+async def matriz_page(request: Request):
     logged_in = request.cookies.get(SESSION_COOKIE)
     if not logged_in or logged_in != "true":
         return RedirectResponse("/login", status_code=303)
@@ -136,9 +135,8 @@ def matriz_page(request: Request):
         return RedirectResponse("/login", status_code=303)
     _check_role_or_forbid(user, ["operacao"])
     username = request.cookies.get("username")
-    indicadores = get_indicadores()
-    #operacoes = get_operacao(username)
-    lista_atributos = get_atributos_matricula(username)
+    indicadores = await get_indicadores()
+    lista_atributos = await get_atributos_matricula(username)
     atributos = sorted(lista_atributos, key=lambda item: item.get('atributo') or '')
     registros = load_registros(request)
     return templates.TemplateResponse("index.html", {
@@ -147,11 +145,10 @@ def matriz_page(request: Request):
         "indicadores": indicadores,
         "username": username,
         "atributos": atributos,
-        #"operacoes": operacoes
     })
 
 @router.get("/indexApoio")
-def index_apoio(request: Request):
+async def index_apoio(request: Request):
     logged_in = request.cookies.get(SESSION_COOKIE)
     if not logged_in or logged_in != "true":
         return RedirectResponse("/login", status_code=303)
@@ -160,10 +157,8 @@ def index_apoio(request: Request):
         return RedirectResponse("/login", status_code=303)
     _check_role_or_forbid(user, ["apoio qualidade", "apoio planejamento"])
     username = request.cookies.get("username")
-    indicadores = get_indicadores()
-    # operacoes = get_operacao(username)
-    lista_atributos = get_atributos_matricula(username)
-    atributos = get_atributos_adm_apoio() #sorted(lista_atributos, key=lambda item: item.get('atributo') or '')
+    indicadores = await get_indicadores()
+    atributos = await get_atributos_adm_apoio() #sorted(lista_atributos, key=lambda item: item.get('atributo') or '')
     registros = load_registros(request)
     return templates.TemplateResponse("indexApoio.html", {
         "request": request,
@@ -171,11 +166,10 @@ def index_apoio(request: Request):
         "indicadores": indicadores,
         "username": username,
         "atributos": atributos,
-        #"operacoes": operacoes
     })
 
 @router.get("/indexAdm")
-def index_adm(request: Request):
+async def index_adm(request: Request):
     logged_in = request.cookies.get(SESSION_COOKIE)
     if not logged_in or logged_in != "true":
         return RedirectResponse("/login", status_code=303)
@@ -184,9 +178,8 @@ def index_adm(request: Request):
         return RedirectResponse("/login", status_code=303)
     _check_role_or_forbid(user, ["adm"])
     username = request.cookies.get("username")
-    indicadores = get_indicadores()
-    # operacoes = get_operacoes_adm(username)
-    atributos = get_atributos_adm_apoio()
+    indicadores = await get_indicadores()
+    atributos = await get_atributos_adm_apoio()
     registros = load_registros(request)
     return templates.TemplateResponse("indexAdm.html", {
         "request": request,
@@ -194,16 +187,7 @@ def index_adm(request: Request):
         "indicadores": indicadores,
         "username": username,
         "atributos": atributos
-        #"operacoes": operacoes
     })
-
-# @router.post("/get_atributos", response_class=HTMLResponse)
-# def get_atributos_by_operacao(request: Request, operacao: str = Form(...)):
-#     atributos = get_atributos(operacao)
-#     return templates.TemplateResponse("_atributos.html", {
-#         "request": request,
-#         "atributos": atributos
-#     })
 
 @router.post("/add", response_class=HTMLResponse)
 def add_registro(
@@ -261,14 +245,14 @@ def add_registro(
     return response
 
 @router.post("/pesquisarm0", response_class=HTMLResponse)
-def pesquisar_m0(request: Request, atributo: str = Form(...)):
+async def pesquisar_m0(request: Request, atributo: str = Form(...)):
     registros = []
     if not atributo:
         raise HTTPException(
             status_code=422,
             detail="xFiltrox : Selecione um atributo primeiro!"
         )
-    registros = query_m0(atributo)
+    registros = await query_m0(atributo)
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
     {"request": request, "registros": registros, "show_checkbox": True} 
@@ -281,14 +265,16 @@ def pesquisar_m0(request: Request, atributo: str = Form(...)):
     return response
 
 @router.post("/pesquisarm1", response_class=HTMLResponse)
-def pesquisar_m1(request: Request, atributo: str = Form(...)):
+async def pesquisar_m1(request: Request, atributo: str = Form(...)):
     registros = []
     if not atributo:
         raise HTTPException(
             status_code=422,
             detail="xFiltrox: Selecione um atributo primeiro!"
         )
-    registros = query_m1(atributo)
+    user = get_current_user(request)
+    role = "operacao" if "operacao" in user.get("role") else "adm_apoio"
+    registros = await query_m1(atributo, role)
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
     {"request": request, "registros": registros, "show_checkbox": True} 
@@ -300,48 +286,48 @@ def pesquisar_m1(request: Request, atributo: str = Form(...)):
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
     return response
 
-@router.post("/pesquisarm1admapoio", response_class=HTMLResponse)
-def pesquisar_m1_adm_apoio(request: Request, atributo: str = Form(...)):
-    registros = []
-    if not atributo:
-        raise HTTPException(
-            status_code=422,
-            detail="xFiltrox: Selecione um atributo primeiro!"
-        )
-    registros = query_m1_adm_apoio(atributo)
-    html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
-    {"request": request, "registros": registros,  "show_checkbox": True} 
-    )
-    response = Response(content=html_content.body, media_type="text/html")
-    if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
-    else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
-    return response
+# @router.post("/pesquisarm1admapoio", response_class=HTMLResponse)
+# async def pesquisar_m1_adm_apoio(request: Request, atributo: str = Form(...)):
+#     registros = []
+#     if not atributo:
+#         raise HTTPException(
+#             status_code=422,
+#             detail="xFiltrox: Selecione um atributo primeiro!"
+#         )
+#     registros = await query_m1_adm_apoio(atributo)
+#     html_content = templates.TemplateResponse(
+#     "_pesquisa.html", 
+#     {"request": request, "registros": registros,  "show_checkbox": True} 
+#     )
+#     response = Response(content=html_content.body, media_type="text/html")
+#     if len(registros) > 0:
+#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+#     else:
+#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+#     return response
 
-@router.post("/pesquisarm0admapoio", response_class=HTMLResponse)
-def pesquisar_m0_adm_apoio(request: Request, atributo: str = Form(...)):
-    registros = []
-    if not atributo:
-        raise HTTPException(
-            status_code=422,
-            detail="xFiltrox: Selecione um atributo primeiro!"
-        )
-    registros = query_m0_adm_apoio(atributo)
-    html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
-    {"request": request, "registros": registros,  "show_checkbox": True} 
-    )
-    response = Response(content=html_content.body, media_type="text/html")
-    if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
-    else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
-    return response
+# @router.post("/pesquisarm0admapoio", response_class=HTMLResponse)
+# async def pesquisar_m0_adm_apoio(request: Request, atributo: str = Form(...)):
+#     registros = []
+#     if not atributo:
+#         raise HTTPException(
+#             status_code=422,
+#             detail="xFiltrox: Selecione um atributo primeiro!"
+#         )
+#     registros = await query_m0_adm_apoio(atributo)
+#     html_content = templates.TemplateResponse(
+#     "_pesquisa.html", 
+#     {"request": request, "registros": registros,  "show_checkbox": True} 
+#     )
+#     response = Response(content=html_content.body, media_type="text/html")
+#     if len(registros) > 0:
+#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+#     else:
+#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+#     return response
 
 @router.post("/submit_table", response_class=HTMLResponse)
-def submit_table(request: Request):
+async def submit_table(request: Request):
     registros = load_registros(request)
     username = request.cookies.get("username", "anon")
     if not registros:
@@ -352,7 +338,7 @@ def submit_table(request: Request):
             pass
         else:
             moedas += int(dic["moeda"])
-        if validar_submit(dic["atributo"], dic["periodo"], dic["nome"], dic["data_inicio"], dic["data_fim"]):
+        if await validar_submit(dic["atributo"], dic["periodo"], dic["nome"], dic["data_inicio"], dic["data_fim"]):
             return "<p>Este indicador ja foi submetido para o periodo e atributo selecionado.</p>"
         if dic["tipo_indicador"] == "Hora":
             try:
@@ -365,20 +351,20 @@ def submit_table(request: Request):
             except Exception as e:
                 return "<p>Erro ao converter o tempo: " + str(e) + "</p>"
     if moedas == 30 or moedas == 35:
-        save_registros_bd(registros, username)
+        await save_registros_bd(registros, username)
         return "<p>Tabela submetida com sucesso!</p>"
     else:
         return "<p>A soma de moedas deve ser igual a 30.</p>"
     
 @router.post("/trazer_resultados", response_class=HTMLResponse)
-def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = Form(...)):
+async def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = Form(...)):
     if len(nome.split(" - ")) == 1:
         raise HTTPException(
             status_code=422,
             detail="xIndicadorx: Selecione um atributo e um indicador primeiro!"
         )
     id_indicador = nome.split(" - ")[0]
-    query = get_resultados(atributo, id_indicador)
+    query = await get_resultados(atributo, id_indicador)
     if not query:
         raise HTTPException(
             status_code=422,
@@ -401,20 +387,6 @@ def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = F
             "max_data": m1[10] if m1 else m0[10]
         }
     )
-    # return templates.TemplateResponse(
-    #     "_resultados.html", 
-    #     {
-    #         "request": request,
-    #         "meta_sugerida": row[9],
-    #         "meta_escolhida": row[10],
-    #         "atingimento_projetado": row[21],
-    #         "resultado_m0": row[12],
-    #         "atingimento_m0": row[13],
-    #         "resultado_m1": row[15],
-    #         "atingimento_m1": row[16],
-    #         "max_data": row[17]
-    #     }
-    # )
 
 @router.post("/duplicate_search_results", response_class=HTMLResponse)
 def duplicate_search_results(
@@ -581,7 +553,7 @@ def edit_campo_get(request: Request, registro_id: str, campo: str):
     """
 
 @router.post("/processar_acordo", response_class=HTMLResponse)
-def processar_acordo(
+async def processar_acordo(
     request: Request, 
     registro_ids: List[str] = Form([], alias="registro_ids"),
     status_acao: str = Form(..., alias="status_acao"),
@@ -595,19 +567,33 @@ def processar_acordo(
             status_code=422,
             detail="xPesquisax: Selecione pelo menos um registro para dar Acordo ou Não Acordo."
         )
-    print(status_acao)
     registros_pesquisa = get_from_cache(cache_key)
     if not registros_pesquisa:
-         raise HTTPException(status_code=404, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
+         raise HTTPException(status_code=422, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
     ids_selecionados = set(registro_ids)
     registros_apos_acao = []
+    updates_a_executar = []
     for r in registros_pesquisa:
         if str(r.get("id")) not in ids_selecionados:
             registros_apos_acao.append(r)
         else:
-            atributo, id, periodo = r.get("atributo"), r.get("nome"), r.get("periodo")
-            update_da_adm_apoio(atributo, periodo, id, role, status_acao, user.get("usuario"))
-            pass
+            # 1. COLETAR os parâmetros de WHERE
+            atributo = r.get("atributo")
+            id_nome_indicador = r.get("nome") # O cache usa 'nome'
+            periodo = r.get("periodo")
+            
+            # Adiciona a tupla de identificadores à lista
+            updates_a_executar.append((atributo, periodo, id_nome_indicador)) # <--- NOVO
+            
+            # ATENÇÃO: A chamada ao DB FOI REMOVIDA DESTE LOOP
+            # A chamada anterior: await update_da_adm_apoio(...) não existe mais aqui.
+
+    # 2. EXECUTAR a chamada ao DB em LOTE, APÓS o loop
+    if updates_a_executar:
+        role = user.get("role", "default")
+        username = user.get("usuario")
+        await update_da_adm_apoio(updates_a_executar, role, status_acao, username) # <--- NOVO
+
     set_cache(cache_key, registros_apos_acao)
     return templates.TemplateResponse(
         "_pesquisa.html", 

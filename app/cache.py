@@ -3,14 +3,21 @@ from datetime import datetime, timedelta
 import fakeredis
 from fastapi import Request
 import json
+# import redis
 
 CACHE = OrderedDict()
 CACHE_TTL = timedelta(minutes=5)
 CACHE_MAX_SIZE = 100
 redis_client = fakeredis.FakeRedis()
 
-SESSION_PREFIX = "session:"
+# redis_client = redis.StrictRedis(
+#     host='<HOST/IP FORNECIDO PELA TI>',
+#     port=6379, # Porta padrão, mas pode mudar
+#     db=0,
+#     decode_responses=True
+# )
 
+SESSION_PREFIX = "session:"
 
 def get_from_cache(key: str):
     if key in CACHE:

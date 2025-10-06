@@ -63,7 +63,7 @@
 
             <button
                 type="button"
-                hx-post="/pesquisarm0admapoio" 
+                hx-post="/pesquisarm0" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
@@ -72,7 +72,7 @@
 
             <button
                 type="button"
-                hx-post="/pesquisarm1admapoio" 
+                hx-post="/pesquisarm1" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
@@ -868,7 +868,7 @@
             const atributo = evt.detail.atributo;
 
             if (cacheKeyInput && tipo && atributo) {
-                const novaCacheKey = `pesquisa_${tipo}_adm_apoio:${atributo}`; 
+                const novaCacheKey = `pesquisa_${tipo}:${atributo}`; 
                 
                 cacheKeyInput.value = novaCacheKey;
                 console.log("CHAVE DE CACHE CONSTRUÍDA COM SUCESSO:", novaCacheKey); 

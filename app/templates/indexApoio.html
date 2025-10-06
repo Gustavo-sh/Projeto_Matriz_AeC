@@ -63,7 +63,7 @@
 
             <button
                 type="button"
-                hx-post="/pesquisarm0admapoio" 
+                hx-post="/pesquisarm0" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
@@ -72,7 +72,7 @@
 
             <button
                 type="button"
-                hx-post="/pesquisarm1admapoio" 
+                hx-post="/pesquisarm1" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
@@ -147,14 +147,14 @@
                         <option value="Controle">Controle</option>
                     </select>
 
-                    <label>Descrição:</label>
+                    <!-- <label>Descrição:</label>
                     <input type="text" name="descricao">
 
                     <label>Ativo:</label>
                     <input type="number" name="ativo">
 
                     <label>Chamado:</label>
-                    <input type="text" name="chamado">
+                    <input type="text" name="chamado"> -->
                     
                     <label>Critério: *</label>
                     <select name="criterio_final" id="criterio_final">
@@ -797,7 +797,6 @@
 
             const atributoInput = document.getElementById("duplicar_atributo");
             const tipoPesquisaInputAdmApoio = document.getElementById("tipo_pesquisa_admapoio");
-            
             const tipoPesquisaInputAntigo = document.getElementById("duplicar_tipo_pesquisa"); 
 
             if (xhr.status >= 200 && xhr.status < 300) {
@@ -863,12 +862,11 @@
 
         document.body.addEventListener('buildCacheKey', function(evt) {
             const cacheKeyInput = document.getElementById('cache_key_pesquisa');
-            
             const tipo = evt.detail.tipo;
             const atributo = evt.detail.atributo;
 
             if (cacheKeyInput && tipo && atributo) {
-                const novaCacheKey = `pesquisa_${tipo}_adm_apoio:${atributo}`; 
+                const novaCacheKey = `pesquisa_${tipo}:${atributo}`; 
                 
                 cacheKeyInput.value = novaCacheKey;
                 console.log("CHAVE DE CACHE CONSTRUÍDA COM SUCESSO:", novaCacheKey); 

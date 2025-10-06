@@ -3,12 +3,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, JSONResponse
 from datetime import datetime
 from app.routes import router
+from app.database import init_db_pool
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(router)
 
 SESSION_TIMEOUT = 10 * 60
+
+@app.on_event("startup")
+async def startup_event():
+    # Inicializa o pool de conexões (cria as conexões iniciais)
+    init_db_pool() 
 
 @app.middleware("http")
 async def session_middleware(request: Request, call_next):

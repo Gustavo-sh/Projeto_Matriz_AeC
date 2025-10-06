@@ -7,3 +7,5 @@ passlib[bcrypt]
 pyodbc
 fakeredis
 bcrypt==3.2.2
+fastapi-async-odbc
+gunicorn uvicorn
