@@ -6,8 +6,6 @@ import calendar
 from app.database import get_db_connection
 import asyncio 
 
-# Parte de Registro e Usuarios
-
 async def get_user_bd(username):
     cache_key = "user: " + username
     cached = get_from_cache(cache_key)
@@ -77,15 +75,12 @@ async def save_registros_bd(registros, username):
             
     await loop.run_in_executor(None, _sync_db_call)
 
-# Parte de consultas gerais
-
 async def batch_validar_submit_query(validation_conditions):
     or_clauses = []
     for cond in validation_conditions:
         atributo = cond['atributo']
         periodo = cond['periodo']
         id_nome_indicador = cond['id_nome_indicador']
-        
         clause = f"""
             (Atributo = '{atributo}' 
             AND periodo = '{periodo}' 
@@ -111,10 +106,7 @@ async def batch_validar_submit_query(validation_conditions):
 
 async def query_m0(atributo):
     cache_key = f"pesquisa_m0:{atributo}"
-    # cached = get_from_cache(cache_key)
     resultados = None
-    # if cached:
-    #     return cached
     loop = asyncio.get_event_loop()
     def _sync_db_call():
         with get_db_connection() as conn:
@@ -140,10 +132,7 @@ async def query_m0(atributo):
 
 async def query_m1(atributo, role):
     cache_key = f"pesquisa_m1:{atributo}"
-    # cached = get_from_cache(cache_key)
     resultados = None
-    # if cached:
-    #     return cached
     loop = asyncio.get_event_loop()
     def _sync_db_call():
         with get_db_connection() as conn:
@@ -173,54 +162,6 @@ async def query_m1(atributo, role):
     } for row in resultados]
     set_cache(cache_key, registros)
     return registros
-
-# async def query_m1_adm_apoio(atributo):
-#     resultados = None
-#     loop = asyncio.get_event_loop()
-#     def _sync_db_call():
-#         with get_db_connection() as conn:
-#             cur = conn.cursor()
-#             cur.execute(f"""
-#                 select * from Robbyson.dbo.Matriz_Geral (nolock)
-#                 WHERE Atributo = '{atributo}'
-#                 AND periodo = dateadd(d,1,eomonth(GETDATE()))
-#             """)
-#             resultados = cur.fetchall()
-#             cur.close()
-#             return resultados
-#     resultados = await loop.run_in_executor(None, _sync_db_call)
-#     registros = [{
-#         "atributo": row[0], "nome": row[1], "meta": row[2], "moeda": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
-#         "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
-#         "criterio_final": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possuiDmm": row[20], "dmm": row[21],
-#         "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
-#         "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
-#     } for row in resultados]
-#     return registros
-
-# async def query_m0_adm_apoio(atributo):
-#     resultados = None
-#     loop = asyncio.get_event_loop()
-#     def _sync_db_call():
-#         with get_db_connection() as conn:
-#             cur = conn.cursor()
-#             cur.execute(f"""
-#                 select * from Robbyson.dbo.Matriz_Geral (nolock)
-#                 WHERE Atributo = '{atributo}'
-#                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
-#             """)
-#             resultados = cur.fetchall()
-#             cur.close()
-#             return resultados
-#     resultados = await loop.run_in_executor(None, _sync_db_call)
-#     registros = [{
-#         "atributo": row[0], "nome": row[1], "meta": row[2], "moeda": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
-#         "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
-#         "criterio_final": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possuiDmm": row[20], "dmm": row[21],
-#         "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
-#         "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
-#     } for row in resultados]
-#     return registros
 
 async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username): 
     role_defined = None
@@ -255,37 +196,6 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
             conn.commit() 
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
-
-
-async def validar_submit(atributo, periodo, id_nome_indicador, data_inicio_sbmit, data_fim_submit):
-    cache_key = f"validar_submit:{atributo}+{periodo}+{id_nome_indicador}+{data_inicio_sbmit}+{data_fim_submit}"
-    cached = get_from_cache(cache_key)
-    resultados = None
-    if cached:
-        return cached
-    loop = asyncio.get_event_loop()
-    def _sync_db_call():
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute(f"""
-                select * from Robbyson.dbo.Matriz_Geral (nolock)
-                WHERE Atributo = '{atributo}'
-                AND periodo = '{periodo}'
-                AND id_nome_indicador = '{id_nome_indicador}'
-            """)
-            resultados = cur.fetchall()
-            cur.close()
-            return resultados
-    resultados = await loop.run_in_executor(None, _sync_db_call)
-    if len(resultados) > 0:
-        for i in resultados:
-            data_inicio_bd = i[8]
-            data_fim_bd = i[9]
-            if validar_datas(data_inicio_bd, data_fim_bd, data_inicio_sbmit, data_fim_submit):
-                set_cache(cache_key, True)
-                return True
-    set_cache(cache_key, False)
-    return False  
 
 def validar_datas(data_inicio_bd, data_fim_bd, data_inicio_sbmit, data_fim_submit):
     data_original = datetime.strptime(data_inicio_sbmit, '%Y-%m-%d').date()
@@ -333,68 +243,6 @@ async def get_indicadores():
     indicadores = [{"id": str(i[0]), "text": i[1], "acumulado": i[2], "esquema_acumulado": i[3], "formato": str(i[4])} for i in resultados]
     set_cache(cache_key, indicadores)
     return indicadores
-
-# def get_operacao(matricula):
-#     cache_key = f"operacao:{matricula}"
-#     cached = get_from_cache(cache_key)
-#     if cached:
-#         return cached
-
-#     pattern = re.compile(r"( CPG| SP| MSS| JPA| MOC| ARP| BH| RJ| JN| ORION| PLAN| PLANEJAMENTO| QUALIDADE)")
-#     conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
-#     cur = conn.cursor()
-#     cur.execute(f"""
-#         select descricao_cr_funcionariorm from [robbyson].[rlt].[hmn] (nolock) 
-#         where data = convert(date, getdate()-1) and matricula = {matricula}
-#     """)
-#     resultados = [pattern.sub("", i[0]) for i in cur.fetchall()]
-#     cur.close()
-#     conn.close()
-
-#     set_cache(cache_key, resultados)
-#     return resultados
-
-# def get_operacoes_adm(matricula='adm'):
-#     cache_key = f"operacao:{matricula}"
-#     cached = get_from_cache(cache_key)
-#     if cached:
-#         return cached
-
-#     pattern = re.compile(r"( CPG| SP| MSS| JPA| MOC| ARP| BH| RJ| JN| ORION| PLAN| PLANEJAMENTO| QUALIDADE)")
-#     conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
-#     cur = conn.cursor()
-#     cur.execute(f"""
-#         select distinct descricao_cr_funcionariorm from [robbyson].[rlt].[hmn] (nolock) 
-#         where data = convert(date, getdate()-1)
-#     """)
-#     resultados = [pattern.sub("", i[0]) for i in cur.fetchall()]
-#     cur.close()
-#     conn.close()
-
-#     set_cache(cache_key, resultados)
-#     return resultados
-
-# def get_atributos(operacao):
-#     cache_key = f"atributos:{operacao}"
-#     cached = get_from_cache(cache_key)
-#     if cached:
-#         return cached
-
-#     conn = pyodbc.connect("Driver={SQL Server};Server=primno4;Database=Robbyson;Trusted_Connection=yes;")
-#     cur = conn.cursor()
-#     cur.execute(f"""
-#         select distinct atributo, case when GERENTE is not null then GERENTE
-# when GERENTEPLENO is not null then GERENTEPLENO
-# when GERENTESENIOR is not null then GERENTESENIOR
-# else null end as Gerente from [robbyson].[rlt].[hmn] (nolock) 
-#         where data = convert(date, getdate()-1) and operacaohominum like '%{operacao}%'
-#     """)
-#     resultados = [{"atributo": i[0], "gerente": i[1]} for i in cur.fetchall()]
-#     cur.close()
-#     conn.close()
-
-#     set_cache(cache_key, resultados)
-#     return resultados
 
 async def get_atributos_adm_apoio():
     resultados = None

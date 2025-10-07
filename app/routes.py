@@ -12,8 +12,9 @@ from app.cache import (
 )
 from app.conexoes_bd import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd,
-    query_m0, query_m1, validar_submit, get_atributos_adm_apoio, update_da_adm_apoio, batch_validar_submit_query, validar_datas
+    query_m0, query_m1, get_atributos_adm_apoio, update_da_adm_apoio, batch_validar_submit_query, validar_datas
 )
+from app.validation import validation_submit_table
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -158,7 +159,7 @@ async def index_apoio(request: Request):
     _check_role_or_forbid(user, ["apoio qualidade", "apoio planejamento"])
     username = request.cookies.get("username")
     indicadores = await get_indicadores()
-    atributos = await get_atributos_adm_apoio() #sorted(lista_atributos, key=lambda item: item.get('atributo') or '')
+    atributos = await get_atributos_adm_apoio()
     registros = load_registros(request)
     return templates.TemplateResponse("indexApoio.html", {
         "request": request,
@@ -286,81 +287,18 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
     return response
 
-# @router.post("/pesquisarm1admapoio", response_class=HTMLResponse)
-# async def pesquisar_m1_adm_apoio(request: Request, atributo: str = Form(...)):
-#     registros = []
-#     if not atributo:
-#         raise HTTPException(
-#             status_code=422,
-#             detail="xFiltrox: Selecione um atributo primeiro!"
-#         )
-#     registros = await query_m1_adm_apoio(atributo)
-#     html_content = templates.TemplateResponse(
-#     "_pesquisa.html", 
-#     {"request": request, "registros": registros,  "show_checkbox": True} 
-#     )
-#     response = Response(content=html_content.body, media_type="text/html")
-#     if len(registros) > 0:
-#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
-#     else:
-#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
-#     return response
-
-# @router.post("/pesquisarm0admapoio", response_class=HTMLResponse)
-# async def pesquisar_m0_adm_apoio(request: Request, atributo: str = Form(...)):
-#     registros = []
-#     if not atributo:
-#         raise HTTPException(
-#             status_code=422,
-#             detail="xFiltrox: Selecione um atributo primeiro!"
-#         )
-#     registros = await query_m0_adm_apoio(atributo)
-#     html_content = templates.TemplateResponse(
-#     "_pesquisa.html", 
-#     {"request": request, "registros": registros,  "show_checkbox": True} 
-#     )
-#     response = Response(content=html_content.body, media_type="text/html")
-#     if len(registros) > 0:
-#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
-#     else:
-#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
-#     return response
-
 @router.post("/submit_table", response_class=HTMLResponse)
 async def submit_table(request: Request):
     registros = load_registros(request)
     username = request.cookies.get("username", "anon")
     if not registros:
         return "<p>Nenhum registro para submeter.</p>"
-    moedas = 0
-    validation_conditions = []
-    for dic in registros:
-        moeda_val = dic.get("moeda", "")
-        if moeda_val == 0: 
-            moeda_val = ""
-            dic["moeda"] = ""
-        if moeda_val == "":
-            pass
-        else:
-            try:
-                moedas += int(moeda_val)
-            except ValueError:
-                return "<p>Erro: Moeda deve ser um valor inteiro.</p>"
-        if dic["tipo_indicador"] == "Hora":
-            try:
-                if len(dic["meta"].split(':')) < 2:
-                    return "<p>O valor digitado em meta não foi um valor de hora no formato HH:MM.</p>"
-            except Exception as e:
-                return "<p>Erro ao converter o tempo: " + str(e) + "</p>"
-        validation_conditions.append({
-            "atributo": dic["atributo"],
-            "periodo": dic["periodo"],
-            "id_nome_indicador": dic["nome"],
-            "data_inicio_sbmit": dic["data_inicio"],
-            "data_fim_submit": dic["data_fim"]
-        })
+    results = validation_submit_table(registros)
+    if isinstance(results, str):
+        return results
+    moedas, validation_conditions = results
     if moedas != 30 and moedas != 35:
-        return "<p>A soma de moedas deve ser igual a 30.</p>"
+        return "<p>A soma de moedas deve ser igual a 30 ou 35.</p>"
     existing_records = await batch_validar_submit_query(validation_conditions)
     for existing_row in existing_records:
         atributo_bd, periodo_bd, id_nome_indicador_bd, data_inicio_bd, data_fim_bd = existing_row
@@ -372,15 +310,12 @@ async def submit_table(request: Request):
                     return "<p>Este indicador ja foi submetido para o periodo e atributo selecionado.</p>"     
     await save_registros_bd(registros, username)
     save_registros(request, [])
-
     response = Response(
         content="<p>Tabela submetida com sucesso! Atualizando página...</p>",
         status_code=status.HTTP_200_OK,
         media_type="text/html"
     )
-    
     response.headers["HX-Trigger"] = '{"mostrarSucesso": "Tabela submetida com sucesso"}' 
-    
     return response
     
 @router.post("/trazer_resultados", response_class=HTMLResponse)
@@ -397,7 +332,6 @@ async def trazer_resultados(request: Request, atributo: str = Form(...), nome: s
             status_code=422,
             detail="xIndicadorx: Nenhum resultado encontrado para o indicador e atributo selecionados."
         )
-    # row = query[0]
     m1 = query[0] if len(query) > 1 else None
     m0 = query[1] if len(query) > 1 else query[0]
     return templates.TemplateResponse(
@@ -430,7 +364,6 @@ def duplicate_search_results(
               status_code=422,
               detail="xPesquisax: Selecione as datas de início e fim antes de duplicar!"
           )
-    print(registro_ids)
     if not registro_ids:
         raise HTTPException(
             status_code=422,
@@ -548,15 +481,15 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
     elif tipo_indicador in ["Hora"] and campo != 'moeda':
         try:
             hora_splitada = valor_limpo.split(':')
-            if len(hora_splitada) < 2 or hora_splitada[0] == '' or hora_splitada[1] == '':
-                error_message = f"Não foi digitado uma hora válida no formato HH:MM."
+            if len(hora_splitada) < 3 or hora_splitada[0] == '' or hora_splitada[1] == '' or hora_splitada[2] == '':
+                error_message = f"Não foi digitado uma hora válida no formato HH:MM:SS."
                 response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
                 response.headers["HX-Retarget"] = "#mensagens-registros"
                 response.headers["HX-Reswap"] = "innerHTML"
                 response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
                 return response     
         except ValueError:
-            error_message = f"Validação de hora falhou, insira apenas caracteres válidos no formato HH:MM."
+            error_message = f"Validação de hora falhou, insira apenas caracteres válidos no formato HH:MM:SS."
             response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
             response.headers["HX-Retarget"] = "#mensagens-registros"
             response.headers["HX-Reswap"] = "innerHTML"
@@ -614,23 +547,14 @@ async def processar_acordo(
         if str(r.get("id")) not in ids_selecionados:
             registros_apos_acao.append(r)
         else:
-            # 1. COLETAR os parâmetros de WHERE
             atributo = r.get("atributo")
             id_nome_indicador = r.get("nome") # O cache usa 'nome'
             periodo = r.get("periodo")
-            
-            # Adiciona a tupla de identificadores à lista
             updates_a_executar.append((atributo, periodo, id_nome_indicador)) # <--- NOVO
-            
-            # ATENÇÃO: A chamada ao DB FOI REMOVIDA DESTE LOOP
-            # A chamada anterior: await update_da_adm_apoio(...) não existe mais aqui.
-
-    # 2. EXECUTAR a chamada ao DB em LOTE, APÓS o loop
     if updates_a_executar:
         role = user.get("role", "default")
         username = user.get("usuario")
         await update_da_adm_apoio(updates_a_executar, role, status_acao, username) # <--- NOVO
-
     set_cache(cache_key, registros_apos_acao)
     return templates.TemplateResponse(
         "_pesquisa.html", 
