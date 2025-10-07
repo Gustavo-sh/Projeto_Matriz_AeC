@@ -13,7 +13,6 @@ async def get_user_bd(username):
     cached = get_from_cache(cache_key)
     if cached:
         return cached
-
     loop = asyncio.get_event_loop()
     def _sync_db_call():
         with get_db_connection() as conn:
@@ -25,9 +24,6 @@ async def get_user_bd(username):
             cur.close()
             return resultados
     resultados = await loop.run_in_executor(None, _sync_db_call)
-
-    # A conexão é automaticamente DEVOLVIDA ao pool quando o bloco 'with' termina.
-
     if len(resultados) == 1:
         return resultados[0]
     set_cache(cache_key, None)
@@ -47,21 +43,71 @@ async def save_user_bd(username, hashed_password, role):
 
 async def save_registros_bd(registros, username):
     data = datetime.now()
+    username_sql = str(username) if username is not None else 'NULL'
+    data_sql = f"'{data}'" 
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        values_clauses = []
+        for i in registros:
+            row_values = [
+                f"'{i['atributo']}'", f"'{i['nome']}'", f"'{i['meta']}'", f"'{i['moeda']}'",
+                f"'{i['tipo_indicador']}'", f"'{i['acumulado']}'", f"'{i['esquema_acumulado']}'",
+                f"'{i['tipo_matriz']}'", f"'{i['data_inicio']}'", f"'{i['data_fim']}'",
+                f"'{i['periodo']}'", f"'{i['escala']}'", f"'{i['tipo_faturamento']}'",
+                f"'{i['descricao']}'", f"'{i['ativo']}'", f"'{i['chamado']}'",
+                f"'{i['criterio_final']}'", f"'{i['area']}'", f"'{i['responsavel']}'",
+                f"'{i['gerente']}'", f"'{i['possuiDmm']}'", f"'{i['dmm']}'",
+                username_sql, 
+                data_sql,
+                "'', '', '', '', '', '', '', '', ''"
+            ]
+            values_clauses.append(f"({', '.join(row_values)})")
+        full_values_string = ",\n".join(values_clauses)
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            
+            if full_values_string:
+                batch_insert_query = f"""
+                    insert into Robbyson.dbo.Matriz_Geral values 
+                    {full_values_string}
+                """
+                cur.execute(batch_insert_query)
+                cur.commit()
+            cur.close()
+            
+    await loop.run_in_executor(None, _sync_db_call)
+
+# Parte de consultas gerais
+
+async def batch_validar_submit_query(validation_conditions):
+    or_clauses = []
+    for cond in validation_conditions:
+        atributo = cond['atributo']
+        periodo = cond['periodo']
+        id_nome_indicador = cond['id_nome_indicador']
+        
+        clause = f"""
+            (Atributo = '{atributo}' 
+            AND periodo = '{periodo}' 
+            AND id_nome_indicador = '{id_nome_indicador}')
+        """
+        or_clauses.append(clause)
+        
+    if not or_clauses:
+        return []
+    full_where_clause = " OR ".join(or_clauses)  
     loop = asyncio.get_event_loop()
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            for i in registros:
-                cur.execute(f"""
-                    insert into Robbyson.dbo.Matriz_Geral values ('{i["atributo"]}', '{i["nome"]}', '{i["meta"]}', '{i["moeda"]}', '{i["tipo_indicador"]}', '{i["acumulado"]}', '{i["esquema_acumulado"]}',
-                    '{i["tipo_matriz"]}', '{i["data_inicio"]}', '{i["data_fim"]}', '{i["periodo"]}', '{i["escala"]}', '{i["tipo_faturamento"]}', '{i["descricao"]}', '{i["ativo"]}', '{i["chamado"]}',
-                    '{i["criterio_final"]}', '{i["area"]}', '{i["responsavel"]}', '{i["gerente"]}', '{i["possuiDmm"]}', '{i["dmm"]}', '{username}', '{data}', '', '', '', '', '', '', '', '', '')
-                """)
-            cur.commit()
+            cur.execute(f"""
+                select Atributo, periodo, id_nome_indicador, data_inicio, data_fim from Robbyson.dbo.Matriz_Geral (nolock)
+                WHERE {full_where_clause}
+            """)
+            resultados_db = cur.fetchall()
             cur.close()
-    await loop.run_in_executor(None, _sync_db_call)
-
-# Parte de consultas gerais
+            return resultados_db        
+    return await loop.run_in_executor(None, _sync_db_call)
 
 async def query_m0(atributo):
     cache_key = f"pesquisa_m0:{atributo}"
@@ -197,7 +243,6 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
             cur = conn.cursor()
             for update_item in lista_de_updates:
                 atributo, periodo, id_nome_indicador = update_item
-                print(f"atributo: {atributo} / periodo: {periodo} / id_nome_indicador: {id_nome_indicador}")
                 cur.execute(f"""
                 update dbo.Matriz_Geral set 
                     {campo_usuario} = {username}, 

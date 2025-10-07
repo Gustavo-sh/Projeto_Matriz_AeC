@@ -30,23 +30,6 @@
             <label>Usuário:</label>
             <input type="text" name="username" id="username" value="{{ username or '' }}" readonly>
 
-            <!-- <label>Operação:</label>
-            <select name="operacao" id="operacao_select">
-                <option value="">Selecione a operação...</option>
-                {% for op in operacoes %}
-                    <option value="{{ op }}">{{ op }}</option>
-                {% endfor %}
-            </select>
-
-            <button
-                type="button"
-                hx-post="/get_atributos"
-                hx-target="#atributos-container"
-                hx-swap="innerHTML"
-                hx-include="[name='operacao']">
-                Carregar Atributos
-            </button> -->
-
             <div id="atributos-container">
                 <label>Atributo: *</label>
                 <select name="atributo" id="atributo_select">
@@ -146,15 +129,6 @@
                         <option value="Relacionamento">Relacionamento</option>
                         <option value="Controle">Controle</option>
                     </select>
-
-                    <!-- <label>Descrição:</label>
-                    <input type="text" name="descricao">
-
-                    <label>Ativo:</label>
-                    <input type="number" name="ativo">
-
-                    <label>Chamado:</label>
-                    <input type="text" name="chamado"> -->
                     
                     <label>Critério: *</label>
                     <select name="criterio_final" id="criterio_final">
@@ -233,7 +207,6 @@
                     <div class="mensagens-indicador" id="mensagens-indicador"></div>
                 </div>
 
-                <!-- Botão centralizado embaixo -->
                 <div class="form-submit">
                     <button type="submit">Enviar</button>
                 </div>
@@ -241,10 +214,6 @@
         </div>
     </div>
 
-    <!-- Nova tabela: resultados da pesquisa -->
-    <!-- <div class="titulo-principal">
-        <h3>Resultados da Pesquisa</h3>
-    </div> -->
     <div class="registros">
         <h4>Resultado por Atributo</h4>
         <form id="form-acordo" 
@@ -298,10 +267,17 @@
                     </tbody>
                 </table>
             </div>
+
+            <button 
+                type="button" 
+                id="selecionar-tudo-btn" 
+                class="select-all">
+                Selecionar Tudo
+            </button>
             
             <input type="hidden" name="cache_key" id="cache_key_pesquisa" value="">
             <input type="hidden" name="tipo_pesquisa_admapoio" id="tipo_pesquisa_admapoio" value="">
-            <h4>Selecione os registros que deseja dar acordo ou não acordo antes de clicar nos botões abaixo.</h4>
+            <h4>Selecione os registros que deseja dar acordo, não acordo ou duplicar antes de clicar nos botões abaixo.</h4>
             <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
                 <button type="submit" 
                         name="status_acao" 
@@ -320,8 +296,6 @@
                 </button>
             </div>
         </form>
-
-        
 
         <div id="container-duplicar-pesquisa" class="container-duplicar-pesquisa" style="margin-top: 20px; text-align: center;">
     
@@ -767,7 +741,11 @@
         const mensagem = evt.detail.value; 
         const indicadorDiv = document.getElementById("mensagens-indicador");
         const filtroDiv = document.getElementById("mensagens-filtro");
-
+        if (evt.detail.value.includes("Tabela submetida com sucesso")) {
+            setTimeout(function() {
+            window.location.reload(); 
+        }, 3000);
+        }
         if (indicadorDiv && mensagem) {
             const successMessageHTML = `
                 <div>
@@ -877,5 +855,25 @@
     });
     </script>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectAllButton = document.getElementById('selecionar-tudo-btn');
+            if (selectAllButton) {
+                selectAllButton.addEventListener('click', function() {
+                    const checkboxes = document.querySelectorAll('input[name="registro_ids"]');
+                    let shouldSelect = false;
+                    checkboxes.forEach(cb => {
+                        if (!cb.checked) {
+                            shouldSelect = true;
+                        }
+                    });
+                    checkboxes.forEach(cb => {
+                        cb.checked = shouldSelect;
+                    });
+                    selectAllButton.textContent = shouldSelect ? 'Desmarcar Tudo' : 'Selecionar Tudo';
+                });
+            }
+        });
+    </script>
 </body>
 </html>

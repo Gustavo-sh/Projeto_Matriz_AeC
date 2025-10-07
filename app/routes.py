@@ -12,7 +12,7 @@ from app.cache import (
 )
 from app.conexoes_bd import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd,
-    query_m0, query_m1, validar_submit, get_atributos_adm_apoio, update_da_adm_apoio, #query_m1_adm_apoio, query_m0_adm_apoio,
+    query_m0, query_m1, validar_submit, get_atributos_adm_apoio, update_da_adm_apoio, batch_validar_submit_query, validar_datas
 )
 
 router = APIRouter()
@@ -333,28 +333,55 @@ async def submit_table(request: Request):
     if not registros:
         return "<p>Nenhum registro para submeter.</p>"
     moedas = 0
+    validation_conditions = []
     for dic in registros:
-        if dic["moeda"] == "":
+        moeda_val = dic.get("moeda", "")
+        if moeda_val == 0: 
+            moeda_val = ""
+            dic["moeda"] = ""
+        if moeda_val == "":
             pass
         else:
-            moedas += int(dic["moeda"])
-        if await validar_submit(dic["atributo"], dic["periodo"], dic["nome"], dic["data_inicio"], dic["data_fim"]):
-            return "<p>Este indicador ja foi submetido para o periodo e atributo selecionado.</p>"
+            try:
+                moedas += int(moeda_val)
+            except ValueError:
+                return "<p>Erro: Moeda deve ser um valor inteiro.</p>"
         if dic["tipo_indicador"] == "Hora":
             try:
-                # horas = int(dic["meta"].split(':')[0])
-                # minutos = int(dic["meta"].split(':')[1])
-                # total_segundos = (horas * 3600) + (minutos * 60)
-                # dic["meta"] = total_segundos
                 if len(dic["meta"].split(':')) < 2:
-                    return "<p>O valor digitado em meta não foi um valro de hora no formato HH:MM.</p>"
+                    return "<p>O valor digitado em meta não foi um valor de hora no formato HH:MM.</p>"
             except Exception as e:
                 return "<p>Erro ao converter o tempo: " + str(e) + "</p>"
-    if moedas == 30 or moedas == 35:
-        await save_registros_bd(registros, username)
-        return "<p>Tabela submetida com sucesso!</p>"
-    else:
+        validation_conditions.append({
+            "atributo": dic["atributo"],
+            "periodo": dic["periodo"],
+            "id_nome_indicador": dic["nome"],
+            "data_inicio_sbmit": dic["data_inicio"],
+            "data_fim_submit": dic["data_fim"]
+        })
+    if moedas != 30 and moedas != 35:
         return "<p>A soma de moedas deve ser igual a 30.</p>"
+    existing_records = await batch_validar_submit_query(validation_conditions)
+    for existing_row in existing_records:
+        atributo_bd, periodo_bd, id_nome_indicador_bd, data_inicio_bd, data_fim_bd = existing_row
+        for cond in validation_conditions:
+            if (cond['atributo'] == atributo_bd and 
+                cond['periodo'] == periodo_bd and 
+                cond['id_nome_indicador'] == id_nome_indicador_bd):
+                if validar_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
+                    return "<p>Este indicador ja foi submetido para o periodo e atributo selecionado.</p>"     
+    await save_registros_bd(registros, username)
+    save_registros(request, [])
+
+    response = Response(
+        content="<p>Tabela submetida com sucesso! Atualizando página...</p>",
+        status_code=status.HTTP_200_OK,
+        media_type="text/html"
+    )
+    
+    response.headers["HX-Trigger"] = '{"mostrarSucesso": "Tabela submetida com sucesso"}' 
+    
+    return response
     
 @router.post("/trazer_resultados", response_class=HTMLResponse)
 async def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = Form(...)):
@@ -519,13 +546,22 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
             response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
             return response
     elif tipo_indicador in ["Hora"] and campo != 'moeda':
-        if len(valor_limpo.split(':')) < 2:
-            error_message = f"O campo {campo} para o tipo '{tipo_indicador}' deve ser um valor número válido."
+        try:
+            hora_splitada = valor_limpo.split(':')
+            if len(hora_splitada) < 2 or hora_splitada[0] == '' or hora_splitada[1] == '':
+                error_message = f"Não foi digitado uma hora válida no formato HH:MM."
+                response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
+                response.headers["HX-Retarget"] = "#mensagens-registros"
+                response.headers["HX-Reswap"] = "innerHTML"
+                response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
+                return response     
+        except ValueError:
+            error_message = f"Validação de hora falhou, insira apenas caracteres válidos no formato HH:MM."
             response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
             response.headers["HX-Retarget"] = "#mensagens-registros"
             response.headers["HX-Reswap"] = "innerHTML"
             response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-            return response      
+            return response     
     registro_encontrado[campo] = valor_limpo
     save_registros(request, registros)
     return f'{registro_encontrado.get(campo) or ""}'
