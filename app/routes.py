@@ -296,9 +296,7 @@ async def submit_table(request: Request):
     results = validation_submit_table(registros)
     if isinstance(results, str):
         return results
-    moedas, validation_conditions = results
-    if moedas != 30 and moedas != 35:
-        return "<p>A soma de moedas deve ser igual a 30 ou 35.</p>"
+    validation_conditions, registros = results
     existing_records = await batch_validar_submit_query(validation_conditions)
     for existing_row in existing_records:
         atributo_bd, periodo_bd, id_nome_indicador_bd, data_inicio_bd, data_fim_bd = existing_row
