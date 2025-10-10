@@ -259,6 +259,29 @@ async def get_atributos_adm_apoio():
     resultados = await loop.run_in_executor(None, _sync_db_call)
     return resultados
 
+async def get_num_atendentes(atributo):
+    cache_key = f"num_atendentes:{atributo}"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+    resultados = None
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+            select count(matricula) as matriculas from [robbyson].[rlt].[hmn] (nolock) where data = convert(date, getdate()-1) 
+            and atributo like '%{atributo}%'
+            and funcaorm in ('atendente', 'atendente i')
+            and SituacaoHominum in ('ativo', 'treinamento')
+            """)
+            resultados = [i[0] for i in cur.fetchall()]
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    set_cache(cache_key, resultados[0])
+    return resultados[0]
+
 async def get_atributos_matricula(matricula):
     cache_key = f"atributos_matricula:{matricula}"
     cached = get_from_cache(cache_key)

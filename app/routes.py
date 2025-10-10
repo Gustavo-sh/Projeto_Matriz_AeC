@@ -12,7 +12,7 @@ from app.cache import (
 )
 from app.conexoes_bd import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd,
-    query_m0, query_m1, get_atributos_adm_apoio, update_da_adm_apoio, batch_validar_submit_query, validar_datas
+    query_m0, query_m1, get_atributos_adm_apoio, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes
 )
 from app.validation import validation_submit_table
 
@@ -293,6 +293,10 @@ async def submit_table(request: Request):
     username = request.cookies.get("username", "anon")
     if not registros:
         return "<p>Nenhum registro para submeter.</p>"
+    num_atendentes = await get_num_atendentes(registros[0]["atributo"]) if registros[0]["tipo_matriz"] == "OPERAÇÃO" else None
+    if registros[0]["tipo_matriz"] == "OPERAÇÃO":
+        if num_atendentes == 0 or num_atendentes == '0':
+            return "<p>Não é possível submeter a matriz, pois o atributo selecionado não possui nenhum atendente de nível 1.</p>"
     results = validation_submit_table(registros)
     if isinstance(results, str):
         return results
