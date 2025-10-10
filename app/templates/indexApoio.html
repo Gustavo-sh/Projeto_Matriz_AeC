@@ -309,13 +309,24 @@
                 <label>Período:
                     <input type="text" name="periodo" id="periodo_duplicar" class="flatpickr-input-data" placeholder="Selecione data-inicio" value="" readonly>
                 </label>
+
+                <label>Possui DMM: *
+                    <div class="radio-group" id="possuiDmmRadio">
+                        <label><input type="radio" name="possuiDmmDuplicar" id="sim_duplicar" value="Sim"> Sim</label>
+                        <label><input type="radio" name="possuiDmmDuplicar" value="Não" checked> Não</label>
+                    </div>
+                </label>
+
+                <label>DMM:
+                    <input type="text" id="dmm_duplicar" name="dmm" class="flatpickr-input-data" placeholder="Selecione as datas, caso haja">
+                </label>
             </div>
 
             <form hx-post="/duplicate_search_results" 
                 hx-target="#registros" 
                 hx-swap="innerHTML"
                 hx-trigger="submit" 
-                hx-include="#pesquisa-form-data, #data_inicio_duplicar, #data_fim_duplicar, #periodo_duplicar, #tabela-pesquisa input[name='registro_ids']:checked">
+                hx-include="#pesquisa-form-data, #data_inicio_duplicar, #data_fim_duplicar, #periodo_duplicar, #tabela-pesquisa input[name='registro_ids']:checked, #dmm_duplicar, #possuiDmmRadio">
                 
                 <div id="pesquisa-form-data" style="display:none;">
                     <input type="hidden" name="atributo" id="duplicar_atributo" value="">
@@ -445,6 +456,22 @@
         }
     });
 
+    const dmmPickerDuplicar = flatpickr("#dmm_duplicar", {
+        mode: "multiple",
+        dateFormat: "Y-m-d",
+        locale: "pt",
+        altInput: true,
+        altFormat: "d/m/Y",
+        clickOpens: false, 
+        onChange: function(selectedDates, dateStr, instance) {
+            if (selectedDates.length > 5) {
+                selectedDates.pop();
+                instance.setDate(selectedDates); 
+                alert("Você só pode selecionar no máximo 5 datas.");
+            }
+        }
+    });
+
     function updateDmmLimits() {
         const inicio = document.getElementById("data_inicio").value;
         const fim = document.getElementById("data_fim").value;
@@ -460,10 +487,30 @@
         }
     }
 
+    function updateDmmDuplicarLimits() {
+        const inicio = document.getElementById("data_inicio_duplicar").value;
+        const fim = document.getElementById("data_fim_duplicar").value;
+        const possuiDmm = document.querySelector("input[name='possuiDmmDuplicar']:checked")?.value;
+
+        if (inicio && fim && possuiDmm === "Sim") {
+            dmmPickerDuplicar.set("minDate", inicio);
+            dmmPickerDuplicar.set("maxDate", fim);
+            dmmPickerDuplicar.set("clickOpens", true);
+        } else {
+            dmmPickerDuplicar.clear();
+            dmmPicdmmPickerDuplicarker.set("clickOpens", false); 
+        }
+    }
+
     document.getElementById("data_inicio").addEventListener("change", updateDmmLimits);
     document.getElementById("data_fim").addEventListener("change", updateDmmLimits);
+    document.getElementById("data_inicio_duplicar").addEventListener("change", updateDmmDuplicarLimits);
+    document.getElementById("data_fim_duplicar").addEventListener("change", updateDmmDuplicarLimits);
     document.querySelectorAll("input[name='possuiDmm']").forEach(radio => {
         radio.addEventListener("change", updateDmmLimits);
+    });
+    document.querySelectorAll("input[name='possuiDmmDuplicar']").forEach(radio => {
+        radio.addEventListener("change", updateDmmDuplicarLimits);
     });
     </script>
 

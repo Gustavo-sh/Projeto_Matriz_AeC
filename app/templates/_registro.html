@@ -27,7 +27,11 @@
     <td>{{ row.escala or "" }}</td>
     <td>{{ row.tipo_faturamento or "" }}</td>
     <td>{{ row.descricao or "" }}</td>
-    <td>{{ row.ativo or "" }}</td>
+    <td hx-trigger="dblclick"
+        hx-get="/edit_campo/{{ row.id }}/ativo"  hx-target="this"
+        hx-swap="outerHTML">
+        {{ row.ativo or "" }}
+    </td>
     <td>{{ row.chamado or "" }}</td>
     <td>{{ row.criterio_final or "" }}</td>
     <td>{{ row.area or "" }}</td>

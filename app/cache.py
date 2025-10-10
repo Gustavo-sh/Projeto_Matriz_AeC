@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import fakeredis
 from fastapi import Request
 import json
+from datetime import timedelta
 # import redis
 
 CACHE = OrderedDict()
@@ -17,7 +18,14 @@ redis_client = fakeredis.FakeRedis()
 #     decode_responses=True
 # )
 
+# CACHE_TTL_24H = timedelta(hours=24).total_seconds() # 86400 segundos
 SESSION_PREFIX = "session:"
+
+# def set_cache_24h(key: str, valor):
+#     """Salva um valor no Redis com expiração de 24 horas."""
+#     # O Redis armazena strings, então convertemos para JSON
+#     data = json.dumps(valor)
+#     redis_client.set(key, data, ex=int(CACHE_TTL_24H)) # 'ex' define o tempo de expiração em segundos
 
 def get_from_cache(key: str):
     if key in CACHE:
@@ -28,12 +36,12 @@ def get_from_cache(key: str):
         del CACHE[key]
     return None
 
-def set_cache(key: str, valor):
+def set_cache(key: str, valor, ttl: timedelta = CACHE_TTL):
     if key in CACHE:
         del CACHE[key]
     elif len(CACHE) >= CACHE_MAX_SIZE:
         CACHE.popitem(last=False)
-    CACHE[key] = (valor, datetime.utcnow() + CACHE_TTL)
+    CACHE[key] = (valor, datetime.utcnow() + ttl)
 
 def get_user_key(request: Request):
     username = request.cookies.get("username", "anon")

@@ -11,7 +11,7 @@ from app.cache import (
     set_session, get_current_user
 )
 from app.conexoes_bd import (
-    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd,
+    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_resultados_indicadores_m3,
     query_m0, query_m1, get_atributos_adm_apoio, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes
 )
 from app.validation import validation_submit_table
@@ -65,6 +65,7 @@ async def login(
     resp.set_cookie("logged_in", "true", httponly=True)
     resp.set_cookie("last_active", datetime.utcnow().isoformat(), httponly=True)
     resp.set_cookie("username", username, httponly=True)
+    resp.set_cookie("role", user.get("role"), httponly=True)
     return resp
 
 @router.get("/redirect_by_role")
@@ -146,6 +147,7 @@ async def matriz_page(request: Request):
         "indicadores": indicadores,
         "username": username,
         "atributos": atributos,
+        "role_": user.get("role")
     })
 
 @router.get("/indexApoio")
@@ -167,6 +169,7 @@ async def index_apoio(request: Request):
         "indicadores": indicadores,
         "username": username,
         "atributos": atributos,
+        "role_": user.get("role")
     })
 
 @router.get("/indexAdm")
@@ -187,7 +190,8 @@ async def index_adm(request: Request):
         "registros": registros,
         "indicadores": indicadores,
         "username": username,
-        "atributos": atributos
+        "atributos": atributos,
+        "role_": user.get("role")
     })
 
 @router.post("/add", response_class=HTMLResponse)
@@ -254,6 +258,7 @@ async def pesquisar_m0(request: Request, atributo: str = Form(...)):
             detail="xFiltrox : Selecione um atributo primeiro!"
         )
     registros = await query_m0(atributo)
+
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
     {"request": request, "registros": registros, "show_checkbox": True} 
@@ -297,7 +302,12 @@ async def submit_table(request: Request):
     if registros[0]["tipo_matriz"] == "OPERAÇÃO":
         if num_atendentes == 0 or num_atendentes == '0':
             return "<p>Não é possível submeter a matriz, pois o atributo selecionado não possui nenhum atendente de nível 1.</p>"
-    results = validation_submit_table(registros)
+    results = None
+    try:
+        results = await validation_submit_table(registros)
+    except Exception as e:
+        return f"<p>Erro Inesperado: {e}.</p>" 
+    results = await validation_submit_table(registros)
     if isinstance(results, str):
         return results
     validation_conditions, registros = results
@@ -360,11 +370,19 @@ def duplicate_search_results(
     data_fim: str = Form(...), 
     periodo: str = Form(...),
     registro_ids: List[str] = Form([], alias="registro_ids"),
+    dmm: str = Form(None, alias="dmm"),
+    possuiDmm: str = Form(None, alias="possuiDmmDuplicar")
     ):
     if not data_inicio or not data_fim or not periodo:
           raise HTTPException(
               status_code=422,
               detail="xPesquisax: Selecione as datas de início e fim antes de duplicar!"
+          )
+    if dmm:
+        if len(dmm.split(",")) < 5:
+            raise HTTPException(
+              status_code=422,
+              detail="xPesquisax: Selecione exatamente 5 DMMS!"
           )
     if not registro_ids:
         raise HTTPException(
@@ -410,12 +428,19 @@ def duplicate_search_results(
             detail="xPesquisax: Os registros selecionados não foram encontrados no cache da pesquisa."
         )
     registros_atuais = load_registros(request)
+    if possuiDmm == "Sim" and (not dmm):
+         raise HTTPException(
+              status_code=422,
+              detail="xPesquisax: Se 'Sim' for selecionado, selecione os 5 Dmms!"
+          )
     for novo_registro in registros_a_duplicar:
         registro_copia = novo_registro.copy()
         registro_copia["id"] = str(uuid.uuid4())
         registro_copia["data_inicio"] = data_inicio
         registro_copia["data_fim"] = data_fim
         registro_copia["periodo"] = periodo 
+        registro_copia["dmm"] = dmm
+        registro_copia["possuiDmm"] = possuiDmm
         registros_atuais.append(registro_copia)
     save_registros(request, registros_atuais)
     html_content = templates.TemplateResponse(
@@ -428,21 +453,25 @@ def duplicate_search_results(
 
 @router.post("/update_registro/{registro_id}/{campo}", response_class=HTMLResponse)
 def update_registro(request: Request, registro_id: str, campo: str, novo_valor: str = Form(..., alias="value")):
+    user = get_current_user(request)
     registros = load_registros(request)
     registro_encontrado = None
     for reg in registros:
         if str(reg.get("id")) == registro_id:
             registro_encontrado = reg
-            break
+            break 
     if not registro_encontrado:
         return Response(status_code=404, content=f"Registro ID {registro_id} não encontrado.")
-    if campo not in ["meta", "moeda"]:
+    if campo not in ["meta", "moeda", "ativo"]: 
         return Response(status_code=400, content="Campo inválido para edição.")
+    if campo == 'ativo':
+        _check_role_or_forbid(user, ["adm"])
     valor_limpo = novo_valor.strip()
+    valor_processado = valor_limpo 
     tipo_indicador = registro_encontrado.get("tipo_indicador")
-    if campo == 'moeda':
+    if campo == 'ativo':
         try:
-            pass
+            valor_processado = int(valor_limpo)
         except ValueError:
             error_message = f"O campo {campo} deve ser um número inteiro."
             response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
@@ -450,6 +479,16 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
             response.headers["HX-Reswap"] = "innerHTML"
             response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
             return response
+    elif campo == 'moeda':
+        try:
+            pass 
+        except ValueError:
+            error_message = f"O campo {campo} deve ser um número inteiro."
+            response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
+            response.headers["HX-Retarget"] = "#mensagens-registros" 
+            response.headers["HX-Reswap"] = "innerHTML"
+            response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
+            return response         
     elif tipo_indicador in ["Percentual"] and campo != 'moeda':
         try:
             float(valor_limpo.replace(',', '.')) 
@@ -459,7 +498,7 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
             response.headers["HX-Retarget"] = "#mensagens-registros" 
             response.headers["HX-Reswap"] = "innerHTML"
             response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-            return response
+            return response   
     elif tipo_indicador in ["Inteiro"] and campo != 'moeda':
         try:
             int(valor_limpo.replace(',', '.'))
@@ -469,7 +508,7 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
             response.headers["HX-Retarget"] = "#mensagens-registros"
             response.headers["HX-Reswap"] = "innerHTML"
             response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-            return response
+            return response       
     elif tipo_indicador in ["Decimal"] and campo != 'moeda':
         try:
             float(valor_limpo.replace(',', '.'))
@@ -479,7 +518,7 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
             response.headers["HX-Retarget"] = "#mensagens-registros"
             response.headers["HX-Reswap"] = "innerHTML"
             response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-            return response
+            return response           
     elif tipo_indicador in ["Hora"] and campo != 'moeda':
         try:
             hora_splitada = valor_limpo.split(':')
@@ -489,37 +528,41 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
                 response.headers["HX-Retarget"] = "#mensagens-registros"
                 response.headers["HX-Reswap"] = "innerHTML"
                 response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-                return response     
+                return response 
         except ValueError:
             error_message = f"Validação de hora falhou, insira apenas caracteres válidos no formato HH:MM:SS."
             response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
             response.headers["HX-Retarget"] = "#mensagens-registros"
             response.headers["HX-Reswap"] = "innerHTML"
             response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-            return response     
-    registro_encontrado[campo] = valor_limpo
+            return response 
+    registro_encontrado[campo] = valor_processado 
     save_registros(request, registros)
     return f'{registro_encontrado.get(campo) or ""}'
 
 @router.get("/edit_campo/{registro_id}/{campo}", response_class=HTMLResponse)
 def edit_campo_get(request: Request, registro_id: str, campo: str):
+    user = get_current_user(request)
+    input_type = "text"
+    if campo == "ativo":
+        _check_role_or_forbid(user, ["adm"])
+        input_type = "number"   
     registros = load_registros(request)
     valor = ""
     for reg in registros:
         if str(reg.get("id")) == registro_id:
             valor = reg.get(campo)
-            break
+            break     
     return f"""
     <td hx-trigger="dblclick" hx-get="/edit_campo/{registro_id}/{campo}" hx-target="this" hx-swap="outerHTML">
         <form hx-post="/update_registro/{registro_id}/{campo}" hx-target="this" hx-swap="outerHTML">
             <input name="value" 
-                   type="text" 
-                   value="{valor or ''}"
-                   class="in-place-edit-input" 
-                   autofocus
-                   hx-trigger="blur, keyup[enter]" 
-                   hx-swap="outerHTML"
-                   hx-confirm="Confirma a alteração do campo {campo}?">
+                    type="{input_type}" 
+                    value="{valor or ''}"
+                    class="in-place-edit-input" 
+                    autofocus
+                    hx-trigger="focusout, keyup[enter]" 
+                    hx-confirm="Confirma a alteração do campo {campo}?">
         </form>
     </td>
     """
@@ -550,13 +593,13 @@ async def processar_acordo(
             registros_apos_acao.append(r)
         else:
             atributo = r.get("atributo")
-            id_nome_indicador = r.get("nome") # O cache usa 'nome'
+            id_nome_indicador = r.get("nome") 
             periodo = r.get("periodo")
-            updates_a_executar.append((atributo, periodo, id_nome_indicador)) # <--- NOVO
+            updates_a_executar.append((atributo, periodo, id_nome_indicador)) 
     if updates_a_executar:
         role = user.get("role", "default")
         username = user.get("usuario")
-        await update_da_adm_apoio(updates_a_executar, role, status_acao, username) # <--- NOVO
+        await update_da_adm_apoio(updates_a_executar, role, status_acao, username) 
     set_cache(cache_key, registros_apos_acao)
     return templates.TemplateResponse(
         "_pesquisa.html", 

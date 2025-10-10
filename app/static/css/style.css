@@ -110,6 +110,22 @@ h4 , h5{
   outline: none;
 }
 
+.flatpickr-input-data-esp {
+  width: 350px;
+  padding: 10px;
+  margin-bottom: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box;
+  font-size: 14px;
+  transition: all 0.2s ease-in-out;
+}
+.flatpickr-input-data-esp:focus  {
+  border-color: #007bff;
+  box-shadow: 0 0 4px rgba(0,123,255,0.4);
+  outline: none;
+}
+
 /* ===== Botões ===== */
 .form-container button, 
 .user-info button {
@@ -575,5 +591,3 @@ body.register-page {
 	position:relative;
 	top:1px;
 }
-
- 

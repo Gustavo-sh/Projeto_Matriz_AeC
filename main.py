@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from datetime import datetime
 from app.routes import router
 from app.database import init_db_pool
+from app.conexoes_bd import get_resultados_indicadores_m3
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -13,7 +14,20 @@ SESSION_TIMEOUT = 10 * 60
 
 @app.on_event("startup")
 async def startup_event():
+    # 1. Inicializa o pool de conexões
     init_db_pool() 
+
+    # 2. 🔑 PRÉ-CARREGA OS DADOS CRÍTICOS NO CACHE
+    print("Iniciando pré-carregamento dos resultados dos indicadores M3 no cache...")
+    try:
+        # A função é assíncrona, então usamos await
+        await get_resultados_indicadores_m3() 
+        print("Pré-carregamento de resultados concluído.")
+    except Exception as e:
+        # É importante tratar exceções para não travar a inicialização do app
+        print(f"ERRO durante o pré-carregamento do cache: {e}")
+        # O app pode continuar, mas a primeira requisição que chamar a função será lenta.
+
 
 @app.middleware("http")
 async def session_middleware(request: Request, call_next):

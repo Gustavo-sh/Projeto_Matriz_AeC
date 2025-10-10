@@ -1,10 +1,11 @@
 from datetime import datetime
 import uuid
-from app.cache import get_from_cache, set_cache
+from app.cache import get_from_cache, set_cache #, set_cache_24h
 from datetime import datetime, date
 import calendar
 from app.database import get_db_connection
 import asyncio 
+from datetime import timedelta
 
 async def get_user_bd(username):
     cache_key = "user: " + username
@@ -211,6 +212,31 @@ def validar_datas(data_inicio_bd, data_fim_bd, data_inicio_sbmit, data_fim_submi
             return True
     else:
         return True
+
+async def get_resultados_indicadores_m3():
+    cache_key = "resultados_indicadores_m3"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+    resultados = None
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT DISTINCT [IDINDICADOR]
+                FROM [Robbyson].[ext].[indicadoresgeral]
+                where data >= dateadd(d,1,eomonth(GETDATE(),-3))
+                and resultado > 0
+            """)
+            resultados = [i[0] for i in cur.fetchall()]
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    #set_cache_24h(cache_key, resultados)
+    CACHE_TTL_24H = timedelta(hours=24)
+    set_cache(cache_key, resultados, ttl=CACHE_TTL_24H)
+    return resultados
 
 async def get_indicadores():
     cache_key = "indicadores"

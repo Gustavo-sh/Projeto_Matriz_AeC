@@ -1,14 +1,18 @@
 import uuid
+from app.conexoes_bd import get_resultados_indicadores_m3
 
 
-def validation_submit_table(registros):
-    print(registros)
+async def validation_submit_table(registros):
     moedas = 0
     validation_conditions = []
     for dic in registros:
         moeda_val = dic.get("moeda", "")
         meta_val = dic.get("meta", "")
         nome_val = dic.get("nome", "")
+        resultados_indicadores_m3 = await get_resultados_indicadores_m3()
+        id_indicador = dic["nome"].split(" - ")[0]
+        if int(dic["moeda"]) > 0 and int(id_indicador) not in resultados_indicadores_m3:
+            return f"<p>Não é possível cadastrar o indicador {dic['nome']}, pois ele não tem resultados para os ultimos dois meses+mes atual.</p>"
         if moeda_val == "":
             moeda_val = 0
             dic["moeda"] = 0
@@ -22,7 +26,7 @@ def validation_submit_table(registros):
                 return "<p>Erro: Moeda deve ser um valor inteiro.</p>"
         try:
             if dic["tipo_indicador"] != "Hora":
-                if int(meta_val) <= 0: 
+                if float(meta_val) <= 0: 
                     meta_val = 0
                     dic["meta"] = 0
         except ValueError:
