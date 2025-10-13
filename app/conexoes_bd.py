@@ -91,7 +91,8 @@ async def batch_validar_submit_query(validation_conditions):
         
     if not or_clauses:
         return []
-    full_where_clause = " OR ".join(or_clauses)  
+    full_where_clause = " OR ".join(or_clauses)
+    print(full_where_clause)  
     loop = asyncio.get_event_loop()
     def _sync_db_call():
         with get_db_connection() as conn:
@@ -298,7 +299,7 @@ async def get_num_atendentes(atributo):
             cur.execute(f"""
             select count(matricula) as matriculas from [robbyson].[rlt].[hmn] (nolock) where data = convert(date, getdate()-1) 
             and atributo like '%{atributo}%'
-            and funcaorm in ('atendente', 'atendente i')
+            and tipohierarquia = 'OPERAÇÃO' and nivelhierarquico = 'OPERACIONAL'
             and SituacaoHominum in ('ativo', 'treinamento')
             """)
             resultados = [i[0] for i in cur.fetchall()]
@@ -369,13 +370,46 @@ async def get_resultados(atributo, id_indicador):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(f"""
-            select data, atributo, id, nome_indicador, resultado as resultados, atingimento as atingimentos, MetaSugerida, Meta_Escolhida, atingimento_projetado, meta,
-            data_atualizacao as MaxData from [Robbyson].[dbo].[factibilidadeEfaixas] where data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, -2, GETDATE())))
+            SET NOCOUNT ON
+
+            select id_indicador, id_formato into #formatos from rby_indicador
+
+            select data, atributo, id, nome_indicador, 
+            case when #formatos.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(resultado AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss')else CAST(resultado AS NVARCHAR(MAX)) end as resultados,
+            format(atingimento, 'P') as atingimentos, 
+            case when metasugerida is null then null
+            when #formatos.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(metasugerida AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') else CAST(metasugerida AS NVARCHAR(MAX)) end as metasugerida, 
+            CASE 
+                WHEN factibilidade = 'Meta AeC' THEN 'Meta AeC' 
+                ELSE Meta_Escolhida 
+            END AS Meta_Escolhida, 
+            format(atingimento_projetado, 'P') as atingimento_projetado, 
+            case when #formatos.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(meta AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') else CAST(meta AS NVARCHAR(MAX)) end as meta,
+            data_atualizacao as MaxData, #formatos.id_formato from [Robbyson].[dbo].[factibilidadeEfaixas] fef
+            left join #formatos on #formatos.id_indicador = fef.id
+            where data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, -2, GETDATE())))
             and id = {id_indicador} and atributo like '%{atributo}%'
+
             union ALL
-            select data, atributo, id, nome_indicador, resultado as resultados, atingimento as atingimentos, null as metasugerida, null as meta_escolhida, null as atingimento_projetado, meta,
-            data_atualizacao as MaxData from [Robbyson].[dbo].[factibilidadeEfaixas] where data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, -1, GETDATE())))
+
+            select data, atributo, id, nome_indicador, 
+            case when #formatos.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(resultado AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss')else CAST(resultado AS NVARCHAR(MAX)) end as resultados,
+            format(atingimento, 'P') as atingimentos, 
+            case when metasugerida is null then null
+            when #formatos.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(metasugerida AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') else CAST(metasugerida AS NVARCHAR(MAX)) end as metasugerida, 
+            CASE 
+                WHEN factibilidade = 'Meta AeC' THEN 'Meta AeC' 
+                ELSE Meta_Escolhida 
+            END AS Meta_Escolhida, 
+            format(atingimento_projetado, 'P') as atingimento_projetado, 
+            case when #formatos.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(meta AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') else CAST(meta AS NVARCHAR(MAX)) end as meta,
+            data_atualizacao as MaxData, #formatos.id_formato from [Robbyson].[dbo].[factibilidadeEfaixas] fef
+            left join #formatos on #formatos.id_indicador = fef.id
+            where data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, -1, GETDATE())))
             and id = {id_indicador} and atributo like '%{atributo}%'
+
+            drop table #formatos
+
             """)
             resultados = cur.fetchall()
             cur.close()

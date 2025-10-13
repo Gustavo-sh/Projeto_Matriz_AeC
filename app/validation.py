@@ -33,7 +33,7 @@ async def validation_submit_table(registros):
             return "<p>Erro: Meta deve ser um número válido.</p>"
         if nome_val == "6 - % Absenteísmo" and (moeda_val != 0 or meta_val == "" or meta_val == 0):
             return "<p>Absenteísmo não pode ter moedas e deve ter uma meta diferente de zero.</p>"
-        if nome_val == "901 - % Disponibilidade" and (int(moeda_val) < 8 or meta_val != "94"):
+        if nome_val == "901 - % Disponibilidade" and (int(moeda_val) < 8 or int(meta_val) != 94):
             return "<p>Disponibilidade não pode ter menos que 8 moedas e deve ter 94 de meta.</p>"
         if (nome_val == "25 - Pausa NR17" or nome_val == "15 - Tempo Logado") and (moeda_val != 0 or meta_val != "00:00:00"):
             return "<p>O valor de moeda deve ser 0 e o valor de meta para Pausa NR17 e Tempo Logado deve ser 00:00:00.</p>"

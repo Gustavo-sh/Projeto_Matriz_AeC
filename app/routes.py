@@ -351,13 +351,13 @@ async def trazer_resultados(request: Request, atributo: str = Form(...), nome: s
         {
             "request": request,
             "meta_sugerida": m0[6] if m0[6] else "",
-            "meta_escolhida": m0[9] if m0[9] else "",
-            "atingimento_projetado": round(m0[8]*100, 2) if m0[8] else "",
-            "resultado_m0": round(m0[4], 2) if m1 else "",
-            "atingimento_m0": round(m0[5]*100, 2) if m1 else "",
-            "resultado_m1": round(m1[4], 2) if m1 else round(m0[4], 2),
-            "atingimento_m1": round(m1[5]*100, 2) if m1 else round(m0[5]*100, 2),
-            "max_data": m1[10] if m1 else m0[10]
+            "meta_escolhida": m0[7] if m0[7] else "",
+            "atingimento_projetado": m0[8] if m0[8] else "",
+            "resultado_m0": m0[4] if m1 else "",
+            "atingimento_m0": m0[5] if m1 else "",
+            "resultado_m1": m1[4] if m1 else m0[4],
+            "atingimento_m1": m1[5] if m1 else m0[5],
+            "max_data": m0[10] if m0 else m1[10]
         }
     )
 
@@ -469,73 +469,27 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
     valor_limpo = novo_valor.strip()
     valor_processado = valor_limpo 
     tipo_indicador = registro_encontrado.get("tipo_indicador")
-    if campo == 'ativo':
-        try:
+    try:
+        if campo == "ativo":
             valor_processado = int(valor_limpo)
-        except ValueError:
-            error_message = f"O campo {campo} deve ser um número inteiro."
-            response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
-            response.headers["HX-Retarget"] = "#mensagens-registros" 
-            response.headers["HX-Reswap"] = "innerHTML"
-            response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-            return response
-    elif campo == 'moeda':
-        try:
-            pass 
-        except ValueError:
-            error_message = f"O campo {campo} deve ser um número inteiro."
-            response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
-            response.headers["HX-Retarget"] = "#mensagens-registros" 
-            response.headers["HX-Reswap"] = "innerHTML"
-            response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-            return response         
-    elif tipo_indicador in ["Percentual"] and campo != 'moeda':
-        try:
-            float(valor_limpo.replace(',', '.')) 
-        except ValueError:
-            error_message = f"O campo {campo} para o tipo '{tipo_indicador}' deve ser um número válido."
-            response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
-            response.headers["HX-Retarget"] = "#mensagens-registros" 
-            response.headers["HX-Reswap"] = "innerHTML"
-            response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-            return response   
-    elif tipo_indicador in ["Inteiro"] and campo != 'moeda':
-        try:
-            int(valor_limpo.replace(',', '.'))
-        except ValueError:
-            error_message = f"O campo {campo} para o tipo '{tipo_indicador}' deve ser um valor número válido."
-            response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
-            response.headers["HX-Retarget"] = "#mensagens-registros"
-            response.headers["HX-Reswap"] = "innerHTML"
-            response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-            return response       
-    elif tipo_indicador in ["Decimal"] and campo != 'moeda':
-        try:
+        elif tipo_indicador in ["Percentual"]:
             float(valor_limpo.replace(',', '.'))
-        except ValueError:
-            error_message = f"O campo {campo} para o tipo '{tipo_indicador}' deve ser um valor número válido."
-            response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
-            response.headers["HX-Retarget"] = "#mensagens-registros"
-            response.headers["HX-Reswap"] = "innerHTML"
-            response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-            return response           
-    elif tipo_indicador in ["Hora"] and campo != 'moeda':
-        try:
-            hora_splitada = valor_limpo.split(':')
-            if len(hora_splitada) < 3 or hora_splitada[0] == '' or hora_splitada[1] == '' or hora_splitada[2] == '':
-                error_message = f"Não foi digitado uma hora válida no formato HH:MM:SS."
-                response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
-                response.headers["HX-Retarget"] = "#mensagens-registros"
-                response.headers["HX-Reswap"] = "innerHTML"
-                response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-                return response 
-        except ValueError:
-            error_message = f"Validação de hora falhou, insira apenas caracteres válidos no formato HH:MM:SS."
-            response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
-            response.headers["HX-Retarget"] = "#mensagens-registros"
-            response.headers["HX-Reswap"] = "innerHTML"
-            response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
-            return response 
+        elif tipo_indicador in ["Inteiro"]:
+            int(valor_limpo.replace(',', '.'))
+        elif tipo_indicador in ["Decimal"]:
+            float(valor_limpo.replace(',', '.'))
+        elif tipo_indicador in ["Hora"]:
+            partes = valor_limpo.split(":")
+            if len(partes) < 3:
+                raise ValueError("Hora inválida")
+    except ValueError:
+        error_message = f"Valor inválido para o campo {campo}."
+        response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
+        response.headers["HX-Retarget"] = "#mensagens-registros"
+        response.headers["HX-Reswap"] = "innerHTML"
+        response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
+        return response
+
     registro_encontrado[campo] = valor_processado 
     save_registros(request, registros)
     return f'{registro_encontrado.get(campo) or ""}'

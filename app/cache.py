@@ -4,7 +4,7 @@ import fakeredis
 from fastapi import Request
 import json
 from datetime import timedelta
-# import redis
+import redis
 
 CACHE = OrderedDict()
 CACHE_TTL = timedelta(minutes=5)
@@ -12,7 +12,7 @@ CACHE_MAX_SIZE = 100
 redis_client = fakeredis.FakeRedis()
 
 # redis_client = redis.StrictRedis(
-#     host='<HOST/IP FORNECIDO PELA TI>',
+#     host='192.168.0.9',
 #     port=6379, # Porta padrão, mas pode mudar
 #     db=0,
 #     decode_responses=True
