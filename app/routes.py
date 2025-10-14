@@ -6,6 +6,9 @@ from datetime import datetime
 from passlib.context import CryptContext
 import uuid
 from typing import List 
+import pandas as pd
+from io import BytesIO
+from fastapi.responses import StreamingResponse
 from app.cache import (
     get_from_cache, set_cache, load_registros, save_registros,
     set_session, get_current_user
@@ -20,7 +23,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SESSION_COOKIE = "logged_in"
-adms = ["277561"]
+adms = ["277561", "117699"]
 
 def _check_role_or_forbid(user: dict, allowed_roles: list[str]):
     """
@@ -478,7 +481,7 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
             int(valor_limpo.replace(',', '.'))
         elif tipo_indicador in ["Decimal"]:
             float(valor_limpo.replace(',', '.'))
-        elif tipo_indicador in ["Hora"]:
+        elif tipo_indicador in ["Hora"] and campo != "moeda":
             partes = valor_limpo.split(":")
             if len(partes) < 3:
                 raise ValueError("Hora inválida")
@@ -561,5 +564,47 @@ async def processar_acordo(
             "request": request, 
             "registros": registros_apos_acao,
             "show_checkbox": True
+        }
+    )
+
+@router.post("/clear_registros", response_class=HTMLResponse)
+def clear_registros_route(request: Request):
+    """
+    Limpa os registros atuais do usuário no cache (session).
+    Retorna uma string vazia para o HTMX limpar o elemento alvo no frontend.
+    """
+    try:
+        save_registros(request, []) 
+        return ""
+    except Exception as e:
+        print(f"Erro ao limpar registros: {e}")
+        return HTMLResponse(content=f"<div style='color: red;'>Erro interno ao limpar os registros: {e}</div>", status_code=500)
+    
+@router.post("/export_table")
+async def export_table_excel(request: Request):
+    user = get_current_user(request)
+    _check_role_or_forbid(user, ["adm", "apoio qualidade", "apoio planejamento"]) 
+    try:
+        body = await request.json()
+        registros_pesquisa = body.get("table_data", [])
+    except Exception as e:
+        print(f"Erro ao receber ou processar JSON da tabela: {e}")
+        raise HTTPException(status_code=400, detail="Erro ao processar dados da tabela.")
+    if not registros_pesquisa:
+        raise HTTPException(status_code=422, detail="A tabela de pesquisa está vazia. Não há dados para exportar.")
+    df = pd.DataFrame(registros_pesquisa)
+    output = BytesIO()
+    try:
+        df.to_excel(output, index=False, sheet_name='Resultados da Pesquisa', engine='openpyxl') 
+    except Exception as e:
+        print(f"Erro ao gerar Excel com Pandas: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao gerar arquivo Excel.")
+    output.seek(0) # Volta para o início do buffer
+    filename = f"pesquisa_tabela_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    return StreamingResponse(
+        output,
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"'
         }
     )

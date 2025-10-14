@@ -1,10 +1,13 @@
 import uuid
 from app.conexoes_bd import get_resultados_indicadores_m3
 
-
 async def validation_submit_table(registros):
     moedas = 0
     validation_conditions = []
+    disp_in = False
+    erro_dmm = validate_dmm_consistency(registros)
+    if erro_dmm:
+        return erro_dmm
     for dic in registros:
         moeda_val = dic.get("moeda", "")
         meta_val = dic.get("meta", "")
@@ -26,15 +29,27 @@ async def validation_submit_table(registros):
                 return "<p>Erro: Moeda deve ser um valor inteiro.</p>"
         try:
             if dic["tipo_indicador"] != "Hora":
-                if float(meta_val) <= 0: 
-                    meta_val = 0
-                    dic["meta"] = 0
+                if dic["tipo_indicador"] == "Inteiro":
+                    if int(meta_val) <= 0:
+                        meta_val = 0
+                        dic["meta"] = meta_val
+                    meta_val = int(meta_val)
+                    dic["meta"] = meta_val
+                else: 
+                    if float(meta_val) <= 0:
+                        meta_val = 0
+                        dic["meta"] = meta_val
+                    meta_val = float(meta_val)
+                    dic["meta"] = meta_val
+                    
         except ValueError:
             return "<p>Erro: Meta deve ser um número válido.</p>"
         if nome_val == "6 - % Absenteísmo" and (moeda_val != 0 or meta_val == "" or meta_val == 0):
             return "<p>Absenteísmo não pode ter moedas e deve ter uma meta diferente de zero.</p>"
-        if nome_val == "901 - % Disponibilidade" and (int(moeda_val) < 8 or int(meta_val) != 94):
-            return "<p>Disponibilidade não pode ter menos que 8 moedas e deve ter 94 de meta.</p>"
+        if nome_val == "901 - % Disponibilidade":
+            disp_in = True
+            if (int(moeda_val) < 8 or int(meta_val) != 94):
+                return "<p>Disponibilidade não pode ter menos que 8 moedas e deve ter 94 de meta.</p>"
         if (nome_val == "25 - Pausa NR17" or nome_val == "15 - Tempo Logado") and (moeda_val != 0 or meta_val != "00:00:00"):
             return "<p>O valor de moeda deve ser 0 e o valor de meta para Pausa NR17 e Tempo Logado deve ser 00:00:00.</p>"
         if dic["tipo_indicador"] == "Hora":
@@ -45,7 +60,7 @@ async def validation_submit_table(registros):
                 return "<p>Erro ao converter o tempo: " + str(e) + "</p>"
         else:
             try:
-                dic["meta"] = float(dic["meta"])
+                float(dic["meta"])
             except ValueError:
                 return "<p>Erro: Meta deve ser um valor numérico.</p>"
         validation_conditions.append({
@@ -55,6 +70,8 @@ async def validation_submit_table(registros):
             "data_inicio_sbmit": dic["data_inicio"],
             "data_fim_submit": dic["data_fim"]
         })
+    # if not disp_in:
+    #     return "<p>Disponibilidade é um indicador obrigatório, por favor adicione-o com 8 ou mais moedas e 94 de meta.</p>"
     if moedas != 30 and moedas != 35:
         return "<p>A soma de moedas deve ser igual a 30 ou 35.</p>"
     elif moedas == 30:
@@ -67,8 +84,34 @@ async def validation_submit_table(registros):
         except KeyError:
             registros.append({'atributo': f'{registros[0]["atributo"]}', 'nome': '48 - Presença', 'meta': '2', 'moeda': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
                         'tipo_matriz': 'OPERAÇÃO', 'data_inicio': f'{registros[0]["data_inicio"]}', 'data_fim': f'{registros[0]["data_fim"]}', 'periodo': f'{registros[0]["periodo"]}', 'escala': f'{registros[0]["escala"]}',
-                        'tipo_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': f'{registros[0]["chamado"]}', 'criterio_final': 'Meta AeC', 'area': 'Plajamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
+                        'tipo_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': f'{registros[0]["chamado"]}', 'criterio_final': 'Meta AeC', 'area': 'Planejamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
                         'possuiDmm': f'{registros[0]["possuiDmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': '', 'data_submetido_por': '', 'qualidade': '', 'da_qualidade': '', 'data_da_qualidade': '', 
                         'planejamento': '', 'da_planejamento': '', 'data_da_planejamento': '', 'exop': '', 'da_exop': '', 'data_da_exop': '', 'id': uuid.uuid4()})
 
     return validation_conditions, registros
+
+def validate_dmm_consistency(registros: list) -> str | None:
+    if not registros:
+        return None 
+    referencia = registros[0]
+    ref_possui_dmm = referencia.get("possuiDmm", "")
+    ref_dmm = referencia.get("dmm", "")
+    # Normalizar valores: se 'dmm' for vazio, o 'possuiDmm' deve ser 'Não'
+    if not ref_dmm and ref_possui_dmm.lower() == 'sim':
+         ref_possui_dmm = 'Não' # Correção: Se disse 'Sim' mas o campo está vazio, trata como 'Não' para fins de consistência.
+    for i, registro in enumerate(registros):
+        if i == 0:
+            continue
+        current_possui_dmm = registro.get("possuiDmm", "")
+        current_dmm = registro.get("dmm", "")
+        # --- Regra 1: Consistência de 'possuiDmm' ---
+        # Se um registro diz SIM e o outro diz NÃO, ou vice-versa, é um erro.
+        if current_possui_dmm != ref_possui_dmm:
+             # Um dos registros tem "Sim" e o outro "Não"
+             return f"<p>Erro de Consistência DMM: O campo **Possui DMM** deve ser **idêntico** em todos os indicadores registrados. O indicador {registro.get('nome', 'desconhecido')} é inconsistente com os demais.</p>"
+        # --- Regra 2: Consistência de 'dmm' (se 'possuiDmm' for 'Sim') ---
+        # Se 'possuiDmm' é 'Sim', o valor de 'dmm' (a data/informação) deve ser idêntico em todos.
+        if ref_possui_dmm.lower() == 'sim':
+            if current_dmm != ref_dmm:
+                 return f"<p>Erro de Consistência DMM: Todos os indicadores com **Possui DMM = Sim** devem ter a **mesma data ou informação DMM**. O indicador {registro.get('nome', 'desconhecido')} é inconsistente com os demais.</p>"
+    return None

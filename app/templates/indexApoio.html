@@ -32,7 +32,7 @@
 
             <div id="atributos-container">
                 <label>Atributo: *</label>
-                <select name="atributo" id="atributo_select">
+                <select name="atributo" id="atributo_select" onchange="handleAtributoChange(this)">
                     <option value="">Selecione ou pesquise...</option>
                     {% for at in atributos %}
                         <option value="{{ at['atributo'] }}"
@@ -216,6 +216,11 @@
 
     <div class="registros">
         <h4>Resultado por Atributo</h4>
+        <button type="button" 
+                onclick="downloadExcelFromTable()"
+                class="export-btn">
+            Export para Excel
+        </button>
         <form id="form-acordo" 
             hx-post="/processar_acordo" 
             hx-target="#tabela-pesquisa" 
@@ -548,20 +553,7 @@
             });
         }
     });
-    </script>
 
-    <script>
-    document.body.addEventListener("htmx:afterSwap", function(evt) {
-        if (evt.detail.target.id === "mensagens-registros") {
-            setTimeout(() => {
-                evt.detail.target.innerHTML = "";
-            }, 5000); 
-        }
-    }
-    );
-    </script>
-
-    <script>
     function initChoices(selector) {
         const el = document.querySelector(selector);
         if (el && !el.dataset.choicesInitialized) {
@@ -598,6 +590,17 @@
             syncAtributoHidden();
         }
     });
+    </script>
+
+    <script>
+    document.body.addEventListener("htmx:afterSwap", function(evt) {
+        if (evt.detail.target.id === "mensagens-registros") {
+            setTimeout(() => {
+                evt.detail.target.innerHTML = "";
+            }, 5000); 
+        }
+    }
+    );
     </script>
 
     <script>
@@ -781,6 +784,63 @@
             bindAtributoToGerente();
         }
     });
+
+    // Variável para armazenar o valor atual/anterior do atributo selecionado
+        let lastSelectedAtributo = document.getElementById('atributo_select')?.value || '';
+
+        // O htmx deve estar carregado
+        if (typeof htmx === 'undefined') {
+            console.error('HTMX não carregado. A função handleAtributoChange não funcionará.');
+        }
+
+        function handleAtributoChange(selectElement) {
+            const novoAtributo = selectElement.value;
+            const registrosContainer = document.getElementById('registros');
+            
+            // 1. Verificar se há registros na tabela (checa se há TRs dentro do container)
+            // Assumimos que o corpo da tabela (ou div que contém o _registro.html) tem id="registros"
+            const temRegistros = registrosContainer && registrosContainer.children.length > 0;
+
+            if (temRegistros) {
+                // 2. Emitir o alerta de confirmação
+                const confirma = confirm("Atenção! Ao mudar o atributo, você perderá todos os indicadores registrados na tabela. Deseja continuar?");
+                
+                if (confirma) {
+                    // 3. Confirmado: Limpar Cache (Backend) e Tabela (Frontend)
+
+                    // Disparar a requisição HTMX para limpar o Backend (Cache) e limpar o frontend 
+                    // (target: #registros, swap: innerHTML, content vazio da rota /clear_registros)
+                    htmx.ajax('POST', '/clear_registros', {
+                        target: registrosContainer, // Limpa o conteúdo da tabela (o #registros)
+                        swap: 'innerHTML',         // O retorno da rota é vazio, limpando o target
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+                    }).then(() => {
+                        // Limpeza do cache e frontend bem-sucedida.
+                        lastSelectedAtributo = novoAtributo;
+                        // O select já mudou, e o container foi limpo. A lógica do seu sistema
+                        // (ex: recarregar a tela ou carregar novos dados) deve ser disparada aqui,
+                        // se a simples mudança de valor do select não for suficiente para a sua aplicação.
+                        console.log("Registros zerados e atributo alterado para:", novoAtributo);
+                        
+                    }).catch(error => {
+                        // 4. Falha na Requisição HTMX: Reverter a seleção
+                        console.error('Erro ao limpar o cache via HTMX:', error);
+                        alert('Erro ao limpar os registros no servidor. Por favor, tente novamente ou recarregue a página.');
+                        selectElement.value = lastSelectedAtributo; // Reverte a seleção no dropdown
+                    });
+
+                } else {
+                    // 4. Não Confirmado: Reverter a seleção no dropdown
+                    selectElement.value = lastSelectedAtributo;
+                }
+            } else {
+                // Não há registros: permite a mudança e atualiza o valor anterior
+                lastSelectedAtributo = novoAtributo;
+            }
+            
+            // Retorna false para prevenir qualquer ação onchange padrão (se houver) até que o JS termine
+            return false;
+        }
     </script>
 
     <script>
@@ -922,5 +982,88 @@
             }
         });
     </script>
+
+    <script>
+        const columnHeaders = [
+        'atributo', 'nome', 'meta', 'moeda', 'tipo_indicador', 
+        'acumulado', 'esquema_acumulado', 'tipo_matriz', 'data_inicio', 
+        'data_fim', 'periodo', 'escala', 'tipo_faturamento', 
+        'descricao', 'ativo', 'chamado', 'criterio_final', 'area', 
+        'responsavel', 'gerente', 'possuiDmm', 'dmm', 'submetido_por', 
+        'data_submissao', 'da_adm', 'data_da_adm', 'da_apoio', 'data_da_apoio', 'id'
+    ];
+
+    function collectTableData(tableId) {
+        const table = document.getElementById(tableId);
+        if (!table) return [];
+        const data = [];
+        const rows = table.querySelectorAll('tr'); 
+        rows.forEach(row => {
+            const rowData = {};
+            const cells = row.querySelectorAll('td'); 
+            cells.forEach((cell, cellIndex) => {
+                const headerKey = columnHeaders[cellIndex - 1]; 
+                if (headerKey) { 
+                    const input = cell.querySelector('input, select');
+                    const value = input ? input.value.trim() : cell.textContent.trim();
+                    rowData[headerKey] = value;
+                }
+            });
+            if (Object.keys(rowData).length > 0) {
+                data.push(rowData);
+            }
+        });
+        return data;
+    }
+
+    function downloadExcelFromTable() {
+        const tableData = collectTableData('tabela-pesquisa'); 
+        if (tableData.length === 0) {
+            alert("A tabela de pesquisa está vazia. Não há dados para exportar.");
+            return; 
+        }
+        fetch('/export_table', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ table_data: tableData })
+        })
+        .then(response => {
+            if (!response.ok) {
+                response.json().then(errorBody => {
+                    alert(`Erro na Exportação (${response.status}): ${errorBody.detail || 'Erro desconhecido.'}`);
+                }).catch(() => {
+                    alert(`Erro na Exportação: O servidor retornou status ${response.status}.`);
+                });
+                return;
+            }
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = 'exportacao.xlsx';
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
+            return response.blob().then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = filename; 
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            });
+        })
+        .catch(error => {
+            console.error('Erro de rede ou fetch:', error);
+            alert("Erro ao conectar com o servidor para exportar o arquivo.");
+        });
+    }
+    </script>
+
 </body>
 </html>

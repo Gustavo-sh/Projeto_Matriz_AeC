@@ -92,7 +92,6 @@ async def batch_validar_submit_query(validation_conditions):
     if not or_clauses:
         return []
     full_where_clause = " OR ".join(or_clauses)
-    print(full_where_clause)  
     loop = asyncio.get_event_loop()
     def _sync_db_call():
         with get_db_connection() as conn:
@@ -187,14 +186,16 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
             for update_item in lista_de_updates:
                 atributo, periodo, id_nome_indicador = update_item
                 cur.execute(f"""
-                update dbo.Matriz_Geral set 
-                    {campo_usuario} = {username}, 
-                    {campo_da} = {tipo_defined}, 
-                    {campo_data} = '{agora}'
-                WHERE Atributo = '{atributo}'
-                AND periodo = '{periodo}'
-                AND id_nome_indicador = '{id_nome_indicador}'
-                """)
+                UPDATE dbo.Matriz_Geral
+                SET 
+                    {campo_usuario} = ?,
+                    {campo_da} = ?,
+                    {campo_data} = ?
+                WHERE 
+                    Atributo = ? AND 
+                    periodo = ? AND 
+                    id_nome_indicador = ?
+            """, (username, tipo_defined, agora, atributo, periodo, id_nome_indicador))
             conn.commit() 
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
@@ -320,12 +321,24 @@ async def get_atributos_matricula(matricula):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(f"""
-            select distinct atributo, case when GERENTE is not null then GERENTE
-            when GERENTEPLENO is not null then GERENTEPLENO
-            when GERENTESENIOR is not null then GERENTESENIOR
-            else null end as Gerente, TipoHierarquia from [robbyson].[rlt].[hmn] (nolock) 
-            where (data = convert(date, getdate()-1)) and (atributo is not null) 
-            and (MatrGERENTE = {matricula} or MatrGERENTEPLENO = {matricula} or MatrGERENTESENIOR = {matricula} or MatrCOORDENADOR = {matricula})
+            SET NOCOUNT ON
+
+            select atributo, count(matricula) as matriculas into #qtd from [robbyson].[rlt].[hmn] (nolock) 
+                        where data = convert(date, getdate()-1) 
+                        and tipohierarquia = 'OPERAÇÃO' and nivelhierarquico = 'OPERACIONAL'
+                        and SituacaoHominum in ('ativo', 'treinamento')
+                        group by atributo
+                        order by count(matricula) DESC
+
+            select distinct hmn.atributo, case when GERENTE is not null then GERENTE
+                        when GERENTEPLENO is not null then GERENTEPLENO
+                        when GERENTESENIOR is not null then GERENTESENIOR
+                        else null end as Gerente, TipoHierarquia from [robbyson].[rlt].[hmn] hmn (nolock) 
+                        where (data = convert(date, getdate()-1)) and (hmn.atributo is not null) 
+                        and (MatrGERENTE = {matricula} or MatrGERENTEPLENO = {matricula} or MatrGERENTESENIOR = {matricula} or MatrCOORDENADOR = {matricula})
+                        and hmn.atributo in (select atributo from #qtd)
+
+            drop table #qtd
             """)
             resultados = [{"atributo": i[0], "gerente": i[1], "tipo": i[2]} for i in cur.fetchall()]
             cur.close()
