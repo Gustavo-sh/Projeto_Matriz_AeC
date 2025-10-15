@@ -76,6 +76,42 @@ async def save_registros_bd(registros, username):
             
     await loop.run_in_executor(None, _sync_db_call)
 
+async def import_from_excel(registros):
+    retorno = None
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        values_clauses = []
+        for i in registros:
+            row_values = [
+                f"'{i['atributo']}'", f"'{i['id_nome_indicador']}'", f"'{i['meta']}'", f"'{i['moedas']}'",
+                f"'{i['tipo_indicador']}'", f"'{i['acumulado']}'", f"'{i['esquema_acumulado']}'",
+                f"'{i['tipo_matriz']}'", f"'{i['data_inicio']}'", f"'{i['data_fim']}'",
+                f"'{i['periodo']}'", f"'{i['escala']}'", f"'{i['tipo_de_faturamento']}'",
+                f"'{i['descricao']}'", f"'{i['ativo']}'", f"'{i['chamado']}'",
+                f"'{i['criterio']}'", f"'{i['area']}'", f"'{i['responsavel']}'",
+                f"'{i['gerente']}'", f"'{i['possui_dmm']}'", f"'{i['dmm']}'",
+                f"'{i['submetido_por']}'", f"'{i['data_submetido_por']}'", f"'{i['qualidade']}'",
+                f"'{i['da_qualidade']}'", f"'{i['data_da_qualidade']}'", f"'{i['planejamento']}'", f"'{i['da_planejamento']}'",
+                f"'{i['data_da_planejamento']}'", f"'{i['exop']}'", f"'{i['da_exop']}'",f"'{i['data_da_exop']}'"
+            ]
+            values_clauses.append(f"({', '.join(row_values)})")
+        full_values_string = ",\n".join(values_clauses)
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            if full_values_string:
+                batch_insert_query = f"""
+                    insert into Robbyson.dbo.Matriz_Geral values 
+                    {full_values_string}
+                """
+                try:
+                    cur.execute(batch_insert_query)
+                    cur.commit()
+                    return True
+                except:
+                    cur.rollback()
+            cur.close()
+    return await loop.run_in_executor(None, _sync_db_call)
+
 async def batch_validar_submit_query(validation_conditions):
     or_clauses = []
     for cond in validation_conditions:
@@ -105,6 +141,25 @@ async def batch_validar_submit_query(validation_conditions):
             return resultados_db        
     return await loop.run_in_executor(None, _sync_db_call)
 
+async def get_all_atributos():
+    cache_key = "all_atributos"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+                select distinct atributo from [robbyson].[rlt].[hmn] (nolock) where (data = convert(date, getdate()-1)) and (atributo is not null) 
+            """)
+            resultados = [i[0] for i in cur.fetchall()]
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    set_cache(cache_key, resultados)
+    return resultados
+
 async def query_m0(atributo):
     cache_key = f"pesquisa_m0:{atributo}"
     resultados = None
@@ -122,9 +177,9 @@ async def query_m0(atributo):
             return resultados
     resultados = await loop.run_in_executor(None, _sync_db_call)
     registros = [{
-        "atributo": row[0], "nome": row[1], "meta": row[2], "moeda": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
-        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
-        "criterio_final": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possuiDmm": row[20], "dmm": row[21],
+        "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
+        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
+        "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
         "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
         "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
     } for row in resultados]
@@ -155,9 +210,9 @@ async def query_m1(atributo, role):
             return resultados
     resultados = await loop.run_in_executor(None, _sync_db_call)
     registros = [{
-        "atributo": row[0], "nome": row[1], "meta": row[2], "moeda": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
-        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
-        "criterio_final": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possuiDmm": row[20], "dmm": row[21],
+        "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
+        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
+        "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
         "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
         "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
     } for row in resultados]

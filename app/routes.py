@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, Form, Query, HTTPException, Response, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from typing import Optional
@@ -9,21 +10,31 @@ from typing import List
 import pandas as pd
 from io import BytesIO
 from fastapi.responses import StreamingResponse
+from fastapi import UploadFile, File
 from app.cache import (
     get_from_cache, set_cache, load_registros, save_registros,
     set_session, get_current_user
 )
 from app.conexoes_bd import (
-    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_resultados_indicadores_m3,
-    query_m0, query_m1, get_atributos_adm_apoio, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes
+    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd,
+    query_m0, query_m1, get_atributos_adm_apoio, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel
 )
-from app.validation import validation_submit_table
+from app.validation import validation_submit_table, validation_import_from_excel
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SESSION_COOKIE = "logged_in"
 adms = ["277561", "117699"]
+EXPECTED_COLUMNS = [
+    'atributo', 'id_nome_indicador', 'meta', 'moedas', 'tipo_indicador', 
+        'acumulado', 'esquema_acumulado', 'tipo_matriz', 'data_inicio', 
+        'data_fim', 'periodo', 'escala', 'tipo_de_faturamento', 
+        'descricao', 'ativo', 'chamado', 'criterio', 'area', 
+        'responsavel', 'gerente', 'possui_dmm', 'dmm', 'submetido_por', 
+        'data_submetido_por', 'qualidade', 'da_qualidade', 'data_da_qualidade', 
+        'planejamento', 'da_planejamento', 'data_da_planejamento', 'exop', 'da_exop', 'data_da_exop'
+]
 
 def _check_role_or_forbid(user: dict, allowed_roles: list[str]):
     """
@@ -229,7 +240,7 @@ def add_registro(
         "id": novo_id,
         "atributo": atributo, "nome": nome, "meta": meta, "moeda": moeda,"tipo_indicador": tipo_indicador,"acumulado": acumulado,"esquema_acumulado": esquema_acumulado,
         "tipo_matriz": tipo_matriz,"data_inicio": data_inicio,"data_fim": data_fim,"periodo": periodo,"escala": escala,"tipo_faturamento": tipo_faturamento,
-        "descricao": descricao,"ativo": ativo or "","chamado": chamado,"criterio_final": criterio_final,"area": area,"responsavel": responsavel,"gerente": gerente,
+        "descricao": descricao or '',"ativo": ativo or "","chamado" or '': chamado,"criterio_final": criterio_final,"area": area,"responsavel": responsavel,"gerente": gerente,
         "possuiDmm": possuiDmm,"dmm": dmm
     }
     if not atributo or not nome or not meta or not moeda or not data_inicio or not data_fim or not escala or not tipo_faturamento or not criterio_final or not responsavel or not possuiDmm:  
@@ -608,3 +619,76 @@ async def export_table_excel(request: Request):
             'Content-Disposition': f'attachment; filename="{filename}"'
         }
     )
+
+@router.post("/upload_excel", response_class=HTMLResponse)
+async def upload_excel(request: Request, file: UploadFile = File(...)):
+    if not file.filename.lower().endswith((".xlsx", ".xls")):
+        content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+        <p>xImportx: Envie um arquivo Excel (.xlsx ou .xls).</p></div>"""
+        return HTMLResponse(content=content)
+    try:
+        content = await file.read()
+        df = await run_in_threadpool(pd.read_excel, BytesIO(content))
+    except Exception as e:
+        await file.close()
+        return HTMLResponse(
+            content=f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+            <p>xImportx: Erro ao ler o arquivo Excel: {e}</p></div>"""
+        )
+    finally:
+        await file.close()
+    if df.empty:
+        content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+        <p>xImportx: O arquivo Excel está vazio.</p></div>"""
+        return HTMLResponse(content=content)
+    df_cols = [c.strip() for c in df.columns]
+    if df_cols != EXPECTED_COLUMNS:
+        content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+        <p>xImportx: As colunas do arquivo não correspondem ao modelo esperado.<br>\nEsperado: {EXPECTED_COLUMNS}<br>Recebido: {df_cols}</p></div>"""
+        return HTMLResponse(content=content)
+    def clean_value(v):
+        if isinstance(v, str):
+            v = v.strip().replace("–", "-").replace("—", "-")
+            v = v.replace("\n", " ").replace("\r", " ").replace("\xa0", " ")
+            if v.lower() in ("nan", "none", "null", ""):
+                return ""
+            return v
+        if pd.isna(v):
+            return ""
+        return v
+    for col in df.columns:
+        df[col] = df[col].apply(clean_value)
+    date_cols = [c for c in df.columns if "data" in c.lower()]
+    for col in date_cols:
+        try:
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime("%Y-%m-%d")
+        except Exception:
+            df[col] = ""
+    df = df.fillna("")
+    def to_int_safe(v):
+        try:
+            if v == "" or pd.isna(v):
+                return 0
+            return int(float(v))
+        except Exception:
+            return 0
+    for col in ["ativo", "qualidade", "da_qualidade", "planejamento", "da_planejamento", "exop", "da_exop"]:
+        if col in df.columns:
+            df[col] = df[col].apply(to_int_safe)
+    records = df.to_dict(orient="records")
+    valid_records = await validation_import_from_excel(records, request)
+    if valid_records:
+        return valid_records
+    try:
+        import_results = await import_from_excel(records)
+        if not import_results:
+            content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+            <p>xImportx: Erro ao inserir os atributos, pois já existem dados para um ou mais dos atributos da planilha, não sendo possível saber qual por se tratar de um envio massivo.</p></div>"""
+            return HTMLResponse(content=content)
+    except Exception as e:
+        content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+        <p>xImportx: Erro ao inserir os registros na tabela Robbyson.dbo.Matriz_Geral: {e}.</p></div>"""
+        return HTMLResponse(content=content)
+    content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+    <p>xImportx: Todos os registros foram inseridos na tabela Robbyson.dbo.Matriz_Geral.</p></div>"""
+    return HTMLResponse(content=content)

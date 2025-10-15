@@ -16,6 +16,8 @@
     <link rel="icon" type="image/png" href="/static/images/fav.png">
 </head>
 <body>
+    <div id="internal-error" class="erro-fixo oculto" role="alert" aria-live="assertive">
+    </div>
     <form action="/logout" method="post">
         <button type="submit" class="logout-btn">Logout</button>
     </form>
@@ -63,6 +65,19 @@
             </button>
 
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
+
+            <div>
+                <form hx-post="/upload_excel"
+                    hx-target="#tabela-pesquisa"
+                    hx-swap="innerHTML"
+                    enctype="multipart/form-data"
+                    style="margin-left:10px;">
+                <input type="file" name="file" accept=".xlsx,.xls" required>
+                <button type="submit">Importar Excel</button>
+                </form>
+
+                <div id="upload_result" class="mensagens-import"></div>
+            </div>
         </div>
 
         <div class="form-container">
@@ -415,6 +430,22 @@
             window.location.href = "/login";
         }
     });
+    </script>
+
+    <script>
+        document.body.addEventListener("htmx:afterRequest", function(evt) {
+            const importDiv = document.getElementById("upload_result");
+            const responseText = evt.detail.xhr.response;
+            if (responseText && responseText.includes("xImportx")) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = responseText;
+                const cleanMessage = tempDiv.textContent.trim();
+                importDiv.innerText = cleanMessage;
+            }
+            setTimeout(() => {
+                importDiv.innerText = "";
+            }, 5000);
+        });
     </script>
 
     <script>
@@ -859,6 +890,7 @@
         const mensagem = evt.detail.value; 
         const indicadorDiv = document.getElementById("mensagens-indicador");
         const filtroDiv = document.getElementById("mensagens-filtro");
+        const importDiv = document.getElementById("upload_result");
 
         if (evt.detail.value.includes("Tabela submetida com sucesso")) {
             setTimeout(function() {
@@ -875,13 +907,17 @@
             if (successMessageHTML.toLocaleLowerCase().includes("pesquisa")) {
                 filtroDiv.innerHTML = successMessageHTML;
             }
-            else {
+            else if (successMessageHTML.toLocaleLowerCase().includes("indicador")) {
                 indicadorDiv.innerHTML = successMessageHTML;
+            }
+            else if (successMessageHTML.toLocaleLowerCase().includes("import")) {
+                importDiv.innerHTML = successMessageHTML;
             }
             
             setTimeout(() => {
                 indicadorDiv.innerHTML = "";
                 filtroDiv.innerHTML = "";
+                importDiv.innerHTML = "";
             }, 5000);
         }
     });
@@ -999,12 +1035,13 @@
 
     <script>
         const columnHeaders = [
-        'atributo', 'nome', 'meta', 'moeda', 'tipo_indicador', 
+        'atributo', 'id_nome_indicador', 'meta', 'moedas', 'tipo_indicador', 
         'acumulado', 'esquema_acumulado', 'tipo_matriz', 'data_inicio', 
-        'data_fim', 'periodo', 'escala', 'tipo_faturamento', 
-        'descricao', 'ativo', 'chamado', 'criterio_final', 'area', 
-        'responsavel', 'gerente', 'possuiDmm', 'dmm', 'submetido_por', 
-        'data_submissao', 'da_adm', 'data_da_adm', 'da_apoio', 'data_da_apoio', 'id'
+        'data_fim', 'periodo', 'escala', 'tipo_de_faturamento', 
+        'descricao', 'ativo', 'chamado', 'criterio', 'area', 
+        'responsavel', 'gerente', 'possui_dmm', 'dmm', 'submetido_por', 
+        'data_submetido_por', 'qualidade', 'da_qualidade', 'data_da_qualidade', 
+        'planejamento', 'da_planejamento', 'data_da_planejamento', 'exop', 'da_exop', 'data_da_exop'
     ];
 
     function collectTableData(tableId) {

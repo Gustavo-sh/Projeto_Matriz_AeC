@@ -1,5 +1,9 @@
 import uuid
-from app.conexoes_bd import get_resultados_indicadores_m3
+from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Request, Form, Query, HTTPException, Response, status
+from app.conexoes_bd import get_resultados_indicadores_m3, get_all_atributos
+
+templates = Jinja2Templates(directory="app/templates")
 
 async def validation_submit_table(registros):
     moedas = 0
@@ -96,22 +100,77 @@ def validate_dmm_consistency(registros: list) -> str | None:
     referencia = registros[0]
     ref_possui_dmm = referencia.get("possuiDmm", "")
     ref_dmm = referencia.get("dmm", "")
-    # Normalizar valores: se 'dmm' for vazio, o 'possuiDmm' deve ser 'Não'
     if not ref_dmm and ref_possui_dmm.lower() == 'sim':
-         ref_possui_dmm = 'Não' # Correção: Se disse 'Sim' mas o campo está vazio, trata como 'Não' para fins de consistência.
+         ref_possui_dmm = 'Não'
     for i, registro in enumerate(registros):
         if i == 0:
             continue
         current_possui_dmm = registro.get("possuiDmm", "")
         current_dmm = registro.get("dmm", "")
-        # --- Regra 1: Consistência de 'possuiDmm' ---
-        # Se um registro diz SIM e o outro diz NÃO, ou vice-versa, é um erro.
         if current_possui_dmm != ref_possui_dmm:
-             # Um dos registros tem "Sim" e o outro "Não"
              return f"<p>Erro de Consistência DMM: O campo **Possui DMM** deve ser **idêntico** em todos os indicadores registrados. O indicador {registro.get('nome', 'desconhecido')} é inconsistente com os demais.</p>"
-        # --- Regra 2: Consistência de 'dmm' (se 'possuiDmm' for 'Sim') ---
-        # Se 'possuiDmm' é 'Sim', o valor de 'dmm' (a data/informação) deve ser idêntico em todos.
         if ref_possui_dmm.lower() == 'sim':
             if current_dmm != ref_dmm:
                  return f"<p>Erro de Consistência DMM: Todos os indicadores com **Possui DMM = Sim** devem ter a **mesma data ou informação DMM**. O indicador {registro.get('nome', 'desconhecido')} é inconsistente com os demais.</p>"
+    return None
+
+async def validation_import_from_excel(registros, request):
+    registros_copia = registros
+    retorno = []
+    atributos = await get_all_atributos()
+    for i in registros_copia: 
+        if i["atributo"] not in atributos:
+            i["descricao"] = "Erro de atributo,"
+            retorno.append(i)
+            continue
+        if len(i["id_nome_indicador"].split(" - ")) != 2:
+            i["descricao"] = "Erro de indicador,"
+            retorno.append(i)
+            continue
+        if i["tipo_indicador"] == "Hora":
+            try:
+                if len(i["meta"].split(":")) != 3:
+                    i["descricao"] = "Erro de meta para indicador tipo hora,"
+                    retorno.append(i)
+                    continue
+            except ValueError:
+                i["descricao"] = "Erro de valor meta,"
+                retorno.append(i)
+                continue
+        elif i["tipo_indicador"] == "Inteiro":
+            try:
+                int(i["meta"])
+            except ValueError:
+                i["descricao"] = "Erro de meta para indicador tipo hora,"
+                retorno.append(i)
+                continue
+        elif i["tipo_indicador"] == "Decimal":
+            try:
+                float(i["meta"])
+            except ValueError:
+                i["descricao"] = "Erro de valor meta,"
+                retorno.append(i)
+                continue
+        elif i["tipo_indicador"] == "Percentual":
+            try:
+                float(i["meta"])
+            except ValueError:
+                i["descricao"] = "Erro de valor meta,"
+                retorno.append(i)
+                continue
+        try:
+            int(i["moedas"])
+        except ValueError:
+            i["descricao"] = "Erro de valor moedas,"
+            retorno.append(i)
+            continue
+
+    html_content = templates.TemplateResponse(
+    "_pesquisa.html", 
+    {"request": request, "registros": retorno} 
+    )
+    response = Response(content=html_content.body, media_type="text/html")
+    response.headers["HX-Trigger"] = '{"mostrarSucesso": "xImportx: A validação encontrou erros, veja-os na primeira tabela abaixo!"}'
+    if len(retorno) > 0:
+        return response
     return None

@@ -523,7 +523,8 @@ body.register-page {
 .mensagens-indicador,
 .mensagens-filtro,
 .mensagens-registros,
-.mensagens-pesquisa {
+.mensagens-pesquisa,
+.mensagens-import {
   text-align: center;
   color: rgb(34, 101, 94);
   font-weight: 100;
@@ -595,3 +596,43 @@ body.register-page {
 	position:relative;
 	top:1px;
 }
+
+.erro-fixo {
+    /* ESTE É O CÓDIGO CHAVE para acompanhar o scroll */
+    position: fixed; 
+    
+    /* Garante que esteja no topo da viewport */
+    top: 0;
+    
+    /* Centralização horizontal */
+    left: 50%; 
+    transform: translateX(-50%); 
+    
+    z-index: 9999; 
+    width: auto;
+    max-width: 90%;
+    
+    /* Estilos visuais */
+    padding: 15px 30px;
+    background-color: #f44336;
+    color: white;
+    text-align: center;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    font-weight: bold;
+    font-size: 1.1em;
+    
+    /* Transições de visibilidade */
+    opacity: 1;
+    transition: opacity 0.5s, visibility 0.5s;
+}
+
+.erro-fixo.oculto {
+    opacity: 0;
+    visibility: hidden;
+}
+.erro-fixo.visivel {
+    opacity: 1;
+    visibility: visible;
+}
+

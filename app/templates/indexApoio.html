@@ -16,6 +16,8 @@
     <link rel="icon" type="image/png" href="/static/images/fav.png">
 </head>
 <body>
+    <div id="internal-error" class="erro-fixo oculto" role="alert" aria-live="assertive">
+    </div>
     <form action="/logout" method="post">
         <button type="submit" class="logout-btn">Logout</button>
     </form>
@@ -985,12 +987,13 @@
 
     <script>
         const columnHeaders = [
-        'atributo', 'nome', 'meta', 'moeda', 'tipo_indicador', 
+        'atributo', 'id_nome_indicador', 'meta', 'moedas', 'tipo_indicador', 
         'acumulado', 'esquema_acumulado', 'tipo_matriz', 'data_inicio', 
-        'data_fim', 'periodo', 'escala', 'tipo_faturamento', 
-        'descricao', 'ativo', 'chamado', 'criterio_final', 'area', 
-        'responsavel', 'gerente', 'possuiDmm', 'dmm', 'submetido_por', 
-        'data_submissao', 'da_adm', 'data_da_adm', 'da_apoio', 'data_da_apoio', 'id'
+        'data_fim', 'periodo', 'escala', 'tipo_de_faturamento', 
+        'descricao', 'ativo', 'chamado', 'criterio', 'area', 
+        'responsavel', 'gerente', 'possui_dmm', 'dmm', 'submetido_por', 
+        'data_submetido_por', 'qualidade', 'da_qualidade', 'data_da_qualidade', 
+        'planejamento', 'da_planejamento', 'data_da_planejamento', 'exop', 'da_exop', 'data_da_exop'
     ];
 
     function collectTableData(tableId) {

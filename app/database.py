@@ -7,7 +7,7 @@ CONNECTION_STRING = "Driver={SQL Server};Server=primno4;Database=Robbyson;Truste
 _connection_pool = Queue(maxsize=MAX_POOL_SIZE)
 
 def _create_connection():
-    return pyodbc.connect(CONNECTION_STRING)
+    return pyodbc.connect(CONNECTION_STRING, timeout=10)
 
 def _populate_pool():
     """Pré-enche o pool com algumas conexões iniciais."""
