@@ -1,6 +1,6 @@
 # 📊 Projeto Matriz AeC
 
-[![Status do Projeto](https://img.shields.io/badge/Status-Em%20Uso-blue.svg)](README.md)
+[![Status do Projeto](https://img.shields.io/badge/Status-Em%20Dev/Testes-blue.svg)](README.md)
 [![Desenvolvido em](https://img.shields.io/badge/Linguagem-Python%20%7C%20JS-blue)](https://www.python.org/)
 [![Frameworks](https://img.shields.io/badge/Frameworks-FastAPI%20%7C%20HTMX-orange.svg)](https://fastapi.tiangolo.com/)
 
