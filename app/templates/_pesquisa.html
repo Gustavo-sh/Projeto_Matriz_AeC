@@ -33,12 +33,14 @@
     <td>{{ r.dmm or ""}}</td>
     <td>{{ r.submetido_por or ""}}</td>
     <td>{{ r.data_submetido_por or ""}}</td>
+    {% if show_das %}
     <td>{{ r.qualidade or ""}}</td>
     <td>{{ r.da_qualidade or ""}}</td>
     <td>{{ r.data_da_qualidade or ""}}</td>
     <td>{{ r.planejamento or ""}}</td>
     <td>{{ r.da_planejamento or ""}}</td>
     <td>{{ r.data_da_planejamento or ""}}</td>
+    {% endif %}
     <td>{{ r.exop or ""}}</td>
     <td>{{ r.da_exop or ""}}</td>
     <td>{{ r.data_da_exop or ""}}</td>

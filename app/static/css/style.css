@@ -419,7 +419,8 @@ body.register-page {
 }
 
 .submit-tabela button ,
-.btn-duplicar-tabela {
+.btn-duplicar-tabela,
+.btn_replicar {
   width: 300px;
   padding: 10px;
   background: #63cf1b;
@@ -636,3 +637,44 @@ body.register-page {
     visibility: visible;
 }
 
+/* 1. Estiliza o container para centralizar o conteúdo */
+.replicacao-container {
+    display: flex; /* Habilita o Flexbox */
+    flex-direction: column; /* Organiza itens em coluna (select e botão) */
+    align-items: center; /* Centraliza os itens horizontalmente */
+    text-align: center; /* Garante que o texto do botão fique centralizado (se necessário) */
+    width: 100%; /* Ocupa toda a largura disponível */
+}
+
+/* 2. Estiliza o select (form-select) */
+.form-select {
+    /* Largura e Altura */
+    width: 100%; /* Ocupa a largura total do container */
+    max-width: 900px; /* Limita a largura máxima para não ficar exagerado */
+    min-height: 150px; /* Aumenta a altura para exibir mais opções de uma vez */
+    
+    /* Estilo visual */
+    border: 1px solid #ced4da; /* Borda padrão Bootstrap */
+    border-radius: 0.375rem; /* Borda arredondada padrão Bootstrap */
+    
+    /* Melhoria de estilo discreta */
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Sombra suave */
+    transition: all 0.3s ease-in-out; /* Transição suave para efeitos de hover/focus */
+    font-size: 1rem; /* Garante um bom tamanho de fonte */
+    margin-bottom: 20px; /* Espaco entre o select e o botão */
+}
+
+/* 3. Efeito visual ao passar o mouse ou focar no select */
+.form-select:hover {
+    border-color: #80bdff; /* Cor da borda ligeiramente alterada no hover */
+}
+.form-select:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); /* Focus ring padrão do Bootstrap, mas reforçando */
+}
+
+.header-tab-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}

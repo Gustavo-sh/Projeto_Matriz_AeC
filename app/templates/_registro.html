@@ -8,7 +8,7 @@
         </div>
     </td>
     <td>{{ row.atributo or "" }}</td>
-    <td>{{ row.nome or "" }}</td>
+    <td>{{ row.id_nome_indicador or "" }}</td>
     <td hx-trigger="dblclick"
         hx-get="/edit_campo/{{ row.id }}/meta"  hx-target="this"
         hx-swap="outerHTML">
@@ -16,7 +16,7 @@
     <td hx-trigger="dblclick"
         hx-get="/edit_campo/{{ row.id }}/moeda" hx-target="this"
         hx-swap="outerHTML">
-        {{ row.moeda or "" }}</td>
+        {{ row.moedas or "" }}</td>
     <td>{{ row.tipo_indicador or "" }}</td>
     <td>{{ row.acumulado or "" }}</td>
     <td>{{ row.esquema_acumulado or "" }}</td>
@@ -25,7 +25,7 @@
     <td>{{ row.data_fim or "" }}</td>
     <td>{{ row.periodo or "" }}</td>
     <td>{{ row.escala or "" }}</td>
-    <td>{{ row.tipo_faturamento or "" }}</td>
+    <td>{{ row.tipo_de_faturamento or "" }}</td>
     <td>{{ row.descricao or "" }}</td>
     <td hx-trigger="dblclick"
         hx-get="/edit_campo/{{ row.id }}/ativo"  hx-target="this"
@@ -33,11 +33,11 @@
         {{ row.ativo or "" }}
     </td>
     <td>{{ row.chamado or "" }}</td>
-    <td>{{ row.criterio_final or "" }}</td>
+    <td>{{ row.criterio or "" }}</td>
     <td>{{ row.area or "" }}</td>
     <td>{{ row.responsavel or "" }}</td>
     <td>{{ row.gerente or "" }}</td>
-    <td>{{ row.possuiDmm or "" }}</td>
+    <td>{{ row.possui_dmm or "" }}</td>
     <td>{{ row.dmm or "" }}</td>
 </tr>
 {% endfor %}

@@ -23,7 +23,7 @@
     </form>
 
     <div class="titulo-principal">
-        <h2>Matriz de Distribuição</h2>        
+        <h2>Matriz de Distribuição - ADM</h2>        
     </div>
 
     <div class="container">
@@ -66,6 +66,7 @@
 
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
 
+            {% if username == "277561" %}
             <div>
                 <form hx-post="/upload_excel"
                     hx-target="#tabela-pesquisa"
@@ -78,6 +79,7 @@
 
                 <div id="upload_result" class="mensagens-import"></div>
             </div>
+            {% endif %}
         </div>
 
         <div class="form-container">
@@ -419,8 +421,30 @@
                     hx-target="#mensagens-registros"
                     hx-swap="innerHTML">
                     Submeter Tabela
-                </button>
+            </button>
             </div>
+
+            <div class="replicacao-container mt-4">
+            <h4>Os indicadores que estiverem na tabela acima serão replicados para os atributos que você selecionar abaixo, caso queira.</h4>
+            <select id="atributos_replicar" name="atributos_replicar" multiple class="form-select">
+                {% for at in atributos %}
+                    <option value="{{ at['atributo'] }}"
+                    data-gerente="{{ at['gerente'] }}"
+                    data-tipo="{{ at['tipo'] }}">{{ at['atributo'] }}</option>
+                {% endfor %}
+            </select>
+
+            <button id="btn_replicar" 
+                    class="btn_replicar"
+                    hx-post="/replicar_registros"
+                    hx-confirm="Deseja realmente replicar os registros para os atributos selecionados?"
+                    hx-include="#atributos_replicar"
+                    hx-target="#mensagens-registros"
+                    hx-swap="innerHTML">
+                Replicar registros
+            </button>
+            </div>
+
         </div>
     </div>
 
@@ -444,13 +468,13 @@
             }
             setTimeout(() => {
                 importDiv.innerText = "";
-            }, 5000);
+            }, 8000);
         });
     </script>
 
     <script>
     document.body.addEventListener("htmx:responseError", function(evt) {
-        const indicadorDiv = document.getElementById("mensagens-indicador");
+        const indicadorDiv = document.getElementById("mensagens-indicador");    
         const filtroDiv = document.getElementById("mensagens-filtro");
         const pesquisaDiv = document.getElementById("mensagens-pesquisa");
         if (evt.detail.xhr.status === 422) {
@@ -482,7 +506,7 @@
         indicadorDiv.innerText = "";
         filtroDiv.innerText = "";
         pesquisaDiv.innerText = "";
-        }, 5000);
+        }, 8000);
     });
     </script>
 
@@ -562,6 +586,7 @@
     </script>
 
     <script>
+    let choicesAtributo; 
     document.addEventListener("DOMContentLoaded", function () {
         const selects = [
             "#indicadores",
@@ -571,10 +596,11 @@
             "#atributo_select",
             "#escala_select"
         ];
+        
         selects.forEach(sel => {
             const el = document.querySelector(sel);
             if (el) {
-                new Choices(el, {
+                choicesInstance = new Choices(el, {
                     searchPlaceholderValue: "Selecione...",
                     itemSelectText: "",
                     shouldSort: false,
@@ -583,7 +609,11 @@
                 });
                 el.dataset.choicesInitialized = "true";
             }
+            if (sel === "#atributo_select") {
+                choicesAtributo = choicesInstance;
+            }
         });
+        
 
         const atributoSelect = document.getElementById("atributo_select");
         const atributoHidden = document.getElementById("atributo_hidden");
@@ -595,7 +625,7 @@
             });
         }
     });
-    
+
     function initChoices(selector) {
         const el = document.querySelector(selector);
         if (el && !el.dataset.choicesInitialized) {
@@ -634,61 +664,66 @@
     });
 
     // Variável para armazenar o valor atual/anterior do atributo selecionado
-        let lastSelectedAtributo = document.getElementById('atributo_select')?.value || '';
+    let lastSelectedAtributo = document.getElementById('atributo_select')?.value || '';
 
-        // O htmx deve estar carregado
-        if (typeof htmx === 'undefined') {
-            console.error('HTMX não carregado. A função handleAtributoChange não funcionará.');
-        }
+    // O htmx deve estar carregado
+    if (typeof htmx === 'undefined') {
+        console.error('HTMX não carregado. A função handleAtributoChange não funcionará.');
+    }
 
-        function handleAtributoChange(selectElement) {
-            const novoAtributo = selectElement.value;
-            const registrosContainer = document.getElementById('registros');
+    function handleAtributoChange(selectElement) {
+        const novoAtributo = selectElement.value;
+        const registrosContainer = document.getElementById('registros');
+        
+        // 1. Verificar se há registros na tabela (checa se há TRs dentro do container)
+        // Assumimos que o corpo da tabela (ou div que contém o _registro.html) tem id="registros"
+        const temRegistros = registrosContainer && registrosContainer.children.length > 0;
+
+        if (temRegistros) {
+            // 2. Emitir o alerta de confirmação
+            const confirma = confirm("Atenção! Ao mudar o atributo, você perderá todos os indicadores registrados na tabela. Deseja continuar?");
             
-            // 1. Verificar se há registros na tabela (checa se há TRs dentro do container)
-            // Assumimos que o corpo da tabela (ou div que contém o _registro.html) tem id="registros"
-            const temRegistros = registrosContainer && registrosContainer.children.length > 0;
+            if (confirma) {
+                // 3. Confirmado: Limpar Cache (Backend) e Tabela (Frontend)
 
-            if (temRegistros) {
-                // 2. Emitir o alerta de confirmação
-                const confirma = confirm("Atenção! Ao mudar o atributo, você perderá todos os indicadores registrados na tabela. Deseja continuar?");
-                
-                if (confirma) {
-                    // 3. Confirmado: Limpar Cache (Backend) e Tabela (Frontend)
+                // Disparar a requisição HTMX para limpar o Backend (Cache) e limpar o frontend 
+                // (target: #registros, swap: innerHTML, content vazio da rota /clear_registros)
+                htmx.ajax('POST', '/clear_registros', {
+                    target: registrosContainer, // Limpa o conteúdo da tabela (o #registros)
+                    swap: 'innerHTML',         // O retorno da rota é vazio, limpando o target
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+                }).then(() => {
+                    // Limpeza do cache e frontend bem-sucedida.
+                    lastSelectedAtributo = novoAtributo;
+                    // O select já mudou, e o container foi limpo. A lógica do seu sistema
+                    // (ex: recarregar a tela ou carregar novos dados) deve ser disparada aqui,
+                    // se a simples mudança de valor do select não for suficiente para a sua aplicação.
+                    console.log("Registros zerados e atributo alterado para:", novoAtributo);
+                    
+                }).catch(error => {
+                    // 4. Falha na Requisição HTMX: Reverter a seleção
+                    console.error('Erro ao limpar o cache via HTMX:', error);
+                    alert('Erro ao limpar os registros no servidor. Por favor, tente novamente ou recarregue a página.');
+                    selectElement.value = lastSelectedAtributo; // Reverte a seleção no dropdown
+                });
 
-                    // Disparar a requisição HTMX para limpar o Backend (Cache) e limpar o frontend 
-                    // (target: #registros, swap: innerHTML, content vazio da rota /clear_registros)
-                    htmx.ajax('POST', '/clear_registros', {
-                        target: registrosContainer, // Limpa o conteúdo da tabela (o #registros)
-                        swap: 'innerHTML',         // O retorno da rota é vazio, limpando o target
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'}
-                    }).then(() => {
-                        // Limpeza do cache e frontend bem-sucedida.
-                        lastSelectedAtributo = novoAtributo;
-                        // O select já mudou, e o container foi limpo. A lógica do seu sistema
-                        // (ex: recarregar a tela ou carregar novos dados) deve ser disparada aqui,
-                        // se a simples mudança de valor do select não for suficiente para a sua aplicação.
-                        console.log("Registros zerados e atributo alterado para:", novoAtributo);
-                        
-                    }).catch(error => {
-                        // 4. Falha na Requisição HTMX: Reverter a seleção
-                        console.error('Erro ao limpar o cache via HTMX:', error);
-                        alert('Erro ao limpar os registros no servidor. Por favor, tente novamente ou recarregue a página.');
-                        selectElement.value = lastSelectedAtributo; // Reverte a seleção no dropdown
-                    });
-
-                } else {
-                    // 4. Não Confirmado: Reverter a seleção no dropdown
-                    selectElement.value = lastSelectedAtributo;
-                }
             } else {
-                // Não há registros: permite a mudança e atualiza o valor anterior
-                lastSelectedAtributo = novoAtributo;
+                // 4. Não Confirmado: Reverter a seleção no dropdown
+                selectElement.value = lastSelectedAtributo;
+                if (typeof choicesAtributo !== 'undefined' && choicesAtributo.setChoiceByValue) {
+                    choicesAtributo.setChoiceByValue(lastSelectedAtributo);
+                } else {
+                    console.error("Choices.js para atributo não está inicializado corretamente.");
+                }
             }
-            
-            // Retorna false para prevenir qualquer ação onchange padrão (se houver) até que o JS termine
-            return false;
+        } else {
+            // Não há registros: permite a mudança e atualiza o valor anterior
+            lastSelectedAtributo = novoAtributo;
         }
+        
+        // Retorna false para prevenir qualquer ação onchange padrão (se houver) até que o JS termine
+        return false;
+    }
     </script>
 
     <script>
@@ -696,7 +731,7 @@
         if (evt.detail.target.id === "mensagens-registros") {
             setTimeout(() => {
                 evt.detail.target.innerHTML = "";
-            }, 5000); 
+            }, 8000); 
         }
     }
     );
@@ -892,11 +927,11 @@
         const filtroDiv = document.getElementById("mensagens-filtro");
         const importDiv = document.getElementById("upload_result");
 
-        if (evt.detail.value.includes("Tabela submetida com sucesso")) {
-            setTimeout(function() {
-            window.location.reload(); 
-        }, 3000);
-        }
+        // if (evt.detail.value.includes("Tabela submetida com sucesso")) {
+        //     setTimeout(function() {
+        //     window.location.reload(); 
+        // }, 3000);
+        // }
         if (indicadorDiv && mensagem) {
             const successMessageHTML = `
                 <div>
@@ -918,7 +953,7 @@
                 indicadorDiv.innerHTML = "";
                 filtroDiv.innerHTML = "";
                 importDiv.innerHTML = "";
-            }, 5000);
+            }, 8000);
         }
     });
     </script>
@@ -976,7 +1011,7 @@
             indicadorDiv.innerHTML = errorMessageHTML;
             setTimeout(() => {
                 indicadorDiv.innerHTML = "";
-            }, 5000);
+            }, 8000);
         }
     });
     </script>

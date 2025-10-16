@@ -5,6 +5,7 @@ from fastapi import Request
 import json
 from datetime import timedelta
 import redis
+from datetime import datetime, date
 
 CACHE = OrderedDict()
 CACHE_TTL = timedelta(minutes=5)
@@ -54,7 +55,7 @@ def load_registros(request: Request):
 
 def save_registros(request: Request, registros):
     key = get_user_key(request)
-    redis_client.set(key, json.dumps(registros))
+    redis_client.set(key, json.dumps(registros, default=json_serial))
 
 def set_session(token: str, data: dict):
     redis_client.set(f"{SESSION_PREFIX}{token}", json.dumps(data))
@@ -68,3 +69,13 @@ def get_current_user(request: Request):
     if not token:
         return None
     return get_session(token)
+
+def json_serial(obj):
+    """
+    Função de serialização JSON para objetos que o json padrão não suporta.
+    Converte objetos datetime e date para o formato de string ISO 8601.
+    """
+    if isinstance(obj, (datetime, date)):
+        # Converte para string no formato ISO 8601 (ex: '2025-10-16T12:00:00')
+        return obj.isoformat()
+    raise TypeError(f'Object of type {obj.__class__.__name__} is not JSON serializable')

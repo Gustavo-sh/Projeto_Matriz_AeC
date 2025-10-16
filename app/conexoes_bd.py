@@ -49,13 +49,13 @@ async def save_registros_bd(registros, username):
         values_clauses = []
         for i in registros:
             row_values = [
-                f"'{i['atributo']}'", f"'{i['nome']}'", f"'{i['meta']}'", f"'{i['moeda']}'",
+                f"'{i['atributo']}'", f"'{i['id_nome_indicador']}'", f"'{i['meta']}'", f"'{i['moedas']}'",
                 f"'{i['tipo_indicador']}'", f"'{i['acumulado']}'", f"'{i['esquema_acumulado']}'",
                 f"'{i['tipo_matriz']}'", f"'{i['data_inicio']}'", f"'{i['data_fim']}'",
-                f"'{i['periodo']}'", f"'{i['escala']}'", f"'{i['tipo_faturamento']}'",
+                f"'{i['periodo']}'", f"'{i['escala']}'", f"'{i['tipo_de_faturamento']}'",
                 f"'{i['descricao']}'", f"'{i['ativo']}'", f"'{i['chamado']}'",
-                f"'{i['criterio_final']}'", f"'{i['area']}'", f"'{i['responsavel']}'",
-                f"'{i['gerente']}'", f"'{i['possuiDmm']}'", f"'{i['dmm']}'",
+                f"'{i['criterio']}'", f"'{i['area']}'", f"'{i['responsavel']}'",
+                f"'{i['gerente']}'", f"'{i['possui_dmm']}'", f"'{i['dmm']}'",
                 username_sql, 
                 data_sql,
                 "'', '', '', '', '', '', '', '', ''"
@@ -295,6 +295,28 @@ async def get_resultados_indicadores_m3():
     set_cache(cache_key, resultados, ttl=CACHE_TTL_24H)
     return resultados
 
+async def get_matriculas_cadastro_adm():
+    cache_key = "matriculas_cadastro_adm"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+    resultados = None
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+               select * from dbo.listagem_matriz_administrativa
+            """)
+            resultados = {f'{i[0]}': i[1] for i in cur.fetchall()}
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    #set_cache_24h(cache_key, resultados)
+    CACHE_TTL_24H = timedelta(hours=24)
+    set_cache(cache_key, resultados, ttl=CACHE_TTL_24H)
+    return resultados
+
 async def get_indicadores():
     cache_key = "indicadores"
     cached = get_from_cache(cache_key)
@@ -337,6 +359,27 @@ async def get_atributos_adm_apoio():
             select distinct atributo, gerente, tipo_matriz from Robbyson.dbo.Matriz_Geral (nolock) where (gerente <> '' and tipo_matriz <> '')
             """)
             resultados = [{"atributo": i[0], "gerente": i[1], "tipo": i[2]} for i in cur.fetchall()]
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    return resultados
+
+async def get_atributos_cadastro_apoio(produto):
+    resultados = None
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+            select distinct atributo, case when GERENTE is not null then GERENTE
+            when GERENTEPLENO is not null then GERENTEPLENO
+            when GERENTESENIOR is not null then GERENTESENIOR
+            else GERENTE_EXECUTIVO end as Gerente from [robbyson].[rlt].[hmn] (nolock) where data = convert(date, getdate()-1) 
+            and atributo like '%{produto}%'
+            and tipohierarquia = 'ADMINISTRAÇÃO' and nivelhierarquico = 'OPERACIONAL'
+            and SituacaoHominum in ('ativo', 'treinamento')
+            """)
+            resultados = [{"atributo": i[0], "gerente": i[1], "tipo": "ADMINISTRAÇÃO"} for i in cur.fetchall()]
             cur.close()
             return resultados
     resultados = await loop.run_in_executor(None, _sync_db_call)

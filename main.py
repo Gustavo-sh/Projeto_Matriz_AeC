@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from datetime import datetime
 from app.routes import router
 from app.database import init_db_pool
-from app.conexoes_bd import get_resultados_indicadores_m3
+from app.conexoes_bd import get_resultados_indicadores_m3, get_matriculas_cadastro_adm
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -22,6 +22,7 @@ async def startup_event():
     try:
         # A função é assíncrona, então usamos await
         await get_resultados_indicadores_m3() 
+        await get_matriculas_cadastro_adm()
         print("Pré-carregamento de resultados concluído.")
     except Exception as e:
         # É importante tratar exceções para não travar a inicialização do app

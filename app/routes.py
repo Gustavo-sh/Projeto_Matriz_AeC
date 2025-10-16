@@ -10,13 +10,14 @@ from typing import List
 import pandas as pd
 from io import BytesIO
 from fastapi.responses import StreamingResponse
+import json
 from fastapi import UploadFile, File
 from app.cache import (
     get_from_cache, set_cache, load_registros, save_registros,
     set_session, get_current_user
 )
 from app.conexoes_bd import (
-    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd,
+    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_matriculas_cadastro_adm, get_atributos_cadastro_apoio,
     query_m0, query_m1, get_atributos_adm_apoio, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel
 )
 from app.validation import validation_submit_table, validation_import_from_excel
@@ -89,11 +90,11 @@ def redirect_by_role(request: Request):
         return RedirectResponse("/login", status_code=303)
     role = user.get("role")
     if role == "operacao":
-        return RedirectResponse("/matriz")
+        return RedirectResponse("/matriz/operacao")
     elif role in ["apoio qualidade", "apoio planejamento"]:
-        return RedirectResponse("/indexApoio")
+        return RedirectResponse("/matriz/apoio")
     elif role == "adm":
-        return RedirectResponse("/indexAdm")
+        return RedirectResponse("/matriz/adm")
     else:
         raise HTTPException(status_code=403, detail="Role inválida")
 
@@ -141,7 +142,7 @@ async def register_user(request: Request, username: str = Form(...), password: s
     await save_user_bd(username, hashed_password, role)
     return RedirectResponse("/login?msg=Usuário cadastrado com sucesso!", status_code=303)
 
-@router.get("/matriz")
+@router.get("/matriz/operacao")
 async def matriz_page(request: Request):
     logged_in = request.cookies.get(SESSION_COOKIE)
     if not logged_in or logged_in != "true":
@@ -155,7 +156,7 @@ async def matriz_page(request: Request):
     lista_atributos = await get_atributos_matricula(username)
     atributos = sorted(lista_atributos, key=lambda item: item.get('atributo') or '')
     registros = load_registros(request)
-    return templates.TemplateResponse("index.html", {
+    return templates.TemplateResponse("indexOperacao.html", {
         "request": request,
         "registros": registros,
         "indicadores": indicadores,
@@ -164,7 +165,7 @@ async def matriz_page(request: Request):
         "role_": user.get("role")
     })
 
-@router.get("/indexApoio")
+@router.get("/matriz/apoio")
 async def index_apoio(request: Request):
     logged_in = request.cookies.get(SESSION_COOKIE)
     if not logged_in or logged_in != "true":
@@ -186,7 +187,39 @@ async def index_apoio(request: Request):
         "role_": user.get("role")
     })
 
-@router.get("/indexAdm")
+@router.get("/matriz/apoio/cadastro")
+async def index_apoio(request: Request):
+    logged_in = request.cookies.get(SESSION_COOKIE)
+    if not logged_in or logged_in != "true":
+        return RedirectResponse("/login", status_code=303)
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    _check_role_or_forbid(user, ["apoio qualidade", "apoio planejamento", "adm"])
+    matriculas = await get_matriculas_cadastro_adm()
+    username = request.cookies.get("username")
+    if str(username) not in matriculas.keys():
+        session_token = str(uuid.uuid4())
+        resp = RedirectResponse("/redirect_by_role", status_code=303)
+        resp.set_cookie("session_token", session_token, httponly=True)
+        resp.set_cookie("logged_in", "true", httponly=True)
+        resp.set_cookie("last_active", datetime.utcnow().isoformat(), httponly=True)
+        resp.set_cookie("username", username, httponly=True)
+        resp.set_cookie("role", user.get("role"), httponly=True)
+        return resp
+    indicadores = await get_indicadores()
+    atributos = await get_atributos_cadastro_apoio(matriculas[f"{username}"])
+    registros = load_registros(request)
+    return templates.TemplateResponse("indexApoioCadastro.html", {
+        "request": request,
+        "registros": registros,
+        "indicadores": indicadores,
+        "username": username,
+        "atributos": atributos,
+        "role_": user.get("role")
+    })
+
+@router.get("/matriz/adm")
 async def index_adm(request: Request):
     logged_in = request.cookies.get(SESSION_COOKIE)
     if not logged_in or logged_in != "true":
@@ -238,10 +271,10 @@ def add_registro(
     novo_id = str(uuid.uuid4())
     novo = {
         "id": novo_id,
-        "atributo": atributo, "nome": nome, "meta": meta, "moeda": moeda,"tipo_indicador": tipo_indicador,"acumulado": acumulado,"esquema_acumulado": esquema_acumulado,
-        "tipo_matriz": tipo_matriz,"data_inicio": data_inicio,"data_fim": data_fim,"periodo": periodo,"escala": escala,"tipo_faturamento": tipo_faturamento,
-        "descricao": descricao or '',"ativo": ativo or "","chamado" or '': chamado,"criterio_final": criterio_final,"area": area,"responsavel": responsavel,"gerente": gerente,
-        "possuiDmm": possuiDmm,"dmm": dmm
+        "atributo": atributo, "id_nome_indicador": nome, "meta": meta, "moedas": moeda,"tipo_indicador": tipo_indicador,"acumulado": acumulado,"esquema_acumulado": esquema_acumulado,
+        "tipo_matriz": tipo_matriz,"data_inicio": data_inicio,"data_fim": data_fim,"periodo": periodo,"escala": escala,"tipo_de_faturamento": tipo_faturamento,
+        "descricao": descricao or '',"ativo": ativo or "","chamado" or '': chamado,"criterio": criterio_final,"area": area,"responsavel": responsavel,"gerente": gerente,
+        "possui_dmm": possuiDmm,"dmm": dmm
     }
     if not atributo or not nome or not meta or not moeda or not data_inicio or not data_fim or not escala or not tipo_faturamento or not criterio_final or not responsavel or not possuiDmm:  
         raise HTTPException(
@@ -272,10 +305,13 @@ async def pesquisar_m0(request: Request, atributo: str = Form(...)):
             detail="xFiltrox : Selecione um atributo primeiro!"
         )
     registros = await query_m0(atributo)
-
+    matriculas = await get_matriculas_cadastro_adm()
+    user = get_current_user(request)
+    username = user.get("usuario")
+    show_das = True if username not in matriculas else None
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": True} 
+    {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das}
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
@@ -295,9 +331,13 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
     user = get_current_user(request)
     role = "operacao" if "operacao" in user.get("role") else "adm_apoio"
     registros = await query_m1(atributo, role)
+    matriculas = await get_matriculas_cadastro_adm()
+    user = get_current_user(request)
+    username = user.get("usuario")
+    show_das = True if username not in matriculas else None
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": True} 
+    {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das} 
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
@@ -333,11 +373,11 @@ async def submit_table(request: Request):
                 cond['periodo'] == periodo_bd and 
                 cond['id_nome_indicador'] == id_nome_indicador_bd):
                 if validar_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
-                    return "<p>Este indicador ja foi submetido para o periodo e atributo selecionado.</p>"     
+                    return f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.</p>"  
     await save_registros_bd(registros, username)
     save_registros(request, [])
     response = Response(
-        content="<p>Tabela submetida com sucesso! Atualizando página...</p>",
+        content="<p>Tabela submetida com sucesso! A tabela ficará disponível caso queira replica-la para outros atributos.</p>",
         status_code=status.HTTP_200_OK,
         media_type="text/html"
     )
@@ -454,7 +494,7 @@ def duplicate_search_results(
         registro_copia["data_fim"] = data_fim
         registro_copia["periodo"] = periodo 
         registro_copia["dmm"] = dmm
-        registro_copia["possuiDmm"] = possuiDmm
+        registro_copia["possui_dmm"] = possuiDmm
         registros_atuais.append(registro_copia)
     save_registros(request, registros_atuais)
     html_content = templates.TemplateResponse(
@@ -484,13 +524,17 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
     valor_processado = valor_limpo 
     tipo_indicador = registro_encontrado.get("tipo_indicador")
     try:
+        if campo == "moeda" and valor_limpo == '':
+            valor_processado = 0
+        else:
+            valor_processado = int(valor_limpo.replace(',', '.'))
         if campo == "ativo":
             valor_processado = int(valor_limpo)
-        elif tipo_indicador in ["Percentual"]:
+        elif tipo_indicador in ["Percentual"] and campo != "moeda":
             float(valor_limpo.replace(',', '.'))
-        elif tipo_indicador in ["Inteiro"]:
+        elif tipo_indicador in ["Inteiro"] and campo != "moeda":
             int(valor_limpo.replace(',', '.'))
-        elif tipo_indicador in ["Decimal"]:
+        elif tipo_indicador in ["Decimal"] and campo != "moeda":
             float(valor_limpo.replace(',', '.'))
         elif tipo_indicador in ["Hora"] and campo != "moeda":
             partes = valor_limpo.split(":")
@@ -503,7 +547,8 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
         response.headers["HX-Reswap"] = "innerHTML"
         response.headers["HX-Trigger"] = f'{{"mostrarErro": "{error_message}"}}'
         return response
-
+    if campo == 'moeda':
+        campo = 'moedas'
     registro_encontrado[campo] = valor_processado 
     save_registros(request, registros)
     return f'{registro_encontrado.get(campo) or ""}'
@@ -561,7 +606,7 @@ async def processar_acordo(
             registros_apos_acao.append(r)
         else:
             atributo = r.get("atributo")
-            id_nome_indicador = r.get("nome") 
+            id_nome_indicador = r.get("id_nome_indicador") 
             periodo = r.get("periodo")
             updates_a_executar.append((atributo, periodo, id_nome_indicador)) 
     if updates_a_executar:
@@ -606,7 +651,7 @@ async def export_table_excel(request: Request):
     df = pd.DataFrame(registros_pesquisa)
     output = BytesIO()
     try:
-        df.to_excel(output, index=False, sheet_name='Resultados da Pesquisa', engine='openpyxl') 
+        df.to_excel(output, index=False, sheet_name='Resultados da Pesquisa', engine='openpyxl')
     except Exception as e:
         print(f"Erro ao gerar Excel com Pandas: {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao gerar arquivo Excel.")
@@ -692,3 +737,82 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
     content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
     <p>xImportx: Todos os registros foram inseridos na tabela Robbyson.dbo.Matriz_Geral.</p></div>"""
     return HTMLResponse(content=content)
+
+@router.post("/replicar_registros", response_class=HTMLResponse)
+async def replicar_registros(request: Request, atributos_replicar: list[str] = Form(...)):
+    user = None
+    matricula = None
+    try:
+        user = get_current_user(request)
+        matricula = user.get("usuario")
+    except Exception:
+        return HTMLResponse("<p>Erro: usuário não autenticado.</p>")
+
+    atributos_destino = [a.strip() for a in atributos_replicar if a and a.strip()]
+    if not atributos_destino:
+        return HTMLResponse("<p>Nenhum atributo selecionado para replicação.</p>")
+
+    registros = load_registros(request)
+
+    if not registros:
+        return HTMLResponse("<p>Não há registros carregados no cache para replicar.</p>")
+
+    if isinstance(registros, str):
+        try:
+            registros = json.loads(registros)
+        except Exception:
+            return HTMLResponse("<p>Erro ao interpretar registros do cache.</p>")
+
+    if not isinstance(registros, list) or not registros:
+        return HTMLResponse("<p>Cache de registros inválido ou vazio.</p>")
+
+    atributo_atual = registros[0].get("atributo")
+    if not atributo_atual:
+        return HTMLResponse("<p>Erro: não foi possível identificar o atributo atual nos registros.</p>")
+
+    novos_registros = []
+    for destino in atributos_destino:
+        for r in registros:
+            novo = dict(r)
+            novo["atributo"] = destino
+            novo["submetido_por"] = matricula
+            novo["data_submetido_por"] = datetime.now().strftime("%Y-%m-%d")
+            novo["qualidade"] = 0
+            novo["da_qualidade"] = 0
+            novo["data_da_qualidade"] = ''
+            novo["planejamento"] = 0
+            novo["da_planejamento"] = 0
+            novo["data_da_planejamento"] = ''
+            novo["exop"] = 0
+            novo["da_exop"] = 0
+            novo["data_da_exop"] = ''
+            if "id" in novo:
+                novo["id"] = ""
+            novos_registros.append(novo)
+    results = await validation_submit_table(novos_registros)
+    if isinstance(results, str):
+        return results
+    validation_conditions, registros = results
+    existing_records = await batch_validar_submit_query(validation_conditions)
+    for existing_row in existing_records:
+        atributo_bd, periodo_bd, id_nome_indicador_bd, data_inicio_bd, data_fim_bd = existing_row
+        for cond in validation_conditions:
+            if (cond['atributo'] == atributo_bd and 
+                cond['periodo'] == periodo_bd and 
+                cond['id_nome_indicador'] == id_nome_indicador_bd):
+                if validar_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
+                    return f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.</p>" 
+                
+    if not novos_registros:
+        return HTMLResponse("<p>Nenhum registro válido para replicar.</p>")
+
+    try:
+        await import_from_excel(novos_registros)
+    except Exception as e:
+        return HTMLResponse(f"<p>Erro ao inserir registros no banco: {e}</p>")
+
+    return HTMLResponse(
+        f"<p>Sucesso: {len(registros)} registros replicados do atributo "
+        f"<strong>{atributo_atual}</strong> para "
+        f"<strong>{', '.join(atributos_destino)}</strong>.</p>"
+    )

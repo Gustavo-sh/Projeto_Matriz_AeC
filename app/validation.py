@@ -13,21 +13,21 @@ async def validation_submit_table(registros):
     if erro_dmm:
         return erro_dmm
     for dic in registros:
-        moeda_val = dic.get("moeda", "")
+        moeda_val = dic.get("moedas", "")
         meta_val = dic.get("meta", "")
-        nome_val = dic.get("nome", "")
+        nome_val = dic.get("id_nome_indicador", "")
         resultados_indicadores_m3 = await get_resultados_indicadores_m3()
-        id_indicador = dic["nome"].split(" - ")[0]
-        if int(dic["moeda"]) > 0 and int(id_indicador) not in resultados_indicadores_m3:
-            return f"<p>Não é possível cadastrar o indicador {dic['nome']}, pois ele não tem resultados para os ultimos dois meses+mes atual.</p>"
+        id_indicador = dic["id_nome_indicador"].split(" - ")[0]
+        if int(dic["moedas"]) > 0 and int(id_indicador) not in resultados_indicadores_m3:
+            return f"<p>Não é possível cadastrar o indicador {dic['id_nome_indicador']}, pois ele não tem resultados para os ultimos dois meses+mes atual.</p>"
         if moeda_val == "":
             moeda_val = 0
-            dic["moeda"] = 0
+            dic["moedas"] = 0
         else:
             try:
                 if int(moeda_val) <= 0: 
                     moeda_val = 0
-                    dic["moeda"] = 0
+                    dic["moedas"] = 0
                 moedas += int(moeda_val)
             except ValueError:
                 return "<p>Erro: Moeda deve ser um valor inteiro.</p>"
@@ -70,7 +70,7 @@ async def validation_submit_table(registros):
         validation_conditions.append({
             "atributo": dic["atributo"],
             "periodo": dic["periodo"],
-            "id_nome_indicador": dic["nome"],
+            "id_nome_indicador": dic["id_nome_indicador"],
             "data_inicio_sbmit": dic["data_inicio"],
             "data_fim_submit": dic["data_fim"]
         })
@@ -80,16 +80,16 @@ async def validation_submit_table(registros):
         return "<p>A soma de moedas deve ser igual a 30 ou 35.</p>"
     elif moedas == 30:
         try:
-            registros.append({'atributo': f'{registros[0]["atributo"]}', 'nome': '48 - Presença', 'meta': '2', 'moeda': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
+            registros.append({'atributo': f'{registros[0]["atributo"]}', 'id_nome_indicador': '48 - Presença', 'meta': '2', 'moedas': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
                             'tipo_matriz': 'OPERAÇÃO', 'data_inicio': f'{registros[0]["data_inicio"]}', 'data_fim': f'{registros[0]["data_fim"]}', 'periodo': f'{registros[0]["periodo"]}', 'escala': f'{registros[0]["escala"]}',
-                            'tipo_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': f'{registros[0]["chamado"]}', 'criterio_final': 'Meta AeC', 'area': 'Plajamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
-                            'possuiDmm': f'{registros[0]["possuiDmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': f'{registros[0]["submetido_por"]}', 'data_submetido_por': f'{registros[0]["data_submetido_por"]}', 'qualidade': f'{registros[0]["qualidade"]}', 'da_qualidade': f'{registros[0]["da_qualidade"]}', 'data_da_qualidade': f'{registros[0]["data_da_qualidade"]}', 
+                            'tipo_de_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': f'{registros[0]["chamado"]}', 'criterio': 'Meta AeC', 'area': 'Plajamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
+                            'possui_dmm': f'{registros[0]["possui_dmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': f'{registros[0]["submetido_por"]}', 'data_submetido_por': f'{registros[0]["data_submetido_por"]}', 'qualidade': f'{registros[0]["qualidade"]}', 'da_qualidade': f'{registros[0]["da_qualidade"]}', 'data_da_qualidade': f'{registros[0]["data_da_qualidade"]}', 
                             'planejamento': f'{registros[0]["planejamento"]}', 'da_planejamento': f'{registros[0]["da_planejamento"]}', 'data_da_planejamento': f'{registros[0]["data_da_planejamento"]}', 'exop': f'{registros[0]["exop"]}', 'da_exop': f'{registros[0]["da_exop"]}', 'data_da_exop': f'{registros[0]["data_da_exop"]}', 'id': uuid.uuid4()})
         except KeyError:
-            registros.append({'atributo': f'{registros[0]["atributo"]}', 'nome': '48 - Presença', 'meta': '2', 'moeda': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
+            registros.append({'atributo': f'{registros[0]["atributo"]}', 'id_nome_indicador': '48 - Presença', 'meta': '2', 'moedas': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
                         'tipo_matriz': 'OPERAÇÃO', 'data_inicio': f'{registros[0]["data_inicio"]}', 'data_fim': f'{registros[0]["data_fim"]}', 'periodo': f'{registros[0]["periodo"]}', 'escala': f'{registros[0]["escala"]}',
-                        'tipo_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': f'{registros[0]["chamado"]}', 'criterio_final': 'Meta AeC', 'area': 'Planejamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
-                        'possuiDmm': f'{registros[0]["possuiDmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': '', 'data_submetido_por': '', 'qualidade': '', 'da_qualidade': '', 'data_da_qualidade': '', 
+                        'tipo_de_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': f'{registros[0]["chamado"]}', 'criterio': 'Meta AeC', 'area': 'Planejamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
+                        'possui_dmm': f'{registros[0]["possui_dmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': '', 'data_submetido_por': '', 'qualidade': '', 'da_qualidade': '', 'data_da_qualidade': '', 
                         'planejamento': '', 'da_planejamento': '', 'data_da_planejamento': '', 'exop': '', 'da_exop': '', 'data_da_exop': '', 'id': uuid.uuid4()})
 
     return validation_conditions, registros
