@@ -908,7 +908,10 @@
                         } else if (url.includes("/pesquisarm1")) {
                             tipoPesquisaInput.value = "m1";
                             atributoInput.value = document.getElementById("atributo_select").value;
-                        }
+                        } else if (url.includes("/pesquisarmmais1")) {
+                            tipoPesquisaInput.value = "m+1";
+                            atributoInput.value = document.getElementById("atributo_select").value;
+                    }
                 }
             }
         });

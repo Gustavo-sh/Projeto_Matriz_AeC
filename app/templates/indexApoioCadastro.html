@@ -935,13 +935,14 @@
                         tipoValor = "m0";
                     } else if (url.includes("/pesquisarm1")) {
                         tipoValor = "m1";
+                    } else if (url.includes("/pesquisarmmais1")) {
+                        tipoValor = "m+1";
                     }
 
                     if (tipoValor) {
                         tipoPesquisaInputAdmApoio.value = tipoValor; 
                         atributoInput.value = document.getElementById("atributo_select").value;
-                        
-                        if (tipoPesquisaInputAntigo) tipoPesquisaInputAntigo.value = tipoValor; 
+                        tipoPesquisaInputAntigo.value = tipoValor; 
 
                         document.body.dispatchEvent(new CustomEvent('buildCacheKey', {
                             detail: { 
