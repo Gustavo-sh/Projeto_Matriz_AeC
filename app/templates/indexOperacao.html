@@ -64,6 +64,15 @@
                 Pesquisar Mes Anterior
             </button>
 
+            <button
+                type="button"
+                hx-post="/pesquisarmmais1" 
+                hx-target="#tabela-pesquisa" 
+                hx-swap="innerHTML"
+                hx-include="[id='atributo_select']">
+                Pesquisar Mes Seguinte
+            </button>
+
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
         </div>
 
@@ -218,6 +227,7 @@
 
     <div class="registros">
         <h4>Resultado por Atributo</h4>
+        <button type="button" id="export-btn" class="export-btn">Export para Excel</button>
         <div class="table-container">
             <table class="tabela-pesquisa">
                 <thead>
@@ -363,30 +373,32 @@
             <button
                     hx-post="/submit_table"
                     hx-target="#mensagens-registros"
-                    hx-swap="innerHTML">
+                    hx-swap="innerHTML"
+                    hx-confirm="Deseja realmente submeter as informações para banco de dados?">
                     Submeter Tabela
                 </button>
             </div>
 
-            <div class="replicacao-container mt-4">
-            <h4>Os indicadores que estiverem na tabela acima serão replicados para os atributos que você selecionar abaixo, caso queira.</h4>
-            <select id="atributos_replicar" name="atributos_replicar" multiple class="form-select">
-                {% for at in atributos %}
-                    <option value="{{ at['atributo'] }}"
-                    data-gerente="{{ at['gerente'] }}"
-                    data-tipo="{{ at['tipo'] }}">{{ at['atributo'] }}</option>
-                {% endfor %}
-            </select>
+            <div class="replicacao-container">
+                <h4>Os indicadores que estiverem na tabela acima serão replicados para os atributos que você selecionar abaixo, caso queira.</h4>
+                <select id="atributos_replicar" name="atributos_replicar" multiple class="atributos_replicar">
+                    {% for at in atributos %}
+                        <option value="{{ at['atributo'] }}"
+                        data-gerente="{{ at['gerente'] }}"
+                        data-tipo="{{ at['tipo'] }}">{{ at['atributo'] }}</option>
+                    {% endfor %}
+                </select>
+                
 
-            <button id="btn_replicar" 
-                    class="btn_replicar"
-                    hx-post="/replicar_registros"
-                    hx-confirm="Deseja realmente replicar os registros para os atributos selecionados?"
-                    hx-include="#atributos_replicar"
-                    hx-target="#mensagens-registros"
-                    hx-swap="innerHTML">
-                Replicar registros
-            </button>
+                <button id="btn_replicar" 
+                        class="btn_replicar"
+                        hx-post="/replicar_registros"
+                        hx-confirm="Deseja realmente replicar os registros para os atributos selecionados?"
+                        hx-include="#atributos_replicar"
+                        hx-target="#mensagens-registros"
+                        hx-swap="innerHTML">
+                    Replicar registros
+                </button>
             </div>
         </div>
     </div>
@@ -521,7 +533,8 @@
             "#area",
             "#tipo_faturamento",
             "#atributo_select",
-            "#escala_select"
+            "#escala_select",
+            "#atributos_replicar"
         ];
         
         selects.forEach(sel => {
@@ -579,7 +592,7 @@
 
     document.addEventListener("DOMContentLoaded", function () {
         initChoices("#operacao_select");
-        initChoices("#atributo_select");
+        initChoices("#atributo_select"); 
         syncAtributoHidden();
     });
 
@@ -937,6 +950,20 @@
                 });
             }
         });
+    </script>
+
+    <script>
+    document.getElementById("export-btn").addEventListener("click", function() {
+        const atributo = document.getElementById("atributo_select").value;
+        const tipo = document.getElementById("duplicar_tipo_pesquisa").value;
+        
+        const params = new URLSearchParams();
+        params.append("atributo", atributo);
+        params.append("duplicar_tipo_pesquisa", tipo);
+
+        url = "/export_table?" + params.toString();
+        window.open(url, "_blank")
+    });
     </script>
 
 </body>

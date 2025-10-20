@@ -246,7 +246,7 @@ h4 , h5{
 .choices__inner {
   border: 1px solid #ccc;
   border-radius: 6px;
-  height: 40px;
+  height: auto;
   display: flex;
   align-items: center;
   padding: 0 10px;
@@ -637,44 +637,53 @@ body.register-page {
     visibility: visible;
 }
 
-/* 1. Estiliza o container para centralizar o conteúdo */
 .replicacao-container {
-    display: flex; /* Habilita o Flexbox */
-    flex-direction: column; /* Organiza itens em coluna (select e botão) */
-    align-items: center; /* Centraliza os itens horizontalmente */
-    text-align: center; /* Garante que o texto do botão fique centralizado (se necessário) */
-    width: 100%; /* Ocupa toda a largura disponível */
-}
-
-/* 2. Estiliza o select (form-select) */
-.form-select {
-    /* Largura e Altura */
-    width: 100%; /* Ocupa a largura total do container */
-    max-width: 900px; /* Limita a largura máxima para não ficar exagerado */
-    min-height: 150px; /* Aumenta a altura para exibir mais opções de uma vez */
-    
-    /* Estilo visual */
-    border: 1px solid #ced4da; /* Borda padrão Bootstrap */
-    border-radius: 0.375rem; /* Borda arredondada padrão Bootstrap */
-    
-    /* Melhoria de estilo discreta */
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Sombra suave */
-    transition: all 0.3s ease-in-out; /* Transição suave para efeitos de hover/focus */
-    font-size: 1rem; /* Garante um bom tamanho de fonte */
-    margin-bottom: 20px; /* Espaco entre o select e o botão */
-}
-
-/* 3. Efeito visual ao passar o mouse ou focar no select */
-.form-select:hover {
-    border-color: #80bdff; /* Cor da borda ligeiramente alterada no hover */
-}
-.form-select:focus {
-    border-color: #80bdff;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); /* Focus ring padrão do Bootstrap, mas reforçando */
-}
-
-.header-tab-info {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 20px 10px;
+  margin-top: 25px;
+}
+
+/* Contém o select (com Choices.js) sem crescer demais */
+.replicacao-container .atributos_replicar {
+  width: 600px;               /* controla a largura máxima */
+  max-width: 90%;
+  min-height: 120px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+/* Ajuste específico para o componente Choices.js */
+.replicacao-container .choices {
+  width: 600px !important;    /* largura consistente */
+  max-width: 90% !important;
+  margin: 0 auto !important;
+}
+.replicacao-container .choices__inner {
+  min-height: 120px;
+  overflow-y: auto;           /* evita crescer demais quando muitas opções */
+  text-align: left;
+}
+
+/* Botão centralizado e com largura fixa */
+.replicacao-container .btn_replicar {
+  display: inline-block;
+  width: 220px;
+  padding: 10px;
+  background: #63cf1b;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.1s ease;
+  margin-top: 8px;
+}
+.replicacao-container .btn_replicar:hover {
+  background: #4ea814;
+  transform: scale(1.03);
 }
