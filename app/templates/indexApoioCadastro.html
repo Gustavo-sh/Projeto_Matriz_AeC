@@ -74,29 +74,32 @@
             </button>
 
             <button
+                id="all_m0"
                 type="button"
                 hx-post="/allatributesapoio" 
                 hx-target="#tabela-pesquisa"
                 hx-swap="innerHTML"
-                hx-vals='{"tipo_pesquisa": "m0"}'>
+                hx-vals='{"tipo_pesquisa": "m0_all_apoio"}'>
                 Pesquisar Todos os Atributos Mês Atual
             </button>
 
             <button
+                id="all_m1"
                 type="button"
                 hx-post="/allatributesapoio" 
                 hx-target="#tabela-pesquisa"
                 hx-swap="innerHTML"
-                hx-vals='{"tipo_pesquisa": "m1"}'>
+                hx-vals='{"tipo_pesquisa": "m1_all_apoio"}'>
                 Pesquisar Todos os Atributos Mês Anterior
             </button>
 
             <button
+                id="all_m+1"
                 type="button"
                 hx-post="/allatributesapoio" 
                 hx-target="#tabela-pesquisa"
                 hx-swap="innerHTML"
-                hx-vals='{"tipo_pesquisa": "m+1"}'>
+                hx-vals='{"tipo_pesquisa": "m+1_all_apoio"}'>
                 Pesquisar Todos os Atributos Mês Seguinte
             </button>
 
@@ -825,22 +828,7 @@
             const fimInput = document.getElementById('data_fim_duplicar');
             
             if (inicioInput && fimInput) {
-                
-                flatpickr(inicioInput, {
-                    dateFormat: "Y-m-d",
-                    locale: "pt",
-                    onChange: function(selectedDates, dateStr, instance) {
-                        const fimInputValue = document.getElementById('data_fim_duplicar').value;
-                        
-                        if (!fimInputValue) {
-                            flatpickr(document.getElementById('data_fim_duplicar')).setDate(dateStr);
-                        }
-                        
-                        syncDuplicarPeriodo(dateStr); 
-                    }
-                });
-
-                flatpickr(fimInput, {
+                const fim = flatpickr(fimInput, {
                     dateFormat: "Y-m-d",
                     locale: "pt",
                     onChange: function(selectedDates, dateStr, instance) {
@@ -848,18 +836,36 @@
                         syncDuplicarPeriodo(inicioInputValue); 
                     }
                 });
+
+                flatpickr(inicioInput, {
+                    dateFormat: "Y-m-d",
+                    locale: "pt",
+                    onChange: function(selectedDates, dateStr, instance) {
+                        if (selectedDates.length > 0) {
+                            const inicio = selectedDates[0];
+                            const ultimoDia = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 0);
+                            fim.set("minDate", inicio);
+                            fim.set("maxDate", ultimoDia);
+                        }                  
+                        syncDuplicarPeriodo(dateStr);
+                    }
+                });
             }
         }
+
 
         function syncDuplicarPeriodo(dataInicioStr) {
         const periodoInput = document.getElementById('periodo_duplicar');
         
         if (periodoInput && dataInicioStr) {
+            
             const dataObj = new Date(dataInicioStr + ' 12:00:00'); 
+            
             if (isNaN(dataObj)) {
                 periodoInput.value = "";
                 return;
             }
+            
             const ano = dataObj.getFullYear();
             const mes = dataObj.getMonth() + 1; 
             const mesFormatado = String(mes).padStart(2, '0');
@@ -953,17 +959,27 @@
                     
                     let tipoValor = null;
 
-                    if (url.includes("/pesquisarm0admapoio")) {
-                        tipoValor = "m0";
-                    } else if (url.includes("/pesquisarm1admapoio")) {
-                        tipoValor = "m1";
-                    }
-                    else if (url.includes("/pesquisarm0")) {
-                        tipoValor = "m0";
-                    } else if (url.includes("/pesquisarm1")) {
-                        tipoValor = "m1";
-                    } else if (url.includes("/pesquisarmmais1")) {
-                        tipoValor = "m+1";
+                    const url = evt.detail.elt.getAttribute('hx-post');
+                    const xhr = evt.detail.xhr;
+
+                    const atributoInput = document.getElementById("duplicar_atributo");
+                    const tipoPesquisaInput = document.getElementById("duplicar_tipo_pesquisa");
+                    
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        if (url && tipoPesquisaInput) {
+                            if (url.includes("/pesquisarm0")) {
+                                    tipoPesquisaInput.value = "m0";
+                                    atributoInput.value = document.getElementById("atributo_select").value;
+                                } else if (url.includes("/pesquisarm1")) {
+                                    tipoPesquisaInput.value = "m1";
+                                    atributoInput.value = document.getElementById("atributo_select").value;
+                                } else if (url.includes("/pesquisarmmais1")) {
+                                    tipoPesquisaInput.value = "m+1";
+                                    atributoInput.value = document.getElementById("atributo_select").value;
+                                } else if (url.includes("/allatributesoperacao") || url.include("/allatributesapoio")) {
+                                    atributoInput.value = document.getElementById("atributo_select").value;
+                                }
+                        } 
                     }
 
                     if (tipoValor) {
@@ -1059,6 +1075,21 @@
 
         url = "/export_table?" + params.toString();
         window.open(url, "_blank")
+    });
+    </script>
+
+    <script>
+    document.addEventListener('htmx:configRequest', function(event) {
+        const element = event.detail.elt;
+        
+        if (element.id === "all_m0" || element.id === "all_m1" || element.id === "all_m+1") {
+            const tipoPesquisa = event.detail.parameters['tipo_pesquisa'];
+            
+            const hiddenField = document.getElementById('duplicar_tipo_pesquisa');
+            if (hiddenField) {
+                hiddenField.value = tipoPesquisa;
+            }
+        }
     });
     </script>
 

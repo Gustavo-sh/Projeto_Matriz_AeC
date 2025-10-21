@@ -17,8 +17,8 @@ async def get_user_bd(username):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(f"""
-                select * from Robbyson.dbo.Acessos_Matriz (nolock) where username = '{username}' 
-            """)
+                select * from Robbyson.dbo.Acessos_Matriz (nolock) where username = ?
+            """,(username))
             resultados = [{"username": i[0], "password": i[1], "role": i[2]} for i in cur.fetchall()]
             cur.close()
             return resultados
@@ -40,91 +40,198 @@ async def save_user_bd(username, hashed_password, role):
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
 
+# async def save_registros_bd(registros, username):
+#     data = datetime.now()
+#     username_sql = str(username) if username is not None else 'NULL'
+#     data_sql = f"'{data}'" 
+#     loop = asyncio.get_event_loop()
+#     def _sync_db_call():
+#         values_clauses = []
+#         for i in registros:
+#             row_values = [
+#                 f"'{i['atributo']}'", f"'{i['id_nome_indicador']}'", f"'{i['meta']}'", f"'{i['moedas']}'",
+#                 f"'{i['tipo_indicador']}'", f"'{i['acumulado']}'", f"'{i['esquema_acumulado']}'",
+#                 f"'{i['tipo_matriz']}'", f"'{i['data_inicio']}'", f"'{i['data_fim']}'",
+#                 f"'{i['periodo']}'", f"'{i['escala']}'", f"'{i['tipo_de_faturamento']}'",
+#                 f"'{i['descricao']}'", f"'{i['ativo']}'", f"'{i['chamado']}'",
+#                 f"'{i['criterio']}'", f"'{i['area']}'", f"'{i['responsavel']}'",
+#                 f"'{i['gerente']}'", f"'{i['possui_dmm']}'", f"'{i['dmm']}'",
+#                 username_sql, 
+#                 data_sql,
+#                 "'', '', '', '', '', '', '', '', ''"
+#             ]
+#             values_clauses.append(f"({', '.join(row_values)})")
+#         full_values_string = ",\n".join(values_clauses)
+#         with get_db_connection() as conn:
+#             cur = conn.cursor()
+            
+#             if full_values_string:
+#                 batch_insert_query = f"""
+#                     insert into Robbyson.dbo.Matriz_Geral values 
+#                     {full_values_string}
+#                 """
+#                 cur.execute(batch_insert_query)
+#                 cur.commit()
+#             cur.close()
+            
+#     await loop.run_in_executor(None, _sync_db_call)
+
 async def save_registros_bd(registros, username):
     data = datetime.now()
-    username_sql = str(username) if username is not None else 'NULL'
-    data_sql = f"'{data}'" 
+    username_val = str(username) if username is not None else None
+    data_val = data
+    NUM_COLUNAS_DADOS = 22 
+    NUM_COLUNAS_ADICIONAIS = 2 
+    NUM_COLUNAS_VAZIAS = 9
+    TOTAL_COLUNAS = NUM_COLUNAS_DADOS + NUM_COLUNAS_ADICIONAIS + NUM_COLUNAS_VAZIAS
     loop = asyncio.get_event_loop()
     def _sync_db_call():
+        all_data_for_batch = [] 
+        row_placeholders = ', '.join(['?'] * TOTAL_COLUNAS)
         values_clauses = []
         for i in registros:
-            row_values = [
-                f"'{i['atributo']}'", f"'{i['id_nome_indicador']}'", f"'{i['meta']}'", f"'{i['moedas']}'",
-                f"'{i['tipo_indicador']}'", f"'{i['acumulado']}'", f"'{i['esquema_acumulado']}'",
-                f"'{i['tipo_matriz']}'", f"'{i['data_inicio']}'", f"'{i['data_fim']}'",
-                f"'{i['periodo']}'", f"'{i['escala']}'", f"'{i['tipo_de_faturamento']}'",
-                f"'{i['descricao']}'", f"'{i['ativo']}'", f"'{i['chamado']}'",
-                f"'{i['criterio']}'", f"'{i['area']}'", f"'{i['responsavel']}'",
-                f"'{i['gerente']}'", f"'{i['possui_dmm']}'", f"'{i['dmm']}'",
-                username_sql, 
-                data_sql,
-                "'', '', '', '', '', '', '', '', ''"
+            values_clauses.append(f"({row_placeholders})")
+            row_data = [
+                i.get('atributo'), i.get('id_nome_indicador'), i.get('meta'), i.get('moedas'),
+                i.get('tipo_indicador'), i.get('acumulado'), i.get('esquema_acumulado'),
+                i.get('tipo_matriz'), i.get('data_inicio'), i.get('data_fim'),
+                i.get('periodo'), i.get('escala'), i.get('tipo_de_faturamento'),
+                i.get('descricao'), i.get('ativo'), i.get('chamado'),
+                i.get('criterio'), i.get('area'), i.get('responsavel'),
+                i.get('gerente'), i.get('possui_dmm'), i.get('dmm'),
+                username_val, 
+                data_val,
+                '', '', '', '', '', '', '', '', ''
             ]
-            values_clauses.append(f"({', '.join(row_values)})")
+            all_data_for_batch.extend(row_data)
         full_values_string = ",\n".join(values_clauses)
         with get_db_connection() as conn:
             cur = conn.cursor()
             
             if full_values_string:
+                colunas = "atributo,id_nome_indicador,meta,moedas,tipo_indicador,acumulado,esquema_acumulado,tipo_matriz,data_inicio,data_fim,periodo,escala,tipo_de_faturamento,descricao,ativo,chamado,criterio,area,responsavel,gerente,possui_dmm,dmm,submetido_por,data_submetido_por,qualidade,da_qualidade,data_da_qualidade,planejamento,da_planejamento,data_da_planejamento,exop,da_exop,data_da_exop" 
                 batch_insert_query = f"""
-                    insert into Robbyson.dbo.Matriz_Geral values 
+                    INSERT INTO Robbyson.dbo.Matriz_Geral ({colunas}) VALUES 
                     {full_values_string}
                 """
-                cur.execute(batch_insert_query)
+                cur.execute(batch_insert_query, all_data_for_batch)
                 cur.commit()
             cur.close()
-            
     await loop.run_in_executor(None, _sync_db_call)
 
+# async def import_from_excel(registros):
+#     retorno = None
+#     loop = asyncio.get_event_loop()
+#     def _sync_db_call():
+#         values_clauses = []
+#         for i in registros:
+#             row_values = [
+#                 f"'{i['atributo']}'", f"'{i['id_nome_indicador']}'", f"'{i['meta']}'", f"'{i['moedas']}'",
+#                 f"'{i['tipo_indicador']}'", f"'{i['acumulado']}'", f"'{i['esquema_acumulado']}'",
+#                 f"'{i['tipo_matriz']}'", f"'{i['data_inicio']}'", f"'{i['data_fim']}'",
+#                 f"'{i['periodo']}'", f"'{i['escala']}'", f"'{i['tipo_de_faturamento']}'",
+#                 f"'{i['descricao']}'", f"'{i['ativo']}'", f"'{i['chamado']}'",
+#                 f"'{i['criterio']}'", f"'{i['area']}'", f"'{i['responsavel']}'",
+#                 f"'{i['gerente']}'", f"'{i['possui_dmm']}'", f"'{i['dmm']}'",
+#                 f"'{i['submetido_por']}'", f"'{i['data_submetido_por']}'", f"'{i['qualidade']}'",
+#                 f"'{i['da_qualidade']}'", f"'{i['data_da_qualidade']}'", f"'{i['planejamento']}'", f"'{i['da_planejamento']}'",
+#                 f"'{i['data_da_planejamento']}'", f"'{i['exop']}'", f"'{i['da_exop']}'",f"'{i['data_da_exop']}'"
+#             ]
+#             values_clauses.append(f"({', '.join(row_values)})")
+#         full_values_string = ",\n".join(values_clauses)
+#         with get_db_connection() as conn:
+#             cur = conn.cursor()
+#             if full_values_string:
+#                 batch_insert_query = f"""
+#                     insert into Robbyson.dbo.Matriz_Geral values 
+#                     {full_values_string}
+#                 """
+#                 try:
+#                     cur.execute(batch_insert_query)
+#                     cur.commit()
+#                     return True
+#                 except:
+#                     cur.rollback()
+#             cur.close()
+#     return await loop.run_in_executor(None, _sync_db_call)
+
 async def import_from_excel(registros):
-    retorno = None
+    TOTAL_COLUNAS = 33
     loop = asyncio.get_event_loop()
     def _sync_db_call():
+        all_data_for_batch = [] 
+        row_placeholders = ', '.join(['?'] * TOTAL_COLUNAS)
         values_clauses = []
         for i in registros:
-            row_values = [
-                f"'{i['atributo']}'", f"'{i['id_nome_indicador']}'", f"'{i['meta']}'", f"'{i['moedas']}'",
-                f"'{i['tipo_indicador']}'", f"'{i['acumulado']}'", f"'{i['esquema_acumulado']}'",
-                f"'{i['tipo_matriz']}'", f"'{i['data_inicio']}'", f"'{i['data_fim']}'",
-                f"'{i['periodo']}'", f"'{i['escala']}'", f"'{i['tipo_de_faturamento']}'",
-                f"'{i['descricao']}'", f"'{i['ativo']}'", f"'{i['chamado']}'",
-                f"'{i['criterio']}'", f"'{i['area']}'", f"'{i['responsavel']}'",
-                f"'{i['gerente']}'", f"'{i['possui_dmm']}'", f"'{i['dmm']}'",
-                f"'{i['submetido_por']}'", f"'{i['data_submetido_por']}'", f"'{i['qualidade']}'",
-                f"'{i['da_qualidade']}'", f"'{i['data_da_qualidade']}'", f"'{i['planejamento']}'", f"'{i['da_planejamento']}'",
-                f"'{i['data_da_planejamento']}'", f"'{i['exop']}'", f"'{i['da_exop']}'",f"'{i['data_da_exop']}'"
+            values_clauses.append(f"({row_placeholders})")
+            row_data = [
+                i.get('atributo'), i.get('id_nome_indicador'), i.get('meta'), i.get('moedas'),
+                i.get('tipo_indicador'), i.get('acumulado'), i.get('esquema_acumulado'),
+                i.get('tipo_matriz'), i.get('data_inicio'), i.get('data_fim'),
+                i.get('periodo'), i.get('escala'), i.get('tipo_de_faturamento'),
+                i.get('descricao'), i.get('ativo'), i.get('chamado'),
+                i.get('criterio'), i.get('area'), i.get('responsavel'),
+                i.get('gerente'), i.get('possui_dmm'), i.get('dmm'),
+                i.get('submetido_por'), i.get('data_submetido_por'),
+                i.get('qualidade'), i.get('da_qualidade'), i.get('data_da_qualidade'),
+                i.get('planejamento'), i.get('da_planejamento'), i.get('data_da_planejamento'),
+                i.get('exop'), i.get('da_exop'), i.get('data_da_exop')
             ]
-            values_clauses.append(f"({', '.join(row_values)})")
+            all_data_for_batch.extend(row_data)
         full_values_string = ",\n".join(values_clauses)
         with get_db_connection() as conn:
             cur = conn.cursor()
             if full_values_string:
+                colunas = "atributo,id_nome_indicador,meta,moedas,tipo_indicador,acumulado,esquema_acumulado,tipo_matriz,data_inicio,data_fim,periodo,escala,tipo_de_faturamento,descricao,ativo,chamado,criterio,area,responsavel,gerente,possui_dmm,dmm,submetido_por,data_submetido_por,qualidade,da_qualidade,data_da_qualidade,planejamento,da_planejamento,data_da_planejamento,exop,da_exop,data_da_exop" 
                 batch_insert_query = f"""
-                    insert into Robbyson.dbo.Matriz_Geral values 
+                    INSERT INTO Robbyson.dbo.Matriz_Geral ({colunas}) VALUES 
                     {full_values_string}
                 """
-                try:
-                    cur.execute(batch_insert_query)
-                    cur.commit()
-                    return True
-                except:
-                    cur.rollback()
+                cur.execute(batch_insert_query, all_data_for_batch)
+                cur.commit()
             cur.close()
-    return await loop.run_in_executor(None, _sync_db_call)
+    await loop.run_in_executor(None, _sync_db_call)
+
+# async def batch_validar_submit_query(validation_conditions):
+#     or_clauses = []
+#     for cond in validation_conditions:
+#         atributo = cond['atributo']
+#         periodo = cond['periodo']
+#         id_nome_indicador = cond['id_nome_indicador']
+#         clause = f"""
+#             (Atributo = '{atributo}' 
+#             AND periodo = '{periodo}' 
+#             AND id_nome_indicador = '{id_nome_indicador}')
+#         """
+#         or_clauses.append(clause)
+        
+#     if not or_clauses:
+#         return []
+#     full_where_clause = " OR ".join(or_clauses)
+#     loop = asyncio.get_event_loop()
+#     def _sync_db_call():
+#         with get_db_connection() as conn:
+#             cur = conn.cursor()
+#             cur.execute(f"""
+#                 select Atributo, periodo, id_nome_indicador, data_inicio, data_fim from Robbyson.dbo.Matriz_Geral (nolock)
+#                 WHERE {full_where_clause}
+#             """)
+#             resultados_db = cur.fetchall()
+#             cur.close()
+#             return resultados_db        
+#     return await loop.run_in_executor(None, _sync_db_call)
 
 async def batch_validar_submit_query(validation_conditions):
     or_clauses = []
+    all_data_for_query = []
+    placeholder_clause = "(Atributo = ? AND periodo = ? AND id_nome_indicador = ?)"
     for cond in validation_conditions:
-        atributo = cond['atributo']
-        periodo = cond['periodo']
-        id_nome_indicador = cond['id_nome_indicador']
-        clause = f"""
-            (Atributo = '{atributo}' 
-            AND periodo = '{periodo}' 
-            AND id_nome_indicador = '{id_nome_indicador}')
-        """
-        or_clauses.append(clause)
-        
+        or_clauses.append(placeholder_clause)
+        all_data_for_query.extend([
+            cond.get('atributo'), 
+            cond.get('periodo'), 
+            cond.get('id_nome_indicador')
+        ])
     if not or_clauses:
         return []
     full_where_clause = " OR ".join(or_clauses)
@@ -132,13 +239,17 @@ async def batch_validar_submit_query(validation_conditions):
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute(f"""
-                select Atributo, periodo, id_nome_indicador, data_inicio, data_fim from Robbyson.dbo.Matriz_Geral (nolock)
+            
+            validation_query = f"""
+                SELECT Atributo, periodo, id_nome_indicador, data_inicio, data_fim 
+                FROM Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE {full_where_clause}
-            """)
+            """
+            cur.execute(validation_query, all_data_for_query)
             resultados_db = cur.fetchall()
             cur.close()
-            return resultados_db        
+            return resultados_db
+            
     return await loop.run_in_executor(None, _sync_db_call)
 
 async def get_all_atributos():
@@ -172,9 +283,9 @@ async def query_m0(atributo, username):
             cur = conn.cursor()
             cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
-                WHERE Atributo = '{atributo}'
+                WHERE Atributo = ?
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
-            """)
+            """,(atributo,))
             resultados = cur.fetchall()
             cur.close()
             return resultados
@@ -202,9 +313,9 @@ async def query_m1(atributo, role, username):
             cur = conn.cursor()
             cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
-                WHERE Atributo = '{atributo}'
+                WHERE Atributo = ?
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
-            """)
+            """,(atributo,))
             resultados = cur.fetchall()
             cur.close()
             return resultados
@@ -232,9 +343,9 @@ async def query_m_mais1(atributo, username):
             cur = conn.cursor()
             cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
-                WHERE Atributo = '{atributo}'
+                WHERE Atributo = ?
                 AND periodo = dateadd(d,1,eomonth(GETDATE()))
-            """)
+            """,(atributo,))
             resultados = cur.fetchall()
             cur.close()
             return resultados
@@ -589,8 +700,8 @@ async def get_funcao(matricula):
         return resultados[0]
     return None
 
-async def get_atributos_gerente(gerente, tipo):
-    cache_key = f"all_atributos:{tipo}:{gerente}"
+async def get_atributos_gerente(tipo, atributos, username):
+    cache_key = f"all_atributos:{tipo}:{username}"
     cached = get_from_cache(cache_key)
     resultados = None
     if cached:
@@ -599,17 +710,17 @@ async def get_atributos_gerente(gerente, tipo):
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            if tipo == "m0":
+            if tipo == "m0_all":
                 cur.execute(f"""
-                    select * from matriz_geral where gerente = '{gerente}' and periodo = dateadd(d,1,eomonth(GETDATE(),-1)) and tipo_matriz like 'OPERA%' order by atributo
+                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-1)) and tipo_matriz like 'OPERA%' order by atributo
                 """)
-            elif tipo == "m+1":
+            elif tipo == "m+1_all":
                 cur.execute(f"""
-                    select * from matriz_geral where gerente = '{gerente}' and periodo = dateadd(d,1,eomonth(GETDATE())) and tipo_matriz like 'OPERA%' order by atributo
+                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE())) and tipo_matriz like 'OPERA%' order by atributo
                 """)
             else:
                 cur.execute(f"""
-                    select * from matriz_geral where gerente = '{gerente}' and periodo = dateadd(d,1,eomonth(GETDATE(),-2)) and tipo_matriz like 'OPERA%' order by atributo
+                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-2)) and tipo_matriz like 'OPERA%' order by atributo
                 """)
             resultados = cur.fetchall()
             cur.close()
@@ -626,8 +737,8 @@ async def get_atributos_gerente(gerente, tipo):
     set_cache(cache_key, registros, CACHE_TTL)
     return registros
 
-async def get_matrizes_administrativas(tipo, atributos):
-    cache_key = f"matrizes_administrativas:{tipo}"
+async def get_matrizes_administrativas(tipo, atributos, username):
+    cache_key = f"matrizes_administrativas:{tipo}:{username}"
     cached = get_from_cache(cache_key)
     resultados = None
     if cached:
@@ -636,11 +747,11 @@ async def get_matrizes_administrativas(tipo, atributos):
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            if tipo == "m0":
+            if tipo == "m0_all_apoio":
                 cur.execute(f"""
                     select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-1))
                 """)
-            elif tipo == "m+1":
+            elif tipo == "m+1_all_apoio":
                 cur.execute(f"""
                     select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE()))
                 """)

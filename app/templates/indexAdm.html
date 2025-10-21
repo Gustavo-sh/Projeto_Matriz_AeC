@@ -866,22 +866,7 @@
             const fimInput = document.getElementById('data_fim_duplicar');
             
             if (inicioInput && fimInput) {
-                
-                flatpickr(inicioInput, {
-                    dateFormat: "Y-m-d",
-                    locale: "pt",
-                    onChange: function(selectedDates, dateStr, instance) {
-                        const fimInputValue = document.getElementById('data_fim_duplicar').value;
-                        
-                        if (!fimInputValue) {
-                            flatpickr(document.getElementById('data_fim_duplicar')).setDate(dateStr);
-                        }
-                        
-                        syncDuplicarPeriodo(dateStr); 
-                    }
-                });
-
-                flatpickr(fimInput, {
+                const fim = flatpickr(fimInput, {
                     dateFormat: "Y-m-d",
                     locale: "pt",
                     onChange: function(selectedDates, dateStr, instance) {
@@ -889,18 +874,36 @@
                         syncDuplicarPeriodo(inicioInputValue); 
                     }
                 });
+
+                flatpickr(inicioInput, {
+                    dateFormat: "Y-m-d",
+                    locale: "pt",
+                    onChange: function(selectedDates, dateStr, instance) {
+                        if (selectedDates.length > 0) {
+                            const inicio = selectedDates[0];
+                            const ultimoDia = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 0);
+                            fim.set("minDate", inicio);
+                            fim.set("maxDate", ultimoDia);
+                        }                  
+                        syncDuplicarPeriodo(dateStr);
+                    }
+                });
             }
         }
+
 
         function syncDuplicarPeriodo(dataInicioStr) {
         const periodoInput = document.getElementById('periodo_duplicar');
         
         if (periodoInput && dataInicioStr) {
+            
             const dataObj = new Date(dataInicioStr + ' 12:00:00'); 
+            
             if (isNaN(dataObj)) {
                 periodoInput.value = "";
                 return;
             }
+            
             const ano = dataObj.getFullYear();
             const mes = dataObj.getMonth() + 1; 
             const mesFormatado = String(mes).padStart(2, '0');

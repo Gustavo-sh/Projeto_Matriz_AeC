@@ -3,7 +3,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from urllib.parse import urlparse
 import uuid
@@ -20,7 +20,7 @@ from app.cache import (
 from app.conexoes_bd import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_matriculas_cadastro_adm, get_atributos_cadastro_apoio,
     query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1,
-    get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_nome, get_matrizes_administrativas
+    get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_matrizes_administrativas
 )
 from app.validation import validation_submit_table, validation_import_from_excel
 
@@ -358,7 +358,7 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
     return response
 
 @router.post("/pesquisarmmais1", response_class=HTMLResponse)
-async def pesquisar_m1(request: Request, atributo: str = Form(...)):
+async def pesquisar_mmais1(request: Request, atributo: str = Form(...)):
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
     if not atributo:
@@ -386,7 +386,7 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
     return response
 
 @router.post("/pesquisaracordos", response_class=HTMLResponse)
-async def pesquisar_m1(request: Request):
+async def pesquisar_acordos(request: Request):
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
     registros = await get_acordos_apoio()
@@ -408,7 +408,7 @@ async def pesquisar_m1(request: Request):
     return response
 
 @router.post("/pesquisarnaoacordos", response_class=HTMLResponse)
-async def pesquisar_m1(request: Request):
+async def pesquisar_nao_acordos(request: Request):
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
     registros = await get_nao_acordos_apoio()
@@ -429,16 +429,15 @@ async def pesquisar_m1(request: Request):
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
     return response
 
-@router.post("/allatributesgerentes", response_class=HTMLResponse)
-async def pesquisar_m1(request: Request, tipo_pesquisa: str = Form(...)):
-    print(tipo_pesquisa)
+@router.post("/allatributesoperacao", response_class=HTMLResponse)
+async def all_atributes_operacao(request: Request, tipo_pesquisa: str = Form(...)):
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
     username = request.cookies.get("username", "anon")
-    nome = await get_nome(username)
-    if not nome or len(nome) == 0:
-        return "<p>A pesquisa não trouxe resultados.</p>"
-    registros = await get_atributos_gerente(nome, tipo_pesquisa)
+    atributos = await get_atributos_matricula(username)
+    atributos_format = " ,".join(f"'{a["atributo"]}'" for a in atributos)
+    
+    registros = await get_atributos_gerente(tipo_pesquisa, atributos_format, username)
 
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -448,7 +447,7 @@ async def pesquisar_m1(request: Request, tipo_pesquisa: str = Form(...)):
         show_das = True
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das}
+    {"request": request, "registros": registros, "show_checkbox": False, "show_das": show_das}
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
@@ -458,19 +457,15 @@ async def pesquisar_m1(request: Request, tipo_pesquisa: str = Form(...)):
     return response
 
 @router.post("/allatributesapoio", response_class=HTMLResponse)
-async def pesquisar_m1(request: Request, tipo_pesquisa: str = Form(...)):
-    print(tipo_pesquisa)
+async def all_atributes_apoio(request: Request, tipo_pesquisa: str = Form(...)):
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
     username = request.cookies.get("username", "anon")
     matriculas = await get_matriculas_cadastro_adm()
     atributos = await get_atributos_cadastro_apoio(matriculas[f"{username}"])
     atributos_format = " ,".join(f"'{a["atributo"]}'" for a in atributos)
-    print(atributos_format)
-    nome = await get_nome(username)
-    if not nome or len(nome) == 0:
-        return "<p>A pesquisa não trouxe resultados.</p>"
-    registros = await get_matrizes_administrativas(tipo_pesquisa, atributos_format)
+    
+    registros = await get_matrizes_administrativas(tipo_pesquisa, atributos_format, username)
     
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -480,7 +475,7 @@ async def pesquisar_m1(request: Request, tipo_pesquisa: str = Form(...)):
         show_das = True
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das}
+    {"request": request, "registros": registros, "show_checkbox": False, "show_das": show_das}
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
@@ -496,6 +491,7 @@ async def submit_table(request: Request):
     if not registros:
         return "<p>Nenhum registro para submeter.</p>"
     num_atendentes = await get_num_atendentes(registros[0]["atributo"]) if registros[0]["tipo_matriz"] == "OPERAÇÃO" else None
+    print(num_atendentes)
     if registros[0]["tipo_matriz"] == "OPERAÇÃO":
         if num_atendentes == 0 or num_atendentes == '0':
             return "<p>Não é possível submeter a matriz, pois o atributo selecionado não possui nenhum atendente de nível 1.</p>"
@@ -518,7 +514,7 @@ async def submit_table(request: Request):
                 if validar_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
                     return f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.</p>"  
     await save_registros_bd(registros, username)
-    save_registros(request, [])
+    #save_registros(request, [])
     response = Response(
         content="<p>Tabela submetida com sucesso! A tabela ficará disponível caso queira replica-la para outros atributos.</p>",
         status_code=status.HTTP_200_OK,
@@ -588,6 +584,7 @@ def duplicate_search_results(
         )
     cache_key = ""
     user = get_current_user(request)
+    username = request.cookies.get("username")
     role = user.get("role")    
     if tipo_pesquisa == "m0":
         if role == 'operacao':
@@ -756,7 +753,8 @@ async def processar_acordo(
         role = user.get("role", "default")
         username = user.get("usuario")
         await update_da_adm_apoio(updates_a_executar, role, status_acao, username) 
-    set_cache(cache_key, registros_apos_acao)
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, registros_apos_acao, CACHE_TTL)
     return templates.TemplateResponse(
         "_pesquisa.html", 
         {
@@ -782,45 +780,41 @@ def clear_registros_route(request: Request):
 @router.get("/export_table")
 async def export_table(request: Request,  atributo: str = Query(...), tipo: str | None = Query(None, alias="duplicar_tipo_pesquisa")):
     user = get_current_user(request)
+    username = user.get("usuario")
     if not user:
         raise HTTPException(status_code=401, detail="Sessão inválida")
-
+    if not tipo:
+        raise HTTPException(status_code=422, detail="O tipo de pesquisa não foi recebido.")
+    
     possible_keys = []
-    if atributo:
-        if tipo:
-            tipo_map = {
-                "m0": f"pesquisa_m0:{atributo}",
-                "m1": f"pesquisa_m1:{atributo}",
-                "m+1": f"pesquisa_m_mais1:{atributo}"
-            }
-            key = tipo_map.get(tipo)
-            possible_keys = [key]
-
+    if tipo == "m0_all" or tipo == "m1_all" or tipo == "m+1_all":
+        possible_keys = [f"all_atributos:{tipo}:{username}"]
+    elif tipo in ["m0_all_apoio", "m1_all_apoio", "m+1_all_apoio"]:
+        possible_keys = [f"matrizes_administrativas:{tipo}:{username}"]
     else:
-        raise HTTPException(status_code=422, detail="Informe o parâmetro 'atributo' para exportar.")
+        if not atributo:
+            raise HTTPException(status_code=422, detail="Informe o parâmetro 'atributo' para exportar.")
+        tipo_map = {
+            "m0": f"pesquisa_m0:{atributo}",
+            "m1": f"pesquisa_m1:{atributo}",
+            "m+1": f"pesquisa_m_mais1:{atributo}"
+        }
+        key = tipo_map.get(tipo)
+        possible_keys = [key]
+
     registros_pesquisa = get_from_cache(possible_keys[0])
 
     if not registros_pesquisa:
         raise HTTPException(status_code=422, detail="Nenhum resultado de pesquisa encontrado no cache. Execute a pesquisa primeiro.")
 
-    current_page = request.headers.get("hx-current-url", "")
-    is_cadastro = "cadastro" in (current_page or "").lower() or "/cadastro" in str(request.url).lower()
-
-    if is_cadastro:
-        colunas = [
-            'atributo', 'id_nome_indicador', 'meta', 'moedas', 'tipo_indicador',
-            'acumulado', 'esquema_acumulado', 'tipo_matriz', 'data_inicio',
-            'data_fim', 'periodo', 'escala', 'tipo_de_faturamento',
-            'descricao', 'ativo', 'chamado', 'criterio', 'area',
-            'responsavel', 'gerente', 'possui_dmm', 'dmm',
-            'submetido_por', 'data_submetido_por', 'exop', 'da_exop', 'data_da_exop'
-        ]
-    else:
-        colunas = EXPECTED_COLUMNS
-
+    colunas = EXPECTED_COLUMNS
     df = pd.DataFrame(registros_pesquisa)
     final_cols = [c for c in colunas if c in df.columns]
     df = df[final_cols]
+    colunas_to_drop = ['qualidade', 'da_qualidade', 'data_da_qualidade', 
+        'planejamento', 'da_planejamento', 'data_da_planejamento']
+    if "apoio" in tipo:
+        df = df.drop(columns=colunas_to_drop)
     output = BytesIO()
     df.to_excel(output, index=False, sheet_name='Pesquisa', engine='openpyxl')
     output.seek(0)
