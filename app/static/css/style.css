@@ -181,6 +181,8 @@ h4 , h5{
   border-radius: 8px;
   box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
   overflow-x: auto;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ===== Tabela Pesquisa ===== */
@@ -686,4 +688,8 @@ body.register-page {
 .replicacao-container .btn_replicar:hover {
   background: #4ea814;
   transform: scale(1.03);
+}
+
+.header-tab-info {
+  margin-bottom: 20px;
 }

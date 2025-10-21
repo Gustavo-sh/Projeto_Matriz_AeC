@@ -1,6 +1,6 @@
 from datetime import datetime
 import uuid
-from app.cache import get_from_cache, set_cache #, set_cache_24h
+from app.cache import get_from_cache, set_cache
 from datetime import datetime, date
 import calendar
 from app.database import get_db_connection
@@ -200,18 +200,11 @@ async def query_m1(atributo, role, username):
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            # if role == "operacao":
             cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = '{atributo}'
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
             """)
-            # else:
-            #     cur.execute(f"""
-            #     select * from Robbyson.dbo.Matriz_Geral (nolock)
-            #     WHERE Atributo = '{atributo}'
-            #     AND periodo = dateadd(d,1,eomonth(GETDATE()))
-            # """)
             resultados = cur.fetchall()
             cur.close()
             return resultados
@@ -256,101 +249,6 @@ async def query_m_mais1(atributo, username):
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros, CACHE_TTL)
     return registros
-
-# async def query_m0_apoio(atributo):
-#     cache_key = f"pesquisa_m0_apoio:{atributo}"
-#     resultados = None
-#     loop = asyncio.get_event_loop()
-#     def _sync_db_call():
-#         with get_db_connection() as conn:
-#             cur = conn.cursor()
-#             cur.execute(f"""
-#                 select * from Robbyson.dbo.Matriz_Geral (nolock)
-#                 WHERE Atributo = '{atributo}'
-#                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
-#                 and tipo_matriz like 'ADMINISTRA%'
-#             """)
-#             resultados = cur.fetchall()
-#             cur.close()
-#             return resultados
-#     resultados = await loop.run_in_executor(None, _sync_db_call)
-#     registros = [{
-#         "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
-#         "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
-#         "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
-#         "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
-#         "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
-#     } for row in resultados]
-#     set_cache(cache_key, registros)
-#     return registros
-
-# async def query_m1_apoio(atributo, role):
-#     cache_key = f"pesquisa_m1_apoio:{atributo}"
-#     resultados = None
-#     loop = asyncio.get_event_loop()
-#     def _sync_db_call():
-#         with get_db_connection() as conn:
-#             cur = conn.cursor()
-#             if role == "operacao":
-#                 cur.execute(f"""
-#                     select * from Robbyson.dbo.Matriz_Geral (nolock)
-#                     WHERE Atributo = '{atributo}'
-#                     AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
-#                     and tipo_matriz like 'ADMINISTRA%'
-#                 """)
-#             else:
-#                 cur.execute(f"""
-#                 select * from Robbyson.dbo.Matriz_Geral (nolock)
-#                 WHERE Atributo = '{atributo}'
-#                 AND periodo = dateadd(d,1,eomonth(GETDATE()))
-#             """)
-#             resultados = cur.fetchall()
-#             cur.close()
-#             return resultados
-#     resultados = await loop.run_in_executor(None, _sync_db_call)
-#     registros = [{
-#         "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
-#         "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
-#         "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
-#         "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
-#         "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
-#     } for row in resultados]
-#     set_cache(cache_key, registros)
-#     return registros
-
-# async def query_m_mais1_apoio(atributo, role):
-#     cache_key = f"pesquisa_m_mais1_apoio:{atributo}"
-#     resultados = None
-#     loop = asyncio.get_event_loop()
-#     def _sync_db_call():
-#         with get_db_connection() as conn:
-#             cur = conn.cursor()
-#             if role == "operacao":
-#                 cur.execute(f"""
-#                     select * from Robbyson.dbo.Matriz_Geral (nolock)
-#                     WHERE Atributo = '{atributo}'
-#                     AND periodo = dateadd(d,1,eomonth(GETDATE()))
-#                     and tipo_matriz like 'ADMINISTRA%'
-#                 """)
-#             else:
-#                 cur.execute(f"""
-#                 select * from Robbyson.dbo.Matriz_Geral (nolock)
-#                 WHERE Atributo = '{atributo}'
-#                 AND periodo = dateadd(d,1,eomonth(GETDATE()))
-#             """)
-#             resultados = cur.fetchall()
-#             cur.close()
-#             return resultados
-#     resultados = await loop.run_in_executor(None, _sync_db_call)
-#     registros = [{
-#         "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
-#         "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
-#         "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
-#         "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
-#         "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
-#     } for row in resultados]
-#     set_cache(cache_key, registros)
-#     return registros
 
 async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username): 
     role_defined = None
@@ -423,7 +321,6 @@ async def get_resultados_indicadores_m3():
             cur.close()
             return resultados
     resultados = await loop.run_in_executor(None, _sync_db_call)
-    #set_cache_24h(cache_key, resultados)
     CACHE_TTL = timedelta(hours=24)
     set_cache(cache_key, resultados, ttl=CACHE_TTL)
     return resultados
@@ -445,7 +342,6 @@ async def get_matriculas_cadastro_adm():
             cur.close()
             return resultados
     resultados = await loop.run_in_executor(None, _sync_db_call)
-    #set_cache_24h(cache_key, resultados)
     CACHE_TTL_24H = timedelta(hours=24)
     set_cache(cache_key, resultados, ttl=CACHE_TTL_24H)
     return resultados
@@ -692,6 +588,103 @@ async def get_funcao(matricula):
         set_cache(cache_key, resultados[0])
         return resultados[0]
     return None
+
+async def get_atributos_gerente(gerente, tipo):
+    cache_key = f"all_atributos:{tipo}:{gerente}"
+    cached = get_from_cache(cache_key)
+    resultados = None
+    if cached:
+        return cached
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            if tipo == "m0":
+                cur.execute(f"""
+                    select * from matriz_geral where gerente = '{gerente}' and periodo = dateadd(d,1,eomonth(GETDATE(),-1)) and tipo_matriz like 'OPERA%' order by atributo
+                """)
+            elif tipo == "m+1":
+                cur.execute(f"""
+                    select * from matriz_geral where gerente = '{gerente}' and periodo = dateadd(d,1,eomonth(GETDATE())) and tipo_matriz like 'OPERA%' order by atributo
+                """)
+            else:
+                cur.execute(f"""
+                    select * from matriz_geral where gerente = '{gerente}' and periodo = dateadd(d,1,eomonth(GETDATE(),-2)) and tipo_matriz like 'OPERA%' order by atributo
+                """)
+            resultados = cur.fetchall()
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    registros = [{
+        "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
+        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
+        "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
+        "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
+        "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
+    } for row in resultados]
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, registros, CACHE_TTL)
+    return registros
+
+async def get_matrizes_administrativas(tipo, atributos):
+    cache_key = f"matrizes_administrativas:{tipo}"
+    cached = get_from_cache(cache_key)
+    resultados = None
+    if cached:
+        return cached
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            if tipo == "m0":
+                cur.execute(f"""
+                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-1))
+                """)
+            elif tipo == "m+1":
+                cur.execute(f"""
+                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE()))
+                """)
+            else:
+                cur.execute(f"""
+                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-2))
+                """)
+            resultados = cur.fetchall()
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    registros = [{
+        "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
+        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
+        "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
+        "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
+        "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
+    } for row in resultados]
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, registros, CACHE_TTL)
+    return registros
+
+async def get_nome(matricula):
+    cache_key = f"nome:{matricula}"
+    cached = get_from_cache(cache_key)
+    resultados = None
+    if cached:
+        return cached
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+                select nome from rlt.hmn (nolock) where matricula = {matricula} and data = CONVERT(date, getdate()-1)
+            """)
+            resultados = [i[0] for i in cur.fetchall()]
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    if resultados:
+        set_cache(cache_key, resultados[0])
+        return resultados[0]
+    return None
+
 
 async def get_resultados(atributo, id_indicador):
     cache_key = f"resultados:{atributo+id_indicador}"

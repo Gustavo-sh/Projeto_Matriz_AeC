@@ -73,6 +73,33 @@
                 Pesquisar Mes Seguinte
             </button>
 
+            <button
+                type="button"
+                hx-post="/allatributesgerentes" 
+                hx-target="#tabela-pesquisa"
+                hx-swap="innerHTML"
+                hx-vals='{"tipo_pesquisa": "m0"}'>
+                Pesquisar Todos os Atributos Mês Atual
+            </button>
+
+            <button
+                type="button"
+                hx-post="/allatributesgerentes" 
+                hx-target="#tabela-pesquisa"
+                hx-swap="innerHTML"
+                hx-vals='{"tipo_pesquisa": "m1"}'>
+                Pesquisar Todos os Atributos Mês Anterior
+            </button>
+
+            <button
+                type="button"
+                hx-post="/allatributesgerentes" 
+                hx-target="#tabela-pesquisa"
+                hx-swap="innerHTML"
+                hx-vals='{"tipo_pesquisa": "m+1"}'>
+                Pesquisar Todos os Atributos Mês Seguinte
+            </button>
+
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
         </div>
 
@@ -380,7 +407,7 @@
             </div>
 
             <div class="replicacao-container">
-                <h4>Os indicadores que estiverem na tabela acima serão replicados para os atributos que você selecionar abaixo, caso queira.</h4>
+                <h4>Clique na caixa abaixo e escolha os atributos para os quais quer replicar os indicadores da tabela acima.</h4>
                 <select id="atributos_replicar" name="atributos_replicar" multiple class="atributos_replicar">
                     {% for at in atributos %}
                         <option value="{{ at['atributo'] }}"

@@ -20,7 +20,7 @@ from app.cache import (
 from app.conexoes_bd import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_matriculas_cadastro_adm, get_atributos_cadastro_apoio,
     query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1,
-    get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio
+    get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_nome, get_matrizes_administrativas
 )
 from app.validation import validation_submit_table, validation_import_from_excel
 
@@ -429,6 +429,65 @@ async def pesquisar_m1(request: Request):
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
     return response
 
+@router.post("/allatributesgerentes", response_class=HTMLResponse)
+async def pesquisar_m1(request: Request, tipo_pesquisa: str = Form(...)):
+    print(tipo_pesquisa)
+    registros = []
+    current_page = request.headers.get("hx-current-url", "desconhecido")
+    username = request.cookies.get("username", "anon")
+    nome = await get_nome(username)
+    if not nome or len(nome) == 0:
+        return "<p>A pesquisa não trouxe resultados.</p>"
+    registros = await get_atributos_gerente(nome, tipo_pesquisa)
+
+    path = urlparse(current_page).path.lower()
+    show_das = None
+    if "cadastro" in path:
+        show_das = None
+    else:
+        show_das = True
+    html_content = templates.TemplateResponse(
+    "_pesquisa.html", 
+    {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das}
+    )
+    response = Response(content=html_content.body, media_type="text/html")
+    if len(registros) > 0:
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+    else:
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+    return response
+
+@router.post("/allatributesapoio", response_class=HTMLResponse)
+async def pesquisar_m1(request: Request, tipo_pesquisa: str = Form(...)):
+    print(tipo_pesquisa)
+    registros = []
+    current_page = request.headers.get("hx-current-url", "desconhecido")
+    username = request.cookies.get("username", "anon")
+    matriculas = await get_matriculas_cadastro_adm()
+    atributos = await get_atributos_cadastro_apoio(matriculas[f"{username}"])
+    atributos_format = " ,".join(f"'{a["atributo"]}'" for a in atributos)
+    print(atributos_format)
+    nome = await get_nome(username)
+    if not nome or len(nome) == 0:
+        return "<p>A pesquisa não trouxe resultados.</p>"
+    registros = await get_matrizes_administrativas(tipo_pesquisa, atributos_format)
+    
+    path = urlparse(current_page).path.lower()
+    show_das = None
+    if "cadastro" in path:
+        show_das = None
+    else:
+        show_das = True
+    html_content = templates.TemplateResponse(
+    "_pesquisa.html", 
+    {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das}
+    )
+    response = Response(content=html_content.body, media_type="text/html")
+    if len(registros) > 0:
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+    else:
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+    return response
 
 @router.post("/submit_table", response_class=HTMLResponse)
 async def submit_table(request: Request):
