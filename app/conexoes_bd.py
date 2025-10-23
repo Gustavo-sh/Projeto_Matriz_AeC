@@ -80,44 +80,76 @@ async def save_registros_bd(registros, username):
     data = datetime.now()
     username_val = str(username) if username is not None else None
     data_val = data
+
     NUM_COLUNAS_DADOS = 22 
     NUM_COLUNAS_ADICIONAIS = 2 
     NUM_COLUNAS_VAZIAS = 9
     TOTAL_COLUNAS = NUM_COLUNAS_DADOS + NUM_COLUNAS_ADICIONAIS + NUM_COLUNAS_VAZIAS
+
     loop = asyncio.get_event_loop()
+
     def _sync_db_call():
-        all_data_for_batch = [] 
-        row_placeholders = ', '.join(['?'] * TOTAL_COLUNAS)
-        values_clauses = []
+        all_rows = []
+
         for i in registros:
-            values_clauses.append(f"({row_placeholders})")
+            # Forçar apenas o campo 'meta' como string
+            meta_val = str(i.get('meta')) if i.get('meta') is not None else ''
+
             row_data = [
-                i.get('atributo'), i.get('id_nome_indicador'), i.get('meta'), i.get('moedas'),
-                i.get('tipo_indicador'), i.get('acumulado'), i.get('esquema_acumulado'),
-                i.get('tipo_matriz'), i.get('data_inicio'), i.get('data_fim'),
-                i.get('periodo'), i.get('escala'), i.get('tipo_de_faturamento'),
-                i.get('descricao'), i.get('ativo'), i.get('chamado'),
-                i.get('criterio'), i.get('area'), i.get('responsavel'),
-                i.get('gerente'), i.get('possui_dmm'), i.get('dmm'),
-                username_val, 
+                i.get('atributo'),
+                i.get('id_nome_indicador'),
+                meta_val,  # apenas meta forçado para str
+                i.get('moedas'),
+                i.get('tipo_indicador'),
+                i.get('acumulado'),
+                i.get('esquema_acumulado'),
+                i.get('tipo_matriz'),
+                i.get('data_inicio'),
+                i.get('data_fim'),
+                i.get('periodo'),
+                i.get('escala'),
+                i.get('tipo_de_faturamento'),
+                i.get('descricao'),
+                i.get('ativo'),
+                i.get('chamado'),
+                i.get('criterio'),
+                i.get('area'),
+                i.get('responsavel'),
+                i.get('gerente'),
+                i.get('possui_dmm'),
+                i.get('dmm'),
+                username_val,
                 data_val,
                 '', '', '', '', '', '', '', '', ''
             ]
-            all_data_for_batch.extend(row_data)
-        full_values_string = ",\n".join(values_clauses)
+            all_rows.append(tuple(row_data))
+
+        if not all_rows:
+            return
+
+        colunas = (
+            "atributo,id_nome_indicador,meta,moedas,tipo_indicador,acumulado,esquema_acumulado,"
+            "tipo_matriz,data_inicio,data_fim,periodo,escala,tipo_de_faturamento,descricao,ativo,"
+            "chamado,criterio,area,responsavel,gerente,possui_dmm,dmm,submetido_por,data_submetido_por,"
+            "qualidade,da_qualidade,data_da_qualidade,planejamento,da_planejamento,data_da_planejamento,"
+            "exop,da_exop,data_da_exop"
+        )
+
+        placeholders = ", ".join(["?"] * TOTAL_COLUNAS)
+
+        insert_query = f"""
+            INSERT INTO Robbyson.dbo.Matriz_Geral ({colunas})
+            VALUES ({placeholders})
+        """
+
         with get_db_connection() as conn:
             cur = conn.cursor()
-            
-            if full_values_string:
-                colunas = "atributo,id_nome_indicador,meta,moedas,tipo_indicador,acumulado,esquema_acumulado,tipo_matriz,data_inicio,data_fim,periodo,escala,tipo_de_faturamento,descricao,ativo,chamado,criterio,area,responsavel,gerente,possui_dmm,dmm,submetido_por,data_submetido_por,qualidade,da_qualidade,data_da_qualidade,planejamento,da_planejamento,data_da_planejamento,exop,da_exop,data_da_exop" 
-                batch_insert_query = f"""
-                    INSERT INTO Robbyson.dbo.Matriz_Geral ({colunas}) VALUES 
-                    {full_values_string}
-                """
-                cur.execute(batch_insert_query, all_data_for_batch)
-                cur.commit()
+            cur.executemany(insert_query, all_rows)
+            conn.commit()
             cur.close()
+
     await loop.run_in_executor(None, _sync_db_call)
+
 
 # async def import_from_excel(registros):
 #     retorno = None
@@ -158,38 +190,75 @@ async def save_registros_bd(registros, username):
 async def import_from_excel(registros):
     TOTAL_COLUNAS = 33
     loop = asyncio.get_event_loop()
+
     def _sync_db_call():
-        all_data_for_batch = [] 
-        row_placeholders = ', '.join(['?'] * TOTAL_COLUNAS)
-        values_clauses = []
+        all_rows = []
+
         for i in registros:
-            values_clauses.append(f"({row_placeholders})")
+            # Forçar apenas o campo 'meta' como string
+            meta_val = str(i.get('meta')) if i.get('meta') is not None else ''
+
             row_data = [
-                i.get('atributo'), i.get('id_nome_indicador'), i.get('meta'), i.get('moedas'),
-                i.get('tipo_indicador'), i.get('acumulado'), i.get('esquema_acumulado'),
-                i.get('tipo_matriz'), i.get('data_inicio'), i.get('data_fim'),
-                i.get('periodo'), i.get('escala'), i.get('tipo_de_faturamento'),
-                i.get('descricao'), i.get('ativo'), i.get('chamado'),
-                i.get('criterio'), i.get('area'), i.get('responsavel'),
-                i.get('gerente'), i.get('possui_dmm'), i.get('dmm'),
-                i.get('submetido_por'), i.get('data_submetido_por'),
-                i.get('qualidade'), i.get('da_qualidade'), i.get('data_da_qualidade'),
-                i.get('planejamento'), i.get('da_planejamento'), i.get('data_da_planejamento'),
-                i.get('exop'), i.get('da_exop'), i.get('data_da_exop')
+                i.get('atributo'),
+                i.get('id_nome_indicador'),
+                meta_val,  # meta sempre string
+                i.get('moedas'),
+                i.get('tipo_indicador'),
+                i.get('acumulado'),
+                i.get('esquema_acumulado'),
+                i.get('tipo_matriz'),
+                i.get('data_inicio'),
+                i.get('data_fim'),
+                i.get('periodo'),
+                i.get('escala'),
+                i.get('tipo_de_faturamento'),
+                i.get('descricao'),
+                i.get('ativo'),
+                i.get('chamado'),
+                i.get('criterio'),
+                i.get('area'),
+                i.get('responsavel'),
+                i.get('gerente'),
+                i.get('possui_dmm'),
+                i.get('dmm'),
+                i.get('submetido_por'),
+                i.get('data_submetido_por'),
+                i.get('qualidade'),
+                i.get('da_qualidade'),
+                i.get('data_da_qualidade'),
+                i.get('planejamento'),
+                i.get('da_planejamento'),
+                i.get('data_da_planejamento'),
+                i.get('exop'),
+                i.get('da_exop'),
+                i.get('data_da_exop')
             ]
-            all_data_for_batch.extend(row_data)
-        full_values_string = ",\n".join(values_clauses)
+            all_rows.append(tuple(row_data))
+
+        if not all_rows:
+            return
+
+        colunas = (
+            "atributo,id_nome_indicador,meta,moedas,tipo_indicador,acumulado,esquema_acumulado,"
+            "tipo_matriz,data_inicio,data_fim,periodo,escala,tipo_de_faturamento,descricao,ativo,"
+            "chamado,criterio,area,responsavel,gerente,possui_dmm,dmm,submetido_por,data_submetido_por,"
+            "qualidade,da_qualidade,data_da_qualidade,planejamento,da_planejamento,data_da_planejamento,"
+            "exop,da_exop,data_da_exop"
+        )
+
+        placeholders = ", ".join(["?"] * TOTAL_COLUNAS)
+
+        insert_query = f"""
+            INSERT INTO Robbyson.dbo.Matriz_Geral ({colunas})
+            VALUES ({placeholders})
+        """
+
         with get_db_connection() as conn:
             cur = conn.cursor()
-            if full_values_string:
-                colunas = "atributo,id_nome_indicador,meta,moedas,tipo_indicador,acumulado,esquema_acumulado,tipo_matriz,data_inicio,data_fim,periodo,escala,tipo_de_faturamento,descricao,ativo,chamado,criterio,area,responsavel,gerente,possui_dmm,dmm,submetido_por,data_submetido_por,qualidade,da_qualidade,data_da_qualidade,planejamento,da_planejamento,data_da_planejamento,exop,da_exop,data_da_exop" 
-                batch_insert_query = f"""
-                    INSERT INTO Robbyson.dbo.Matriz_Geral ({colunas}) VALUES 
-                    {full_values_string}
-                """
-                cur.execute(batch_insert_query, all_data_for_batch)
-                cur.commit()
+            cur.executemany(insert_query, all_rows)
+            conn.commit()
             cur.close()
+
     await loop.run_in_executor(None, _sync_db_call)
 
 # async def batch_validar_submit_query(validation_conditions):
