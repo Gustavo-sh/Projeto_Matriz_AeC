@@ -172,6 +172,7 @@ h4 , h5{
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
+  min-height: 600px;
 }
 
 .table-container {

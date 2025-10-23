@@ -640,7 +640,7 @@ async def get_nao_acordos_apoio():
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(f"""
-                select * from matriz_geral where da_qualidade = 2 or da_planejamento = 2
+                select * from matriz_geral (nolock) where da_qualidade = 2 or da_planejamento = 2
             """)
             resultados = cur.fetchall()
             cur.close()
@@ -668,7 +668,7 @@ async def get_acordos_apoio():
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(f"""
-                select * from matriz_geral where da_qualidade = 1 and da_planejamento = 1
+                select * from matriz_geral (nolock) where (area = 'Qualidade' and da_qualidade = 1) or (area = 'Planejamento' and da_planejamento = 1) and (da_exop = 0)
             """)
             resultados = cur.fetchall()
             cur.close()
@@ -809,15 +809,15 @@ async def get_atributos_gerente(tipo, atributos, username):
             cur = conn.cursor()
             if tipo == "m0_all":
                 cur.execute(f"""
-                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-1)) and tipo_matriz like 'OPERA%' order by atributo
+                    select * from matriz_geral (nolock) where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-1)) and tipo_matriz like 'OPERA%' order by atributo
                 """)
             elif tipo == "m+1_all":
                 cur.execute(f"""
-                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE())) and tipo_matriz like 'OPERA%' order by atributo
+                    select * from matriz_geral (nolock) where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE())) and tipo_matriz like 'OPERA%' order by atributo
                 """)
             else:
                 cur.execute(f"""
-                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-2)) and tipo_matriz like 'OPERA%' order by atributo
+                    select * from matriz_geral (nolock) where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-2)) and tipo_matriz like 'OPERA%' order by atributo
                 """)
             resultados = cur.fetchall()
             cur.close()
@@ -846,15 +846,15 @@ async def get_matrizes_administrativas(tipo, atributos, username):
             cur = conn.cursor()
             if tipo == "m0_all_apoio":
                 cur.execute(f"""
-                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-1))
+                    select * from matriz_geral (nolock) where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-1))
                 """)
             elif tipo == "m+1_all_apoio":
                 cur.execute(f"""
-                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE()))
+                    select * from matriz_geral (nolock) where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE()))
                 """)
             else:
                 cur.execute(f"""
-                    select * from matriz_geral where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-2))
+                    select * from matriz_geral (nolock) where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-2))
                 """)
             resultados = cur.fetchall()
             cur.close()
