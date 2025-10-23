@@ -174,3 +174,32 @@ async def validation_import_from_excel(registros, request):
     if len(retorno) > 0:
         return response
     return None
+
+async def validation_meta_moedas(registros, meta, moedas):
+    tipo = registros["tipo_indicador"]
+    if tipo == "Hora":
+        try:
+            if len(meta.split(":")) != 3:
+                return f"xPesquisax: Erro de meta para indicador tipo hora! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
+        except ValueError:
+            return f"xPesquisax: Erro de valor meta! indicador:{registros["id_nome_indicador"]}, meta:{meta}"
+    elif tipo == "Inteiro":
+        try:
+            int(meta)
+        except ValueError:
+            return f"xPesquisax: Meta deve ser um valor inteiro! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
+    elif tipo == "Decimal":
+        try:
+            float(meta)
+        except ValueError:
+            return f"xPesquisax: Meta deve ser um valor decimal! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
+    elif tipo == "Percentual":
+        try:
+            float(meta)
+        except ValueError:
+            return f"xPesquisax: Meta deve ser um número válido! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
+    try:
+        int(moedas)
+    except ValueError:
+        return f"xPesquisax: Moedas deve ser um número inteiro! indicador:{registros["id_nome_indicador"]}, moedas informada:{moedas}"
+    return None

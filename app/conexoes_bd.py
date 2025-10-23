@@ -494,6 +494,29 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
 
+async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, descricao): 
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            for update_item in lista_de_updates:
+                atributo, periodo, id_nome_indicador = update_item
+                cur.execute(f"""
+                UPDATE dbo.Matriz_Geral
+                SET 
+                    meta = ?,
+                    moedas = ?,
+                    descricao = ?
+                WHERE 
+                    Atributo = ? AND 
+                    periodo = ? AND 
+                    id_nome_indicador = ?
+            """, (meta, moedas, descricao, atributo, periodo, id_nome_indicador))
+            conn.commit() 
+            cur.close()
+    await loop.run_in_executor(None, _sync_db_call)
+
+
 def validar_datas(data_inicio_bd, data_fim_bd, data_inicio_sbmit, data_fim_submit):
     data_original = datetime.strptime(data_inicio_sbmit, '%Y-%m-%d').date()
     ano = data_original.year

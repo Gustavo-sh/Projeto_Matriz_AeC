@@ -78,7 +78,8 @@ h4 , h5{
 /* ===== Labels e Inputs ===== */
 .form-container label,
 .user-info label,
-.container-duplicar-pesquisa label {
+.container-duplicar-pesquisa label,
+.form-mmd label {
   display: block;
   font-size: 13px;
   font-weight: bold;
@@ -92,7 +93,8 @@ h4 , h5{
 
 .form-container input:not([type="radio"]),
 .user-info input,
-.flatpickr-input-data {
+.flatpickr-input-data,
+.form-mmd input {
   width: 100%;
   padding: 10px;
   margin-bottom: 14px;
@@ -104,7 +106,8 @@ h4 , h5{
 }
 .form-container input:focus,
 .user-info input:focus,
-.flatpickr-input-data:focus  {
+.flatpickr-input-data:focus,
+.form-mmd input:focus {
   border-color: #007bff;
   box-shadow: 0 0 4px rgba(0,123,255,0.4);
   outline: none;
@@ -422,7 +425,8 @@ body.register-page {
 
 .submit-tabela button ,
 .btn-duplicar-tabela,
-.btn_replicar {
+.btn_replicar,
+.form-mmd button {
   width: 300px;
   padding: 10px;
   background: #63cf1b;
@@ -691,4 +695,45 @@ body.register-page {
 
 .header-tab-info {
   margin-bottom: 10px;
+}
+
+.container_mmd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.form-mmd {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.form-mmd > div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap; /* deixa responsivo em telas pequenas */
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-mmd label {
+  font-size: 13px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #e3f2fd, #f1f8ff);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+
+  display: flex;
+  flex-direction: column;
+  color: #333;
+  align-items: center;
 }

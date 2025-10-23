@@ -20,9 +20,9 @@ from app.cache import (
 from app.conexoes_bd import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_matriculas_cadastro_adm, get_atributos_cadastro_apoio,
     query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1,
-    get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_matrizes_administrativas
+    get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_matrizes_administrativas, update_meta_moedas_bd
 )
-from app.validation import validation_submit_table, validation_import_from_excel
+from app.validation import validation_submit_table, validation_import_from_excel, validation_meta_moedas
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -758,6 +758,13 @@ async def processar_acordo(
     ids_selecionados = set(registro_ids)
     registros_apos_acao = []
     updates_a_executar = []
+    current_page = request.headers.get("hx-current-url", "desconhecido").lower()
+    path = urlparse(current_page).path.lower()
+    show_das = None
+    if "cadastro" in path:
+        show_das = None
+    else:
+        show_das = True
     for r in registros_pesquisa:
         if str(r.get("id")) not in ids_selecionados:
             registros_apos_acao.append(r)
@@ -777,7 +784,67 @@ async def processar_acordo(
         {
             "request": request, 
             "registros": registros_apos_acao,
-            "show_checkbox": True
+            "show_checkbox": True,
+            "show_das": show_das
+        }
+    )
+
+@router.post("/update_meta_moedas", response_class=HTMLResponse)
+async def update_meta_moedas(
+    request: Request, 
+    registro_ids: List[str] = Form([], alias="registro_ids"),
+    meta: str = Form(..., alias="meta_duplicar"),
+    moedas: int = Form(..., alias="moedas_duplicar"),
+    descricao: str = Form(..., alias="descricao_duplicar"),
+    cache_key: str = Form(..., alias="cache_key") 
+):
+    user = get_current_user(request)
+    _check_role_or_forbid(user, ["adm"])
+    if not registro_ids:
+        raise HTTPException(
+            status_code=422,
+            detail="xPesquisax: Selecione pelo menos um registro para alterar a meta."
+        )
+    if not meta or not descricao:
+        raise HTTPException(
+            status_code=422,
+            detail="xPesquisax: Meta, Moedas e Motivo devem ser preenchidos para poder alterar os dados de meta e moesas."
+        )
+    registros_pesquisa = get_from_cache(cache_key)
+    if not registros_pesquisa:
+        raise HTTPException(status_code=422, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
+    ids_selecionados = set(registro_ids)
+    registros_apos_acao = []
+    updates_a_executar = []
+    current_page = request.headers.get("hx-current-url", "desconhecido").lower()
+    path = urlparse(current_page).path.lower()
+    show_das = None
+    if "cadastro" in path:
+        show_das = None
+    else:
+        show_das = True
+    for r in registros_pesquisa:
+        if str(r.get("id")) not in ids_selecionados:
+            registros_apos_acao.append(r)
+        else:
+            erro = await validation_meta_moedas(r, meta, moedas)
+            if erro:
+                raise HTTPException(status_code=422, detail=erro)
+            atributo = r.get("atributo")
+            id_nome_indicador = r.get("id_nome_indicador") 
+            periodo = r.get("periodo")
+            updates_a_executar.append((atributo, periodo, id_nome_indicador)) 
+    if updates_a_executar:
+        await update_meta_moedas_bd(updates_a_executar, meta, moedas, descricao) 
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, registros_apos_acao, CACHE_TTL)
+    return templates.TemplateResponse(
+        "_pesquisa.html", 
+        {
+            "request": request, 
+            "registros": registros_apos_acao,
+            "show_checkbox": True,
+            "show_das": show_das
         }
     )
 
