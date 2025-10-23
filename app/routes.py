@@ -308,7 +308,13 @@ async def pesquisar_m0(request: Request, atributo: str = Form(...)):
             detail="xFiltrox : Selecione um atributo primeiro!"
         )
     username = request.cookies.get("username", "anon")
-    registros = await query_m0(atributo, username)
+    funcao = await get_funcao(username)
+    area = None
+    if "qualidade" in funcao.lower():
+        area = "Qualidade"
+    elif "planejamento" in funcao.lower():
+        area = "Planejamento" 
+    registros = await query_m0(atributo, username, area)
     path = urlparse(current_page).path.lower()
     show_das = None
     if "cadastro" in path:
@@ -338,7 +344,13 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
     user = get_current_user(request)
     role = "operacao" if "operacao" in user.get("role") else "adm_apoio"
     username = request.cookies.get("username", "anon")
-    registros = await query_m1(atributo, role, username)
+    funcao = await get_funcao(username)
+    area = None
+    if "qualidade" in funcao.lower():
+        area = "Qualidade"
+    elif "planejamento" in funcao.lower():
+        area = "Planejamento" 
+    registros = await query_m1(atributo, role, username, area)
     user = get_current_user(request)
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -367,7 +379,13 @@ async def pesquisar_mmais1(request: Request, atributo: str = Form(...)):
             detail="xFiltrox: Selecione um atributo primeiro!"
         )
     username = request.cookies.get("username", "anon")
-    registros = await query_m_mais1(atributo, username)
+    funcao = await get_funcao(username)
+    area = None
+    if "qualidade" in funcao.lower():
+        area = "Qualidade"
+    elif "planejamento" in funcao.lower():
+        area = "Planejamento" 
+    registros = await query_m_mais1(atributo, username, area)
     path = urlparse(current_page).path.lower()
     show_das = None
     if "cadastro" in path:
@@ -491,7 +509,6 @@ async def submit_table(request: Request):
     if not registros:
         return "<p>Nenhum registro para submeter.</p>"
     num_atendentes = await get_num_atendentes(registros[0]["atributo"]) if registros[0]["tipo_matriz"] == "OPERAÇÃO" else None
-    print(num_atendentes)
     if registros[0]["tipo_matriz"] == "OPERAÇÃO":
         if num_atendentes == 0 or num_atendentes == '0':
             return "<p>Não é possível submeter a matriz, pois o atributo selecionado não possui nenhum atendente de nível 1.</p>"

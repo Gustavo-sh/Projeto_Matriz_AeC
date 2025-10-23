@@ -340,7 +340,7 @@ async def get_all_atributos():
     set_cache(cache_key, resultados)
     return resultados
 
-async def query_m0(atributo, username):
+async def query_m0(atributo, username, area):
     cache_key = f"pesquisa_m0:{atributo}"
     cached = get_from_cache(cache_key)
     if cached:
@@ -350,11 +350,21 @@ async def query_m0(atributo, username):
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute(f"""
+            if area is not None:
+                cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?
+                and area = ?
+                and tipo_matriz like 'OPERA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
-            """,(atributo,))
+                """,(atributo,area,))
+            else:
+                cur.execute(f"""
+                    select * from Robbyson.dbo.Matriz_Geral (nolock)
+                    WHERE Atributo = ?
+                    and tipo_matriz like 'OPERA%'
+                    AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
+                """,(atributo,))
             resultados = cur.fetchall()
             cur.close()
             return resultados
@@ -370,7 +380,7 @@ async def query_m0(atributo, username):
     set_cache(cache_key, registros, CACHE_TTL)
     return registros
 
-async def query_m1(atributo, role, username):
+async def query_m1(atributo, role, username, area):
     cache_key = f"pesquisa_m1:{atributo}"
     cached = get_from_cache(cache_key)
     if cached:
@@ -380,11 +390,20 @@ async def query_m1(atributo, role, username):
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute(f"""
+            if area is not None:
+                cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?
+                and area = ?
+                and tipo_matriz like 'OPERA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
-            """,(atributo,))
+                """,(atributo,area,))
+            else:
+                cur.execute(f"""
+                    select * from Robbyson.dbo.Matriz_Geral (nolock)
+                    WHERE Atributo = ?
+                    AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
+                """,(atributo,))
             resultados = cur.fetchall()
             cur.close()
             return resultados
@@ -400,7 +419,7 @@ async def query_m1(atributo, role, username):
     set_cache(cache_key, registros, CACHE_TTL)
     return registros
 
-async def query_m_mais1(atributo, username):
+async def query_m_mais1(atributo, username, area):
     cache_key = f"pesquisa_m_mais1:{atributo}"
     cached = get_from_cache(cache_key)
     if cached:
@@ -410,11 +429,20 @@ async def query_m_mais1(atributo, username):
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute(f"""
+            if area is not None:
+                cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?
+                and area = ?
+                and tipo_matriz like 'OPERA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE()))
-            """,(atributo,))
+                """,(atributo,area,))
+            else:
+                cur.execute(f"""
+                    select * from Robbyson.dbo.Matriz_Geral (nolock)
+                    WHERE Atributo = ?
+                    AND periodo = dateadd(d,1,eomonth(GETDATE()))
+                """,(atributo,))
             resultados = cur.fetchall()
             cur.close()
             return resultados
