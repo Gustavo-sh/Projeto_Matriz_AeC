@@ -21,8 +21,8 @@ h2, h3 {
 }
 
 h4 , h5{
-  margin-top: 10px;
-  margin-bottom: 15px;
+  margin-top: 3px;
+  margin-bottom: 10px;
   font-weight: bold;
   color: #254c98;
   text-align: center;
@@ -172,7 +172,6 @@ h4 , h5{
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
-  min-height: 600px;
 }
 
 .table-container {
@@ -647,8 +646,7 @@ body.register-page {
   justify-content: center;
   text-align: center;
   gap: 14px;
-  padding: 20px 10px;
-  margin-top: 25px;
+  padding: 10px 10px;
 }
 
 /* Contém o select (com Choices.js) sem crescer demais */
@@ -684,7 +682,7 @@ body.register-page {
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.3s ease, transform 0.1s ease;
-  margin-top: 8px;
+  margin-top: 3px;
 }
 .replicacao-container .btn_replicar:hover {
   background: #4ea814;
@@ -692,5 +690,5 @@ body.register-page {
 }
 
 .header-tab-info {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
