@@ -76,14 +76,14 @@ async def save_user_bd(username, hashed_password, role):
             
 #     await loop.run_in_executor(None, _sync_db_call)
 
-async def save_registros_bd(registros, username):
+async def save_registros_bd(registros, username, justificativa, ativo):
     data = datetime.now()
     username_val = str(username) if username is not None else None
     data_val = data
 
     NUM_COLUNAS_DADOS = 22 
     NUM_COLUNAS_ADICIONAIS = 2 
-    NUM_COLUNAS_VAZIAS = 9
+    NUM_COLUNAS_VAZIAS = 11
     TOTAL_COLUNAS = NUM_COLUNAS_DADOS + NUM_COLUNAS_ADICIONAIS + NUM_COLUNAS_VAZIAS
 
     loop = asyncio.get_event_loop()
@@ -110,7 +110,7 @@ async def save_registros_bd(registros, username):
                 i.get('escala'),
                 i.get('tipo_de_faturamento'),
                 i.get('descricao'),
-                i.get('ativo'),
+                ativo if ativo is not None else i.get('ativo'),
                 i.get('chamado'),
                 i.get('criterio'),
                 i.get('area'),
@@ -120,7 +120,7 @@ async def save_registros_bd(registros, username):
                 i.get('dmm'),
                 username_val,
                 data_val,
-                '', '', '', '', '', '', '', '', ''
+                '', '', '', '', '', '', '', '', '', justificativa if justificativa is not None else '', ''
             ]
             all_rows.append(tuple(row_data))
 
@@ -132,7 +132,7 @@ async def save_registros_bd(registros, username):
             "tipo_matriz,data_inicio,data_fim,periodo,escala,tipo_de_faturamento,descricao,ativo,"
             "chamado,criterio,area,responsavel,gerente,possui_dmm,dmm,submetido_por,data_submetido_por,"
             "qualidade,da_qualidade,data_da_qualidade,planejamento,da_planejamento,data_da_planejamento,"
-            "exop,da_exop,data_da_exop"
+            "exop,da_exop,data_da_exop,justificativa,da_superintendente"
         )
 
         placeholders = ", ".join(["?"] * TOTAL_COLUNAS)
@@ -188,7 +188,7 @@ async def save_registros_bd(registros, username):
 #     return await loop.run_in_executor(None, _sync_db_call)
 
 async def import_from_excel(registros):
-    TOTAL_COLUNAS = 33
+    TOTAL_COLUNAS = 35
     loop = asyncio.get_event_loop()
 
     def _sync_db_call():
@@ -231,7 +231,9 @@ async def import_from_excel(registros):
                 i.get('data_da_planejamento'),
                 i.get('exop'),
                 i.get('da_exop'),
-                i.get('data_da_exop')
+                i.get('data_da_exop'),
+                i.get('justificativa'),
+                i.get('da_superintendente')
             ]
             all_rows.append(tuple(row_data))
 
@@ -243,7 +245,7 @@ async def import_from_excel(registros):
             "tipo_matriz,data_inicio,data_fim,periodo,escala,tipo_de_faturamento,descricao,ativo,"
             "chamado,criterio,area,responsavel,gerente,possui_dmm,dmm,submetido_por,data_submetido_por,"
             "qualidade,da_qualidade,data_da_qualidade,planejamento,da_planejamento,data_da_planejamento,"
-            "exop,da_exop,data_da_exop"
+            "exop,da_exop,data_da_exop,justificativa,da_superintendente"
         )
 
         placeholders = ", ".join(["?"] * TOTAL_COLUNAS)

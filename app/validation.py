@@ -82,15 +82,15 @@ async def validation_submit_table(registros):
         try:
             registros.append({'atributo': f'{registros[0]["atributo"]}', 'id_nome_indicador': '48 - Presença', 'meta': '2', 'moedas': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
                             'tipo_matriz': 'OPERAÇÃO', 'data_inicio': f'{registros[0]["data_inicio"]}', 'data_fim': f'{registros[0]["data_fim"]}', 'periodo': f'{registros[0]["periodo"]}', 'escala': f'{registros[0]["escala"]}',
-                            'tipo_de_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': f'{registros[0]["chamado"]}' or '', 'criterio': 'Meta AeC', 'area': 'Plajamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
+                            'tipo_de_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': '', 'criterio': 'Meta AeC', 'area': 'Planejamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
                             'possui_dmm': f'{registros[0]["possui_dmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': f'{registros[0]["submetido_por"]}', 'data_submetido_por': f'{registros[0]["data_submetido_por"]}', 'qualidade': f'{registros[0]["qualidade"]}', 'da_qualidade': f'{registros[0]["da_qualidade"]}', 'data_da_qualidade': f'{registros[0]["data_da_qualidade"]}', 
-                            'planejamento': f'{registros[0]["planejamento"]}', 'da_planejamento': f'{registros[0]["da_planejamento"]}', 'data_da_planejamento': f'{registros[0]["data_da_planejamento"]}', 'exop': f'{registros[0]["exop"]}', 'da_exop': f'{registros[0]["da_exop"]}', 'data_da_exop': f'{registros[0]["data_da_exop"]}', 'id': uuid.uuid4()})
+                            'planejamento': f'{registros[0]["planejamento"]}', 'da_planejamento': f'{registros[0]["da_planejamento"]}', 'data_da_planejamento': f'{registros[0]["data_da_planejamento"]}', 'exop': f'{registros[0]["exop"]}', 'da_exop': f'{registros[0]["da_exop"]}', 'data_da_exop': f'{registros[0]["data_da_exop"]}', 'justificativa': '', 'da_superintendente': '', 'id': uuid.uuid4()})
         except KeyError:
             registros.append({'atributo': f'{registros[0]["atributo"]}', 'id_nome_indicador': '48 - Presença', 'meta': '2', 'moedas': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
                         'tipo_matriz': 'OPERAÇÃO', 'data_inicio': f'{registros[0]["data_inicio"]}', 'data_fim': f'{registros[0]["data_fim"]}', 'periodo': f'{registros[0]["periodo"]}', 'escala': f'{registros[0]["escala"]}',
-                        'tipo_de_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': f'{registros[0]["chamado"]}' or '', 'criterio': 'Meta AeC', 'area': 'Planejamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
+                        'tipo_de_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': '', 'criterio': 'Meta AeC', 'area': 'Planejamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
                         'possui_dmm': f'{registros[0]["possui_dmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': '', 'data_submetido_por': '', 'qualidade': '', 'da_qualidade': '', 'data_da_qualidade': '', 
-                        'planejamento': '', 'da_planejamento': '', 'data_da_planejamento': '', 'exop': '', 'da_exop': '', 'data_da_exop': '', 'id': uuid.uuid4()})
+                        'planejamento': '', 'da_planejamento': '', 'data_da_planejamento': '', 'exop': '', 'da_exop': '', 'data_da_exop': '', 'justificativa': '', 'da_superintendente': '', 'id': uuid.uuid4()})
 
     return validation_conditions, registros
 

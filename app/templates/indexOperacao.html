@@ -700,12 +700,17 @@
     <script>
     document.body.addEventListener("htmx:afterSwap", function(evt) {
         if (evt.detail.target.id === "mensagens-registros") {
-            setTimeout(() => {
-                evt.detail.target.innerHTML = "";
-            }, 8000); 
+            // Verifica se o novo conteúdo contém o formulário de justificativa
+            const contemJustificativa = evt.detail.target.querySelector(".form-justificativa");
+
+            // Se NÃO for o parcial _justificativa, limpa após 8s
+            if (!contemJustificativa) {
+                setTimeout(() => {
+                    evt.detail.target.innerHTML = "";
+                }, 8000);
+            }
         }
-    }
-    );
+    });
     </script>
 
     <script>

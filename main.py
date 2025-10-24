@@ -19,11 +19,12 @@ async def startup_event():
 
     # 2. 🔑 PRÉ-CARREGA OS DADOS CRÍTICOS NO CACHE
     print("Iniciando pré-carregamento dos resultados dos indicadores M3 no cache...")
+    print("Iniciando pré-carregamento das matriculas que cadastram matrizes administrativas no cache...")
     try:
         # A função é assíncrona, então usamos await
         await get_resultados_indicadores_m3() 
         await get_matriculas_cadastro_adm()
-        print("Pré-carregamento de resultados concluído.")
+        print("Pré-carregamento de dados concluído.")
     except Exception as e:
         # É importante tratar exceções para não travar a inicialização do app
         print(f"ERRO durante o pré-carregamento do cache: {e}")

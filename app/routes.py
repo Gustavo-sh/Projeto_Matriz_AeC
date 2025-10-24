@@ -517,7 +517,6 @@ async def submit_table(request: Request):
         results = await validation_submit_table(registros)
     except Exception as e:
         return f"<p>Erro Inesperado: {e}.</p>" 
-    results = await validation_submit_table(registros)
     if isinstance(results, str):
         return results
     validation_conditions, registros = results
@@ -529,9 +528,24 @@ async def submit_table(request: Request):
                 cond['periodo'] == periodo_bd and 
                 cond['id_nome_indicador'] == id_nome_indicador_bd):
                 if validar_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
-                    return f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.</p>"  
+                    hoje = datetime.now().day
+                    if hoje <= 24:
+                        # Retorna o HTML parcial pedindo justificativa
+                        return templates.TemplateResponse(
+                            "_justificativa.html",
+                            {
+                                "request": request,
+                                "indicador": cond["id_nome_indicador"],
+                                "atributo": cond["atributo"],
+                                "periodo": cond["periodo"],
+                            },
+                        )
+                    else:
+                        return (
+                            f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.</p>"  
+                        )
+                    
     await save_registros_bd(registros, username)
-    #save_registros(request, [])
     response = Response(
         content="<p>Tabela submetida com sucesso! A tabela ficará disponível caso queira replica-la para outros atributos.</p>",
         status_code=status.HTTP_200_OK,
@@ -539,6 +553,43 @@ async def submit_table(request: Request):
     )
     response.headers["HX-Trigger"] = '{"mostrarSucesso": "Tabela submetida com sucesso"}' 
     return response
+
+@router.post("/justificar_alteracao", response_class=HTMLResponse)
+async def justificar_alteracao(
+    request: Request,
+    justificativa: str = Form(...),
+):
+    """
+    Insere todos os registros atualmente carregados em cache,
+    marcando-os com ativo = 10 e adicionando a justificativa informada.
+    """
+    username = request.cookies.get("username", "anon")
+
+    # Carrega todos os registros salvos temporariamente no cache
+    registros = load_registros(request)
+    results = None
+    try:
+        results = await validation_submit_table(registros)
+    except Exception as e:
+        return f"<p>Erro Inesperado: {e}.</p>" 
+    if isinstance(results, str):
+        return results
+    _, registros = results
+    if not registros:
+        return "<p>Erro: Nenhum registro encontrado para justificativa.</p>"
+
+    # Aplica justificativa e campo ativo = 10 a todos os registros
+    for r in registros:
+        r["ativo"] = 10
+        r["justificativa"] = justificativa
+
+    # Salva todos os registros no banco de dados
+    await save_registros_bd(registros, username, justificativa, 10)
+
+    return (
+        "<p>Solicitação enviada com sucesso! "
+        "A alteração será avaliada pelo superintendente.</p>"
+    )
     
 @router.post("/trazer_resultados", response_class=HTMLResponse)
 async def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = Form(...)):
@@ -645,6 +696,8 @@ def duplicate_search_results(
               detail="xPesquisax: Se 'Sim' for selecionado, selecione os 5 Dmms!"
           )
     for novo_registro in registros_a_duplicar:
+        if novo_registro.get("id_nome_indicador") == "48 - Presença":
+            continue
         registro_copia = novo_registro.copy()
         registro_copia["id"] = str(uuid.uuid4())
         registro_copia["data_inicio"] = data_inicio

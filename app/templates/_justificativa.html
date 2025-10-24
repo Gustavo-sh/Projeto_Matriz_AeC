@@ -1,0 +1,33 @@
+<div class="form-justificativa">
+  <h3>Duplicidade detectada</h3>
+  <p>
+    O indicador <b>{{ indicador }}</b> já existe para o período
+    <b>{{ periodo }}</b> e atributo <b>{{ atributo }}</b>.<br>
+    Sua solicitação será enviada para o superintendente da EXOP, justifique a alteração para que ele avalie.
+  </p>
+
+  <form
+    hx-post="/justificar_alteracao"
+    hx-target="#mensagens-registros"
+    hx-swap="innerHTML"
+  >
+    <textarea
+      name="justificativa"
+      id="justificativa"
+      class="text_justificativa"
+      rows="4"
+      placeholder="Digite sua justificativa..."
+      required
+      maxlength="200"
+      style="width:100%; resize: vertical;"
+    ></textarea>
+
+    <input type="hidden" name="atributo" value="{{ atributo }}">
+    <input type="hidden" name="id_nome_indicador" value="{{ indicador }}">
+    <input type="hidden" name="periodo" value="{{ periodo }}">
+
+    <div style="margin-top: 10px;">
+      <button type="submit" class="btn-justificativa">Enviar Justificativa</button>
+    </div>
+  </form>
+</div>

@@ -423,21 +423,6 @@ body.register-page {
   font-size: 15px;
 }
 
-.submit-tabela button ,
-.btn-duplicar-tabela,
-.btn_replicar,
-.form-mmd button {
-  width: 300px;
-  padding: 10px;
-  background: #63cf1b;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 15px;
-  transition: background 0.3s ease;
-}
 
 .submit-tabela {
     display: flex;
@@ -675,6 +660,9 @@ body.register-page {
 }
 
 /* Botão centralizado e com largura fixa */
+.submit-tabela button ,
+.btn-duplicar-tabela,
+.form-mmd button,
 .replicacao-container .btn_replicar {
   display: inline-block;
   width: 220px;
@@ -688,10 +676,33 @@ body.register-page {
   transition: background 0.3s ease, transform 0.1s ease;
   margin-top: 3px;
 }
+.submit-tabela button:hover ,
+.btn-duplicar-tabela:hover,
+.form-mmd button:hover,
 .replicacao-container .btn_replicar:hover {
   background: #4ea814;
   transform: scale(1.03);
 }
+
+
+.btn-justificativa {
+  display: inline-block;
+  width: 220px;
+  padding: 10px;
+  background: #cf811b;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.1s ease;
+  margin-top: 3px;
+}
+.btn-justificativa:hover {
+  background: #4ea814;
+  transform: scale(1.03);
+}
+
 
 .header-tab-info {
   margin-bottom: 10px;
@@ -736,4 +747,30 @@ body.register-page {
   flex-direction: column;
   color: #333;
   align-items: center;
+}
+
+.text_justificativa {
+  width: 600px !important;   /* largura fixa */
+  min-height: 2.5rem;        /* altura mínima confortável */
+  max-height: 6rem;          /* impede que cresça demais */
+  padding: 10px 12px;        /* espaço interno */
+  border: 1.5px solid #ccc;  /* borda neutra */
+  border-radius: 8px;        /* cantos arredondados suaves */
+  font-size: 0.95rem;
+  font-family: "Segoe UI", Roboto, sans-serif;
+  resize: vertical;           /* o usuário ainda pode expandir */
+  transition: all 0.2s ease-in-out;
+  background-color: #fafafa;
+}
+
+.text_justificativa:focus {
+  outline: none;              /* remove o highlight azul padrão */
+  border-color: #2563eb;      /* azul estilo Tailwind “blue-600” */
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  background-color: #fff;
+}
+
+.text_justificativa::placeholder {
+  color: #9ca3af;             /* cinza claro */
+  font-style: italic;
 }
