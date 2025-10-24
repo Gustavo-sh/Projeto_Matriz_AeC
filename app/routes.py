@@ -681,12 +681,16 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
     valor_processado = valor_limpo 
     tipo_indicador = registro_encontrado.get("tipo_indicador")
     try:
-        if campo == "moeda" and valor_limpo == '':
-            valor_processado = 0
-        else:
-            valor_processado = int(valor_limpo.replace(',', '.'))
+        if campo == "moeda":
+            if valor_limpo == '':
+                valor_processado = 0
+            else:
+                valor_processado = int(valor_limpo.replace(',', '.'))
         if campo == "ativo":
-            valor_processado = int(valor_limpo)
+            if valor_limpo == '':
+                valor_processado = 0
+            else:
+                valor_processado = int(valor_limpo)
         elif tipo_indicador in ["Percentual"] and campo != "moeda":
             float(valor_limpo.replace(',', '.'))
         elif tipo_indicador in ["Inteiro"] and campo != "moeda":
@@ -696,7 +700,7 @@ def update_registro(request: Request, registro_id: str, campo: str, novo_valor: 
         elif tipo_indicador in ["Hora"] and campo != "moeda":
             partes = valor_limpo.split(":")
             if len(partes) < 3:
-                raise ValueError("Hora inválida")
+                return Response(status_code=404, content=f"Hora inválida: {novo_valor}.")
     except ValueError:
         error_message = f"Valor inválido para o campo {campo}."
         response = Response(content=f'{registro_encontrado.get(campo) or ""}', status_code=400)
