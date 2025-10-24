@@ -919,6 +919,7 @@ async def processar_acordo_adm_10(
     ids_selecionados = set(registro_ids)
     registros_apos_acao = []
     updates_a_executar = []
+    username = user.get("usuario")
     current_page = request.headers.get("hx-current-url", "desconhecido").lower()
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -930,12 +931,9 @@ async def processar_acordo_adm_10(
         if str(r.get("id")) not in ids_selecionados:
             registros_apos_acao.append(r)
         else:
-            atributo = r.get("atributo")
-            id_nome_indicador = r.get("id_nome_indicador") 
-            periodo = r.get("periodo")
-            updates_a_executar.append((atributo, periodo, id_nome_indicador)) 
+            updates_a_executar.append(r)
     if updates_a_executar:
-        await update_da_adm_10(updates_a_executar, status_acao) 
+        await update_da_adm_10(updates_a_executar, status_acao, username) 
     CACHE_TTL = timedelta(minutes=1)
     set_cache("matrizes_ativo_10", registros_apos_acao, CACHE_TTL)
     return templates.TemplateResponse(

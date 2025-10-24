@@ -359,6 +359,7 @@ async def query_m0(atributo, username, area):
                 and area = ?
                 and tipo_matriz like 'OPERA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
+                AND ativo in (0, 1)
                 """,(atributo,area,))
             else:
                 cur.execute(f"""
@@ -366,6 +367,7 @@ async def query_m0(atributo, username, area):
                     WHERE Atributo = ?
                     and tipo_matriz like 'OPERA%'
                     AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
+                    AND ativo in (0, 1)
                 """,(atributo,))
             resultados = cur.fetchall()
             cur.close()
@@ -399,12 +401,14 @@ async def query_m1(atributo, role, username, area):
                 and area = ?
                 and tipo_matriz like 'OPERA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
+                AND ativo in (0, 1)
                 """,(atributo,area,))
             else:
                 cur.execute(f"""
                     select * from Robbyson.dbo.Matriz_Geral (nolock)
                     WHERE Atributo = ?
                     AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
+                    AND ativo in (0, 1)
                 """,(atributo,))
             resultados = cur.fetchall()
             cur.close()
@@ -438,12 +442,14 @@ async def query_m_mais1(atributo, username, area):
                 and area = ?
                 and tipo_matriz like 'OPERA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE()))
+                AND ativo in (0, 1)
                 """,(atributo,area,))
             else:
                 cur.execute(f"""
                     select * from Robbyson.dbo.Matriz_Geral (nolock)
                     WHERE Atributo = ?
                     AND periodo = dateadd(d,1,eomonth(GETDATE()))
+                    AND ativo in (0, 1)
                 """,(atributo,))
             resultados = cur.fetchall()
             cur.close()
@@ -496,26 +502,54 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
 
-async def update_da_adm_10(lista_de_updates: list, tipo): 
+async def update_da_adm_10(updates: list, tipo, username): 
+    agora = datetime.now()
     tipo_defined = 1 if tipo == 'Acordo' else 2
     loop = asyncio.get_event_loop()
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            for update_item in lista_de_updates:
-                atributo, periodo, id_nome_indicador = update_item
-                cur.execute(f"""
-                UPDATE dbo.Matriz_Geral
-                SET 
-                    da_superintendente = ?
-                WHERE 
-                    Atributo = ? AND 
-                    periodo = ? AND 
-                    id_nome_indicador = ? AND
-                    ativo = 10
-            """, (tipo_defined, atributo, periodo, id_nome_indicador))
-            conn.commit() 
-            cur.close()
+            try:
+                for update_item in updates:
+                    atributo, periodo, id_nome_indicador = update_item.get('atributo'), update_item.get('periodo'), update_item.get('id_nome_indicador')
+                    if tipo_defined == 1:
+                        cur.execute(f"""
+                        UPDATE dbo.Matriz_Geral
+                        SET 
+                            ativo = 0
+                        WHERE 
+                            Atributo = ? AND 
+                            periodo = ? AND 
+                            id_nome_indicador = ? AND
+                            ativo = 1
+                    """, (atributo, periodo, id_nome_indicador))
+                        cur.execute(f"""
+                        UPDATE dbo.Matriz_Geral
+                        SET 
+                            ativo = 1,
+                            da_superintendente = 1,
+                            exop = ? ,
+                            data_da_exop = ? 
+                        WHERE 
+                            Atributo = ? AND 
+                            periodo = ? AND 
+                            id_nome_indicador = ? AND
+                            ativo = 10
+                    """, (username, agora, atributo, periodo, id_nome_indicador))
+                    else:
+                        cur.execute(f"""
+                        UPDATE dbo.Matriz_Geral
+                        SET 
+                            da_superintendente = 2
+                        WHERE 
+                            Atributo = ? AND 
+                            periodo = ? AND 
+                            id_nome_indicador = ? AND
+                            ativo = 11
+                    """, (atributo, periodo, id_nome_indicador))
+                conn.commit() 
+            finally:
+                cur.close()
     await loop.run_in_executor(None, _sync_db_call)
 
 async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, descricao): 

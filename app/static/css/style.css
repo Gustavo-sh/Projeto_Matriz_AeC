@@ -193,25 +193,76 @@ h4 , h5{
   width: 100%;
   border-collapse: collapse;
   background: #fff;
-  table-layout: auto; /* largura automática conforme conteúdo */
+  table-layout: auto;           /* pode manter auto */
+  border-spacing: 0;            /* evita “folga” com sticky */
 }
-.tabela-pesquisa th, 
+.tabela-pesquisa th,
 .tabela-pesquisa td {
   padding: 12px 18px;
   text-align: center;
   border-bottom: 1px solid #ddd;
-  white-space: nowrap; /* impede quebra de linha */
+  white-space: nowrap;          /* impede quebra de linha */
+  background-clip: padding-box; /* evita “costura” nas colunas fixas */
 }
 .tabela-pesquisa th {
-  background: #007BFF;
-  color: white;
+  background: #007BFF !important;
+  color: #fff;
   font-weight: bold;
   position: sticky;
-  top: 0;
-  z-index: 2;
+  top: 0;                       /* header congelado verticalmente */
+  z-index: 4;                   /* maior que as células */
 }
 .tabela-pesquisa tr:hover { background: #f5f5f5; }
 
+/* ===== COLUNAS FIXAS (1ª, 2ª e 3ª) =====
+   >>> Ajuste os widths conforme sua tabela <<<
+   c1_w = 80px; c2_w = 340px; c3_w = 260px (exemplo)
+*/
+
+/* 1ª coluna (Selects) */
+.tabela-pesquisa th:nth-child(1),
+.tabela-pesquisa td:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 5;                   /* acima das demais células */
+  background-color: #fff;
+  width: 80px;                  /* c1_w */
+  min-width: 80px;
+  box-shadow: 2px 0 3px rgba(0,0,0,.06);
+}
+
+/* 2ª coluna (Atributo) */
+.tabela-pesquisa th:nth-child(2),
+.tabela-pesquisa td:nth-child(2) {
+  position: sticky;
+  left: 80px;                   /* = c1_w */
+  z-index: 5;
+  background-color: #fff;
+  width: 450px;                 /* c2_w */
+  min-width: 450px;
+  box-shadow: 2px 0 3px rgba(0,0,0,.06);
+}
+
+/* 3ª coluna (Id - Nome Indicador) */
+.tabela-pesquisa th:nth-child(3),
+.tabela-pesquisa td:nth-child(3) {
+  position: sticky;
+  left: calc(80px + 450px);     /* = c1_w + c2_w */
+  z-index: 5;
+  background-color: #fff;
+  width: 260px;                 /* c3_w */
+  min-width: 260px;
+  box-shadow: 2px 0 3px rgba(0,0,0,.06);
+}
+
+.tabela-pesquisa th:nth-child(1),
+.tabela-pesquisa th:nth-child(2),
+.tabela-pesquisa th:nth-child(3) {
+  top: 0;           /* mantém fixo verticalmente */
+  z-index: 6;       /* acima das células normais */
+  background: #007BFF !important; /* mantém azul */
+  color: #fff;
+}
 /* ===== Tabela Matriz ===== */
 .tabela-matriz {
   width: 100%;
@@ -774,3 +825,4 @@ body.register-page {
   color: #9ca3af;             /* cinza claro */
   font-style: italic;
 }
+
