@@ -496,6 +496,28 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
 
+async def update_da_adm_10(lista_de_updates: list, tipo): 
+    tipo_defined = 1 if tipo == 'Acordo' else 2
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            for update_item in lista_de_updates:
+                atributo, periodo, id_nome_indicador = update_item
+                cur.execute(f"""
+                UPDATE dbo.Matriz_Geral
+                SET 
+                    da_superintendente = ?
+                WHERE 
+                    Atributo = ? AND 
+                    periodo = ? AND 
+                    id_nome_indicador = ? AND
+                    ativo = 10
+            """, (tipo_defined, atributo, periodo, id_nome_indicador))
+            conn.commit() 
+            cur.close()
+    await loop.run_in_executor(None, _sync_db_call)
+
 async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, descricao): 
     loop = asyncio.get_event_loop()
     def _sync_db_call():
@@ -891,6 +913,35 @@ async def get_matrizes_administrativas(tipo, atributos, username):
         "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
         "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
         "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
+    } for row in resultados]
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, registros, CACHE_TTL)
+    return registros
+
+async def get_matrizes_ativo_10():
+    cache_key = "matrizes_ativo_10"
+    cached = get_from_cache(cache_key)
+    resultados = None
+    if cached:
+        return cached
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+                select * from matriz_geral (nolock) where ativo = 10 and periodo >= dateadd(d,1,eomonth(GETDATE(),-1))
+            """)
+            resultados = cur.fetchall()
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    registros = [{
+        "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
+        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
+        "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
+        "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
+        "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], 
+        "justificativa": row[33], "da_superintendente": row[34], "id": str(uuid.uuid4())
     } for row in resultados]
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros, CACHE_TTL)
