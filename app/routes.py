@@ -583,7 +583,10 @@ async def submit_table(request: Request):
                 cond['id_nome_indicador'] == id_nome_indicador_bd):
                 if validar_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
                     hoje = datetime.now().day
-                    if hoje <= 24:
+                    dia_um = datetime.now().replace(day=1).date()
+                    print(periodo_bd, dia_um)
+                    if hoje > 10 and periodo_bd == dia_um.strftime("%Y-%m-%d"):
+                        
                         # Retorna o HTML parcial pedindo justificativa
                         return templates.TemplateResponse(
                             "_justificativa.html",
