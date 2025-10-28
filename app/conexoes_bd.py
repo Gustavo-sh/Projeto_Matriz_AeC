@@ -560,7 +560,7 @@ async def update_da_adm_10(updates: list, tipo, username):
                 cur.close()
     await loop.run_in_executor(None, _sync_db_call)
 
-async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, descricao): 
+async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas): 
     loop = asyncio.get_event_loop()
     def _sync_db_call():
         with get_db_connection() as conn:
@@ -571,13 +571,12 @@ async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, descricao)
                 UPDATE dbo.Matriz_Geral
                 SET 
                     meta = ?,
-                    moedas = ?,
-                    descricao = ?
+                    moedas = ?
                 WHERE 
                     Atributo = ? AND 
                     periodo = ? AND 
                     id_nome_indicador = ?
-            """, (meta, moedas, descricao, atributo, periodo, id_nome_indicador))
+            """, (meta, moedas, atributo, periodo, id_nome_indicador))
             conn.commit() 
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
@@ -746,6 +745,34 @@ async def get_nao_acordos_apoio():
     set_cache(cache_key, registros, CACHE_TTL)
     return registros
 
+async def get_nao_acordos_exop():
+    cache_key = f"nao_acordos_exop"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+    resultados = None
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+                select * from matriz_geral (nolock) where da_exop = 2 and ativo = 0
+            """)
+            resultados = cur.fetchall()
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    registros = [{
+        "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
+        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
+        "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
+        "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
+        "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
+    } for row in resultados]
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, registros, CACHE_TTL)
+    return registros
+
 async def get_acordos_apoio():
     cache_key = f"acordos_apoio"
     cached = get_from_cache(cache_key)
@@ -792,6 +819,40 @@ async def get_atributos_cadastro_apoio(produto):
             and atributo like '%{produto}%'
             and tipohierarquia = 'ADMINISTRAÇÃO' and nivelhierarquico = 'OPERACIONAL'
             and SituacaoHominum in ('ativo', 'treinamento')
+            """)
+            resultados = [{"atributo": i[0], "gerente": i[1], "tipo": "ADMINISTRAÇÃO"} for i in cur.fetchall()]
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, resultados, CACHE_TTL)
+    return resultados
+
+async def get_all_atributos_cadastro_apoio():
+    cache_key = f"all_atributos_cadastro_apoio"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+    resultados = None
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+            set nocount on
+
+            select distinct atributo, case when GERENTE is not null then GERENTE
+            when GERENTEPLENO is not null then GERENTEPLENO
+            when GERENTESENIOR is not null then GERENTESENIOR
+            else GERENTE_EXECUTIVO end as Gerente 
+            into #at from [robbyson].[rlt].[hmn] (nolock) where data = convert(date, getdate()-1) 
+            and tipohierarquia = 'ADMINISTRAÇÃO' and nivelhierarquico = 'OPERACIONAL'
+            and SituacaoHominum in ('ativo', 'treinamento')
+            and atributo is not null
+
+            select * from #at where Gerente is NOT NULL
+
+            drop table #at
             """)
             resultados = [{"atributo": i[0], "gerente": i[1], "tipo": "ADMINISTRAÇÃO"} for i in cur.fetchall()]
             cur.close()

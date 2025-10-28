@@ -26,7 +26,7 @@
     <button class="dropdown-button">Links Importantes</button>
     <div class="dropdown-content">
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSdmXd6R6mWNhxWsHVXh40uZozdGN7075_gMF-FCpI-ZZ6Yq1w/viewform?usp=header" target="_blank">Reportar Um Bug/Erro</a>
-        <a href="https://drive.google.com/file/d/1lABFXK6CgXnuzGASSPDuHREBRtNyYO5i/view?usp=sharing" target="_blank">Documentação Sistema Matriz</a>
+        <a href="https://drive.google.com/file/d/1GDvPV8JEBafwFnY3N3YeZLL8F29i-b4Z/view?usp=sharing" target="_blank">Documentação Sistema Matriz - ADM</a>
         <a href="https://docs.google.com/spreadsheets/d/1mv2McMERd1z7pkpYlpy7ELpIVwcnXeD6CmXVzSGDKpE/edit?usp=sharing" target="_blank">Alteração de Matriz Dentro do Prazo</a>
     </div>
     </div>
@@ -95,7 +95,7 @@
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
-                Pesquisar Acordos
+                Pesquisar Acordos Areas de Apoio
             </button>
 
             <button
@@ -104,13 +104,21 @@
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
-                Pesquisar Não Acordos
+                Pesquisar Não Acordos Areas de Apoio
             </button>
 
+            <button
+                type="button"
+                hx-post="/pesquisarnaoacordosexop" 
+                hx-target="#tabela-pesquisa" 
+                hx-swap="innerHTML"
+                hx-include="[id='atributo_select']">
+                Pesquisar Não Acordos Exop
+            </button>
 
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
 
-            {% if username == "277561" %}
+            {% if username in ["277561", "117699", "154658"] %}
             <div>
                 <form hx-post="/upload_excel"
                     hx-target="#tabela-pesquisa"
@@ -385,9 +393,9 @@
                         <input type="number" name="moedas_duplicar" id="moedas_duplicar" class="inputs_form_mmd">
                     </label>
 
-                    <label>Motivo (Quem soliciou, Quando, Meta anterior, Moeda anterior): *
+                    <!-- <label>Motivo (Quem soliciou, Quando, Meta anterior, Moeda anterior): *
                         <input type="text" name="descricao_duplicar" id="descricao_duplicar" class="inputs_form_mmd">
-                    </label>
+                    </label> -->
                 </div>
                 <button type="submit">Alterar Meta e Moedas</button>
             </form>
