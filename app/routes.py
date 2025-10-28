@@ -1132,9 +1132,9 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
         return valid_records
     try:
         import_results = await import_from_excel(records)
-        if not import_results:
+        if import_results != 'True':
             content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
-            <p>xImportx: Erro ao inserir os atributos, pois já existem dados para um ou mais dos atributos da planilha, não sendo possível saber qual por se tratar de um envio massivo.</p></div>"""
+            <p>xImportx: Erro ao inserir os atributos, pois já existem dados para {import_results}</p></div>"""
             return HTMLResponse(content=content)
     except Exception as e:
         content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>

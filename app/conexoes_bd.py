@@ -257,11 +257,19 @@ async def import_from_excel(registros):
 
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.executemany(insert_query, all_rows)
-            conn.commit()
-            cur.close()
+            erro = None
+            try:
+                cur.executemany(insert_query, all_rows)
+                conn.commit()
+                erro = 'True'
+            except Exception as e:
+                erro = e
+                conn.rollback()
+            finally:
+                cur.close()
+                return str(erro)
 
-    await loop.run_in_executor(None, _sync_db_call)
+    return await loop.run_in_executor(None, _sync_db_call)
 
 # async def batch_validar_submit_query(validation_conditions):
 #     or_clauses = []
