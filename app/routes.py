@@ -17,13 +17,13 @@ from app.cache import (
     get_from_cache, set_cache, load_registros, save_registros,
     set_session, get_current_user
 )
-from app.conexoes_bd import (
+from app.connections_db import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_matriculas_cadastro_adm, get_atributos_cadastro_apoio,
     query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1, update_da_adm_10,
     get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_matrizes_administrativas, update_meta_moedas_bd, get_matrizes_ativo_10, get_nao_acordos_exop,
     get_all_atributos_cadastro_apoio
 )
-from app.validation import validation_submit_table, validation_import_from_excel, validation_meta_moedas
+from app.validations import validation_submit_table, validation_import_from_excel, validation_meta_moedas
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")

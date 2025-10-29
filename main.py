@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from datetime import datetime
 from app.routes import router
 from app.database import init_db_pool
-from app.conexoes_bd import get_resultados_indicadores_m3, get_matriculas_cadastro_adm
+from app.connections_db import get_resultados_indicadores_m3, get_matriculas_cadastro_adm
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

@@ -1,7 +1,7 @@
 import uuid
 from fastapi.templating import Jinja2Templates
 from fastapi import APIRouter, Request, Form, Query, HTTPException, Response, status
-from app.conexoes_bd import get_resultados_indicadores_m3, get_all_atributos
+from app.connections_db import get_resultados_indicadores_m3, get_all_atributos
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -78,7 +78,7 @@ async def validation_submit_table(registros):
     #     return "<p>Disponibilidade é um indicador obrigatório, por favor adicione-o com 8 ou mais moedas e 94 de meta.</p>"
     if moedas != 30 and moedas != 35:
         return "<p>A soma de moedas deve ser igual a 30 ou 35.</p>"
-    elif moedas == 30:
+    elif moedas == 30 and registros[0]["tipo_matriz"] != "ADMINISTRAÇÃO":
         try:
             registros.append({'atributo': f'{registros[0]["atributo"]}', 'id_nome_indicador': '48 - Presença', 'meta': '2', 'moedas': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
                             'tipo_matriz': 'OPERAÇÃO', 'data_inicio': f'{registros[0]["data_inicio"]}', 'data_fim': f'{registros[0]["data_fim"]}', 'periodo': f'{registros[0]["periodo"]}', 'escala': f'{registros[0]["escala"]}',
