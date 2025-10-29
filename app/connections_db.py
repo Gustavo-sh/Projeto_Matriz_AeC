@@ -187,7 +187,8 @@ async def save_registros_bd(registros, username, justificativa, ativo):
 #             cur.close()
 #     return await loop.run_in_executor(None, _sync_db_call)
 
-async def import_from_excel(registros):
+async def import_from_excel(registros, username):
+    data = datetime.now()
     TOTAL_COLUNAS = 35
     loop = asyncio.get_event_loop()
 
@@ -221,8 +222,8 @@ async def import_from_excel(registros):
                 i.get('gerente'),
                 i.get('possui_dmm'),
                 i.get('dmm'),
-                i.get('submetido_por'),
-                i.get('data_submetido_por'),
+                username,
+                data,
                 i.get('qualidade'),
                 i.get('da_qualidade'),
                 i.get('data_da_qualidade'),

@@ -1108,6 +1108,7 @@ async def export_table(request: Request,  atributo: str = Query(...), tipo: str 
 
 @router.post("/upload_excel", response_class=HTMLResponse)
 async def upload_excel(request: Request, file: UploadFile = File(...)):
+    username = request.cookies.get("username")
     if not file.filename.lower().endswith((".xlsx", ".xls")):
         content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
         <p>xImportx: Envie um arquivo Excel (.xlsx ou .xls).</p></div>"""
@@ -1147,7 +1148,7 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
     date_cols = [c for c in df.columns if "data" in c.lower()]
     for col in date_cols:
         try:
-            df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime("%Y-%m-%d")
+            df[col] = pd.to_datetime(df[col], errors="coerce")
         except Exception:
             df[col] = ""
     df = df.fillna("")
@@ -1166,7 +1167,7 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
     if valid_records:
         return valid_records
     try:
-        import_results = await import_from_excel(records)
+        import_results = await import_from_excel(records, username)
         if import_results != 'True':
             content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
             <p>xImportx: Erro ao inserir os atributos, pois já existem dados para {import_results}</p></div>"""
@@ -1248,7 +1249,7 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
         return HTMLResponse("<p>Nenhum registro válido para replicar.</p>")
 
     try:
-        await import_from_excel(novos_registros)
+        await import_from_excel(novos_registros, matricula)
     except Exception as e:
         return HTMLResponse(f"<p>Erro ao inserir registros no banco: {e}</p>")
 

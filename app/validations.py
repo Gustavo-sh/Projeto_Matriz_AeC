@@ -25,10 +25,13 @@ async def validation_submit_table(registros):
             dic["moedas"] = 0
         else:
             try:
-                if int(moeda_val) <= 0: 
+                if int(moeda_val) < 0: 
                     moeda_val = 0
                     dic["moedas"] = 0
+                elif int(moeda_val) > 0 and int(moeda_val) < 3:
+                    return "<p>A monetização mínima é de 3 moedas. O indicador " + dic["id_nome_indicador"] + " possui menos de 3 moedas.</p>"
                 moedas += int(moeda_val)
+                
             except ValueError:
                 return "<p>Erro: Moeda deve ser um valor inteiro.</p>"
         try:
