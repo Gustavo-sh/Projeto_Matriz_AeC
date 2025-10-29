@@ -350,7 +350,7 @@ async def get_all_atributos():
     set_cache(cache_key, resultados)
     return resultados
 
-async def query_m0(atributo, username, area):
+async def query_m0(atributo, username, page):
     cache_key = f"pesquisa_m0:{atributo}"
     cached = get_from_cache(cache_key)
     if cached:
@@ -360,7 +360,7 @@ async def query_m0(atributo, username, area):
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            if area is not None:
+            if page == "demais":
                 cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?
@@ -368,12 +368,12 @@ async def query_m0(atributo, username, area):
                 and tipo_matriz like 'OPERA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
                 AND ativo in (0, 1)
-                """,(atributo,area,))
-            else:
+                """,(atributo,page,))
+            elif page == "cadastro":
                 cur.execute(f"""
                     select * from Robbyson.dbo.Matriz_Geral (nolock)
                     WHERE Atributo = ?
-                    and tipo_matriz like 'OPERA%'
+                    and tipo_matriz like 'ADMINISTRA%'
                     AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
                     AND ativo in (0, 1)
                 """,(atributo,))
@@ -392,7 +392,7 @@ async def query_m0(atributo, username, area):
     set_cache(cache_key, registros, CACHE_TTL)
     return registros
 
-async def query_m1(atributo, role, username, area):
+async def query_m1(atributo, username, page):
     cache_key = f"pesquisa_m1:{atributo}"
     cached = get_from_cache(cache_key)
     if cached:
@@ -402,7 +402,7 @@ async def query_m1(atributo, role, username, area):
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            if area is not None:
+            if page == "demais":
                 cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?
@@ -410,11 +410,12 @@ async def query_m1(atributo, role, username, area):
                 and tipo_matriz like 'OPERA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
                 AND ativo in (0, 1)
-                """,(atributo,area,))
-            else:
+                """,(atributo,page,))
+            elif page == "cadastro":
                 cur.execute(f"""
                     select * from Robbyson.dbo.Matriz_Geral (nolock)
                     WHERE Atributo = ?
+                    and tipo_matriz like 'ADMINISTRA%'
                     AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
                     AND ativo in (0, 1)
                 """,(atributo,))
@@ -433,7 +434,7 @@ async def query_m1(atributo, role, username, area):
     set_cache(cache_key, registros, CACHE_TTL)
     return registros
 
-async def query_m_mais1(atributo, username, area):
+async def query_m_mais1(atributo, username, page):
     cache_key = f"pesquisa_m_mais1:{atributo}"
     cached = get_from_cache(cache_key)
     if cached:
@@ -443,7 +444,7 @@ async def query_m_mais1(atributo, username, area):
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            if area is not None:
+            if page == "demais":
                 cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?
@@ -451,11 +452,12 @@ async def query_m_mais1(atributo, username, area):
                 and tipo_matriz like 'OPERA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE()))
                 AND ativo in (0, 1)
-                """,(atributo,area,))
-            else:
+                """,(atributo,page,))
+            elif page == "cadastro":
                 cur.execute(f"""
                     select * from Robbyson.dbo.Matriz_Geral (nolock)
                     WHERE Atributo = ?
+                    and tipo_matriz like 'ADMINISTRA%'
                     AND periodo = dateadd(d,1,eomonth(GETDATE()))
                     AND ativo in (0, 1)
                 """,(atributo,))
