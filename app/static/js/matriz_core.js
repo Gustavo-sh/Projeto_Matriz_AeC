@@ -546,7 +546,9 @@
       if (atributoInput) atributoInput.value = getAtributo();
     } else if (url.includes("/allatributesoperacao") || url.includes("/allatributesapoio")) {
       if (atributoInput) atributoInput.value = getAtributo();
-    }
+    } else if (url.includes("/pesquisar/matrizes_administrativas")) {
+      if (atributoInput) atributoInput.value = getAtributo();
+    } 
   });
 })();
 
@@ -597,6 +599,11 @@
     const id = element?.id;
     if (id === "all_m0" || id === "all_m1" || id === "all_m+1") {
       const tipoPesquisa = event.detail.parameters?.["tipo_pesquisa"];
+      const hidden = document.getElementById("duplicar_tipo_pesquisa");
+      if (hidden) hidden.value = tipoPesquisa;
+    }
+    if (id === "m0_administrativas" || id === "m+1_administrativas") {
+      const tipoPesquisa = event.detail.parameters?.["tipo"];
       const hidden = document.getElementById("duplicar_tipo_pesquisa");
       if (hidden) hidden.value = tipoPesquisa;
     }

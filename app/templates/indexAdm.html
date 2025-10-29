@@ -116,6 +116,26 @@
                 Pesquisar Não Acordos Exop
             </button>
 
+            <button
+                id="m0_administrativas"
+                type="button"
+                hx-post="/pesquisar/matrizes_administrativas" 
+                hx-target="#tabela-pesquisa"
+                hx-swap="innerHTML"
+                hx-vals='{"tipo": "m0_administrativas"}'>
+                Pesquisar Matrizes Administrativas Mes Atual
+            </button>
+
+            <button
+                id="m+1_administrativas"
+                type="button"
+                hx-post="/pesquisar/matrizes_administrativas" 
+                hx-target="#tabela-pesquisa"
+                hx-swap="innerHTML"
+                hx-vals='{"tipo": "m+1_administrativas"}'>
+                Pesquisar Matrizes Administrativas Mes Seguinte
+            </button>
+
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
 
             {% if username in ["277561", "117699", "154658"] %}

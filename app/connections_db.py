@@ -351,7 +351,7 @@ async def get_all_atributos():
     return resultados
 
 async def query_m0(atributo, username, page):
-    cache_key = f"pesquisa_m0:{atributo}"
+    cache_key = f"pesquisa_m0:{atributo}:{page}"
     cached = get_from_cache(cache_key)
     if cached:
         return cached
@@ -393,7 +393,7 @@ async def query_m0(atributo, username, page):
     return registros
 
 async def query_m1(atributo, username, page):
-    cache_key = f"pesquisa_m1:{atributo}"
+    cache_key = f"pesquisa_m1:{atributo}:{page}"
     cached = get_from_cache(cache_key)
     if cached:
         return cached
@@ -435,7 +435,7 @@ async def query_m1(atributo, username, page):
     return registros
 
 async def query_m_mais1(atributo, username, page):
-    cache_key = f"pesquisa_m_mais1:{atributo}"
+    cache_key = f"pesquisa_m_mais1:{atributo}:{page}"
     cached = get_from_cache(cache_key)
     if cached:
         return cached
@@ -985,6 +985,40 @@ async def get_atributos_gerente(tipo, atributos, username):
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros, CACHE_TTL)
     return registros
+
+async def get_matrizes_administrativas_pg_adm(tipo):
+    cache_key = f"matrizes_administrativas_pg_adm:{tipo}"
+    cached = get_from_cache(cache_key)
+    resultados = None
+    if cached:
+        return cached
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            if tipo == "m0_administrativas":
+                cur.execute(f"""
+                    select * from matriz_geral (nolock) where tipo_matriz like 'ADMINISTRA%' and periodo = dateadd(d,1,eomonth(GETDATE(),-1)) and ativo = 0
+                """)
+            elif tipo == "m+1_administrativas":
+                cur.execute(f"""
+                    select * from matriz_geral (nolock) where tipo_matriz like 'ADMINISTRA%' and periodo = dateadd(d,1,eomonth(GETDATE())) and ativo = 0
+                """)
+            resultados = cur.fetchall()
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    registros = [{
+        "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
+        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
+        "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
+        "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
+        "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
+    } for row in resultados]
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, registros, CACHE_TTL)
+    return registros
+
 
 async def get_matrizes_administrativas(tipo, atributos, username):
     cache_key = f"matrizes_administrativas:{tipo}:{username}"

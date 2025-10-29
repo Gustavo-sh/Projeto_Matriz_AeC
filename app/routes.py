@@ -21,7 +21,7 @@ from app.connections_db import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_matriculas_cadastro_adm, get_atributos_cadastro_apoio,
     query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1, update_da_adm_10,
     get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_matrizes_administrativas, update_meta_moedas_bd, get_matrizes_ativo_10, get_nao_acordos_exop,
-    get_all_atributos_cadastro_apoio
+    get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm
 )
 from app.validations import validation_submit_table, validation_import_from_excel, validation_meta_moedas
 
@@ -492,10 +492,31 @@ async def pesquisar_nao_acordos_exop(request: Request):
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
     return response
 
-@router.post("/atributosativo10", response_class=HTMLResponse)
+@router.post("/pesquisar/atributos_ativo_10", response_class=HTMLResponse)
 async def atributos_ativo_10(request: Request):
     current_page = request.headers.get("hx-current-url", "desconhecido")
     registros = await get_matrizes_ativo_10()
+    path = urlparse(current_page).path.lower()
+    show_das = None
+    if "cadastro" in path:
+        show_das = None
+    else:
+        show_das = True
+    html_content = templates.TemplateResponse(
+    "_pesquisa.html", 
+    {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das, "show_just": True}
+    )
+    response = Response(content=html_content.body, media_type="text/html")
+    if len(registros) > 0:
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+    else:
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+    return response
+
+@router.post("/pesquisar/matrizes_administrativas", response_class=HTMLResponse)
+async def matrizes_administrativas_pg_adm(request: Request, tipo: str = Form(...)):
+    current_page = request.headers.get("hx-current-url", "desconhecido")
+    registros = await get_matrizes_administrativas_pg_adm(tipo)
     path = urlparse(current_page).path.lower()
     show_das = None
     if "cadastro" in path:
@@ -1048,6 +1069,8 @@ async def export_table(request: Request,  atributo: str = Query(...), tipo: str 
         possible_keys = [f"all_atributos:{tipo}:{username}"]
     elif tipo in ["m0_all_apoio", "m1_all_apoio", "m+1_all_apoio"]:
         possible_keys = [f"matrizes_administrativas:{tipo}:{username}"]
+    elif tipo in ["m0_administrativas", "m+1_administrativas"]:
+        possible_keys = [f"matrizes_administrativas_pg_adm:{tipo}"]
     else:
         if not atributo:
             raise HTTPException(status_code=422, detail="Informe o parâmetro 'atributo' para exportar.")
