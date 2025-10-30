@@ -136,7 +136,7 @@ async def register_user(request: Request, username: str = Form(...), password: s
             role = "apoio planejamento"
         elif "COORDENADOR DE OPERACAO" in funcao_upper or "GERENTE DE OPERACAO" in funcao_upper:
             role = "operacao"
-        elif "ANALISTA DESENVOLVIMENTO OPERACIONAL" in funcao_upper:
+        elif "DESENVOLVIMENTO OPERACIONAL" in funcao_upper:
             role = "adm"
         else:
             role = None
@@ -342,6 +342,12 @@ async def pesquisar_m0(request: Request, atributo: str = Form(...)):
             detail="xFiltrox : Selecione um atributo primeiro!"
         )
     username = request.cookies.get("username", "anon")
+    area = None
+    funcao = await get_funcao(username)
+    if "qualidade" in funcao.lower():
+        area = "Qualidade"
+    elif "planejamento" in funcao.lower():
+        area = "Planejamento"
     page = None
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -351,7 +357,7 @@ async def pesquisar_m0(request: Request, atributo: str = Form(...)):
     else:
         page = "demais"
         show_das = True
-    registros = await query_m0(atributo, username, page)
+    registros = await query_m0(atributo, username, page, area)
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
     {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das}
@@ -373,6 +379,12 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
             detail="xFiltrox: Selecione um atributo primeiro!"
         )
     username = request.cookies.get("username", "anon")
+    area = None
+    funcao = await get_funcao(username)
+    if "qualidade" in funcao.lower():
+        area = "Qualidade"
+    elif "planejamento" in funcao.lower():
+        area = "Planejamento"
     page = None
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -382,7 +394,7 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
     else:
         page = "demais"
         show_das = True
-    registros = await query_m1(atributo, username, page)
+    registros = await query_m1(atributo, username, page, area)
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
     {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das} 
@@ -404,7 +416,12 @@ async def pesquisar_mmais1(request: Request, atributo: str = Form(...)):
             detail="xFiltrox: Selecione um atributo primeiro!"
         )
     username = request.cookies.get("username", "anon")
+    area = None
     funcao = await get_funcao(username)
+    if "qualidade" in funcao.lower():
+        area = "Qualidade"
+    elif "planejamento" in funcao.lower():
+        area = "Planejamento"
     page = None
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -414,7 +431,7 @@ async def pesquisar_mmais1(request: Request, atributo: str = Form(...)):
     else:
         page = "demais"
         show_das = True
-    registros = await query_m_mais1(atributo, username, page)
+    registros = await query_m_mais1(atributo, username, page, area)
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
     {"request": request, "registros": registros, "show_checkbox": False, "show_das": show_das}
