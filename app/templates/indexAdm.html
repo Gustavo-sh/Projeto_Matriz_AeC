@@ -541,6 +541,21 @@
             </div>
     </div>
 
+    <div id="loader" style="
+        display:none;
+        position: fixed;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        font-size: 16px;
+        z-index: 9999;
+    ">
+        ⏳ Processando...
+    </div>
+
     <script src="{{ url_for('static', path='/js/matriz_core.js') }}"></script>
     <script src="{{ url_for('static', path='/js/matriz_adm.js') }}"></script>
     

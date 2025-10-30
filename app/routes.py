@@ -29,7 +29,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SESSION_COOKIE = "logged_in"
-adms = ["277561", "117699", "154658", "000000"]
+adms = ["277561", "117699", "154658", "160031", "086939"]
 adm_acordo = ["277561"]
 EXPECTED_COLUMNS = [
     'atributo', 'id_nome_indicador', 'meta', 'moedas', 'tipo_indicador', 

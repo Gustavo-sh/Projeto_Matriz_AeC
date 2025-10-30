@@ -645,3 +645,24 @@
     });
   });
 })();
+
+/* =============================
+ * LOADER
+ * ============================= */
+(function () {
+document.body.addEventListener("htmx:beforeRequest", function () {
+    document.getElementById("loader").style.display = "block";
+});
+})();
+
+(function () {
+document.body.addEventListener("htmx:afterSwap", function () {
+    document.getElementById("loader").style.display = "none";
+});
+})();
+
+(function () {
+document.body.addEventListener("htmx:responseError", function () {
+    document.getElementById("loader").style.display = "none";
+});
+})();
