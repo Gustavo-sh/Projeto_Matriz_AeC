@@ -882,8 +882,8 @@ async def get_atributos_cadastro_apoio(produto):
     set_cache(cache_key, resultados, CACHE_TTL)
     return resultados
 
-async def get_all_atributos_cadastro_apoio():
-    cache_key = f"all_atributos_cadastro_apoio"
+async def get_all_atributos_cadastro_apoio(area):
+    cache_key = f"all_atributos_cadastro_apoio:{area}"
     cached = get_from_cache(cache_key)
     if cached:
         return cached
@@ -903,6 +903,7 @@ async def get_all_atributos_cadastro_apoio():
             and tipohierarquia = 'ADMINISTRAÇÃO' and nivelhierarquico = 'OPERACIONAL'
             and SituacaoHominum in ('ativo', 'treinamento')
             and atributo is not null
+            and atributo like '%{area}%'
 
             select * from #at where Gerente is NOT NULL
 

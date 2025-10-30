@@ -213,7 +213,13 @@ async def index_apoio(request: Request):
     #     return resp
     indicadores = await get_indicadores()
     #atributos = await get_atributos_cadastro_apoio(matriculas[f"{username}"])
-    atributos = await get_all_atributos_cadastro_apoio()
+    area = None
+    funcao = await get_funcao(username)
+    if "qualidade" in funcao.lower():
+        area = "QUALID"
+    elif "planejamento" in funcao.lower():
+        area = "PLAN"
+    atributos = await get_all_atributos_cadastro_apoio(area)
     registros = load_registros(request)
     return templates.TemplateResponse("indexApoioCadastro.html", {
         "request": request,
