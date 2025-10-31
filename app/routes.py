@@ -393,6 +393,9 @@ async def pesquisar_m0(request: Request, atributo: str = Form(...)):
         page = "demais"
         show_das = True
     registros = await query_m0(atributo, username, page, area)
+    for dic in registros:
+        if dic.get("id_nome_indicador") == "48 - Presença":
+            registros.remove(dic)
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
     {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das}
@@ -430,6 +433,9 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
         page = "demais"
         show_das = True
     registros = await query_m1(atributo, username, page, area)
+    for dic in registros:
+        if dic.get("id_nome_indicador") == "48 - Presença":
+            registros.remove(dic)
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
     {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das} 
@@ -470,6 +476,9 @@ async def pesquisar_mmais1(request: Request, atributo: str = Form(...)):
     if "/matriz/apoio" in path or '/matriz/adm' in path:
         show_checkbox = True
     registros = await query_m_mais1(atributo, username, page, area)
+    for dic in registros:
+        if dic.get("id_nome_indicador") == "48 - Presença":
+            registros.remove(dic)
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
     {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das}
@@ -967,6 +976,7 @@ async def processar_acordo(
     ids_selecionados = set(registro_ids)
     registros_apos_acao = []
     updates_a_executar = []
+    trava_da_exop = []
     current_page = request.headers.get("hx-current-url", "desconhecido").lower()
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -982,9 +992,24 @@ async def processar_acordo(
             id_nome_indicador = r.get("id_nome_indicador") 
             periodo = r.get("periodo")
             updates_a_executar.append((atributo, periodo, id_nome_indicador)) 
+            trava_da_exop.append(r)
     if updates_a_executar:
         role = user.get("role", "default")
         username = user.get("usuario")
+        if role == "adm":
+            for dic in trava_da_exop:
+                if dic["area"] == "Qualidade":
+                    try:
+                        if int(dic["da_qualidade"]) == 0:
+                            raise HTTPException(status_code=422, detail="xPesquisax: O indicar " + dic["id_nome_indicador"] + " não tem de acordo da qualidade.")
+                    except Exception:
+                        raise HTTPException(status_code=422, detail="xPesquisax: Não foi possível verificar o de acordo da qualidade do indicador " + dic["id_nome_indicador"])
+                elif dic["area"] == "Planejamento":
+                    try:
+                        if int(dic["da_planejamento"]) == 0:
+                            raise HTTPException(status_code=422, detail="xPesquisax: O indicar " + dic["id_nome_indicador"] + " não tem de acordo da planejamento.")
+                    except Exception:
+                        raise HTTPException(status_code=422, detail="xPesquisax: Não foi possível verificar o de acordo da planejamento do indicador " + dic["id_nome_indicador"])
         await update_da_adm_apoio(updates_a_executar, role, status_acao, username) 
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros_apos_acao, CACHE_TTL)
