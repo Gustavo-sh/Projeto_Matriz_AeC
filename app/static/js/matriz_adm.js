@@ -69,6 +69,8 @@
       tipoValor = "m+1";
     } else if (url.includes("/pesquisarnaoacordos")) {
       if (cacheKey) cacheKey.value = "nao_acordos_apoio";
+    } else if (url.includes("/pesquisaracordos")) {
+      if (cacheKey) cacheKey.value = "acordos_apoio";
     }
 
     if (tipoValor) {
