@@ -15,7 +15,7 @@ async def validation_submit_table(registros):
     for dic in registros:
         moeda_val = dic.get("moedas", "")
         meta_val = dic.get("meta", "")
-        nome_val = dic.get("id_nome_indicador", "")
+        nome_val = dic.get("id_nome_indicador", "").lower()
         resultados_indicadores_m3 = await get_resultados_indicadores_m3()
         id_indicador = dic["id_nome_indicador"].split(" - ")[0]
         if int(dic["moedas"]) > 0 and int(id_indicador) not in resultados_indicadores_m3:
@@ -33,7 +33,7 @@ async def validation_submit_table(registros):
                 moedas += int(moeda_val)
                 
             except ValueError:
-                return "<p>Erro: Moeda deve ser um valor inteiro.</p>"
+                return "<p>Erro: Moeda deve ser um valor inteiro, valor informado: " + moeda_val + ", para o indicador: " + dic["id_nome_indicador"] + ".</p>"
         try:
             if dic["tipo_indicador"] != "Hora":
                 if dic["tipo_indicador"] == "Inteiro":
@@ -50,14 +50,14 @@ async def validation_submit_table(registros):
                     dic["meta"] = meta_val
                     
         except ValueError:
-            return "<p>Erro: Meta deve ser um número válido.</p>"
-        if nome_val == "6 - % Absenteísmo" and (moeda_val != 0 or meta_val == "" or meta_val == 0):
+            return "<p>Erro: Meta deve ser um número válido, valor informado: " + meta_val + ", para o indicador: " + dic["id_nome_indicador"] + ".</p>"
+        if nome_val == r"6 - % absenteísmo" and (moeda_val != 0 or meta_val == "" or meta_val == 0):
             return "<p>Absenteísmo não pode ter moedas e deve ter uma meta diferente de zero.</p>"
-        if nome_val == "901 - % Disponibilidade":
+        if nome_val == r"901 - % disponibilidade":
             disp_in = True
             if (int(moeda_val) < 8 or int(meta_val) != 94):
                 return "<p>Disponibilidade não pode ter menos que 8 moedas e deve ter 94 de meta.</p>"
-        if (nome_val == "25 - Pausa NR17" or nome_val == "15 - Tempo Logado") and (moeda_val != 0 or meta_val != "00:00:00"):
+        if (nome_val == "25 - pausa nr17" or nome_val == "15 - tempo logado") and (moeda_val != 0 or meta_val != "00:00:00"):
             return "<p>O valor de moeda deve ser 0 e o valor de meta para Pausa NR17 e Tempo Logado deve ser 00:00:00.</p>"
         if dic["tipo_indicador"] == "Hora":
             try:

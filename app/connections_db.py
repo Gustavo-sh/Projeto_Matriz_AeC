@@ -352,7 +352,7 @@ async def get_all_atributos():
     return resultados
 
 async def query_m0(atributo, username, page, area):
-    cache_key = f"pesquisa_m0:{atributo}:{page}:{area}"
+    cache_key = f"pesquisa_m0:{atributo}:{page}"
     cached = get_from_cache(cache_key)
     if cached:
         return cached
@@ -362,15 +362,15 @@ async def query_m0(atributo, username, page, area):
         with get_db_connection() as conn:
             cur = conn.cursor()
             if page == "demais":
-                if area is not None:
-                    cur.execute(f"""
-                    select * from Robbyson.dbo.Matriz_Geral (nolock)
-                    WHERE Atributo = ?
-                    and area = ?
-                    and tipo_matriz like 'OPERA%'
-                    AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
-                    AND ativo in (0, 1)
-                    """,(atributo,area,))
+                # if area is not None:
+                #     cur.execute(f"""
+                #     select * from Robbyson.dbo.Matriz_Geral (nolock)
+                #     WHERE Atributo = ?
+                #     and area = ?
+                #     and tipo_matriz like 'OPERA%'
+                #     AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
+                #     AND ativo in (0, 1)
+                #     """,(atributo,area,))
                 cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?
@@ -379,15 +379,6 @@ async def query_m0(atributo, username, page, area):
                 AND ativo in (0, 1)
                 """,(atributo,))
             elif page == "cadastro":
-                if area is not None:
-                    cur.execute(f"""
-                    select * from Robbyson.dbo.Matriz_Geral (nolock)
-                    WHERE Atributo = ?
-                    and area = ?
-                    and tipo_matriz like 'ADMINISTRA%'
-                    AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
-                    AND ativo in (0, 1)
-                    """,(atributo,area,))
                 cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?
@@ -411,7 +402,7 @@ async def query_m0(atributo, username, page, area):
     return registros
 
 async def query_m1(atributo, username, page, area):
-    cache_key = f"pesquisa_m1:{atributo}:{page}:{area}"
+    cache_key = f"pesquisa_m1:{atributo}:{page}"
     cached = get_from_cache(cache_key)
     if cached:
         return cached
@@ -421,15 +412,15 @@ async def query_m1(atributo, username, page, area):
         with get_db_connection() as conn:
             cur = conn.cursor()
             if page == "demais":
-                if area is not None:
-                    cur.execute(f"""
-                    select * from Robbyson.dbo.Matriz_Geral (nolock)
-                    WHERE Atributo = ?
-                    and area = ?
-                    and tipo_matriz like 'OPERA%'
-                    AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
-                    AND ativo in (0, 1)
-                    """,(atributo,area,))
+                # if area is not None:
+                #     cur.execute(f"""
+                #     select * from Robbyson.dbo.Matriz_Geral (nolock)
+                #     WHERE Atributo = ?
+                #     and area = ?
+                #     and tipo_matriz like 'OPERA%'
+                #     AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
+                #     AND ativo in (0, 1)
+                #     """,(atributo,area,))
                 cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?
@@ -438,15 +429,6 @@ async def query_m1(atributo, username, page, area):
                 AND ativo in (0, 1)
                 """,(atributo,))
             elif page == "cadastro":
-                if area is not None:
-                    cur.execute(f"""
-                    select * from Robbyson.dbo.Matriz_Geral (nolock)
-                    WHERE Atributo = ?
-                    and area = ?
-                    and tipo_matriz like 'ADMINISTRA%'
-                    AND periodo = dateadd(d,1,eomonth(GETDATE(),-2))
-                    AND ativo in (0, 1)
-                    """,(atributo,area,))
                 cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?
@@ -470,7 +452,7 @@ async def query_m1(atributo, username, page, area):
     return registros
 
 async def query_m_mais1(atributo, username, page, area):
-    cache_key = f"pesquisa_m_mais1:{atributo}:{page}:{area}"
+    cache_key = f"pesquisa_m+1:{atributo}:{page}"
     cached = get_from_cache(cache_key)
     if cached:
         return cached
@@ -480,15 +462,15 @@ async def query_m_mais1(atributo, username, page, area):
         with get_db_connection() as conn:
             cur = conn.cursor()
             if page == "demais":
-                if area is not None:
-                    cur.execute(f"""
-                    select * from Robbyson.dbo.Matriz_Geral (nolock)
-                    WHERE Atributo = ?
-                    and area = ?
-                    and tipo_matriz like 'OPERA%'
-                    AND periodo = dateadd(d,1,eomonth(GETDATE()))
-                    AND ativo in (0, 1)
-                    """,(atributo,area,))
+                # if area is not None:
+                #     cur.execute(f"""
+                #     select * from Robbyson.dbo.Matriz_Geral (nolock)
+                #     WHERE Atributo = ?
+                #     and area = ?
+                #     and tipo_matriz like 'OPERA%'
+                #     AND periodo = dateadd(d,1,eomonth(GETDATE()))
+                #     AND ativo in (0, 1)
+                #     """,(atributo,area,))
                 cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?
@@ -497,15 +479,6 @@ async def query_m_mais1(atributo, username, page, area):
                 AND ativo in (0, 1)
                 """,(atributo,))
             elif page == "cadastro":
-                if area is not None:
-                    cur.execute(f"""
-                    select * from Robbyson.dbo.Matriz_Geral (nolock)
-                    WHERE Atributo = ?
-                    and area = ?
-                    and tipo_matriz like 'ADMINISTRA%'
-                    AND periodo = dateadd(d,1,eomonth(GETDATE()))
-                    AND ativo in (0, 1)
-                    """,(atributo,area,))
                 cur.execute(f"""
                 select * from Robbyson.dbo.Matriz_Geral (nolock)
                 WHERE Atributo = ?

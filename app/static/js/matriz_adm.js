@@ -98,8 +98,17 @@
       const cacheKeyInput = document.getElementById("cache_key_pesquisa");
       const tipo = evt.detail?.tipo;
       const atributo = evt.detail?.atributo;
+      let page = null;
+      const url = window.location.pathname.toLowerCase();
+      // let area = document.body.dataset.area;
+      // area = area ? area : "None";
+      if (url.includes("cadastro")) {
+        page = "cadastro";
+      } else {
+        page = "demais";
+      }
       if (cacheKeyInput && tipo && atributo) {
-        const novaCacheKey = `pesquisa_${tipo}:${atributo}`;
+        const novaCacheKey = `pesquisa_${tipo}:${atributo}:${page}`;
         cacheKeyInput.value = novaCacheKey;
         console.log("CHAVE DE CACHE CONSTRUÍDA COM SUCESSO:", novaCacheKey);
       } else {

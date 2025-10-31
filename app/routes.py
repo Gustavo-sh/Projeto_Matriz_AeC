@@ -160,13 +160,20 @@ async def matriz_page(request: Request):
     lista_atributos = await get_atributos_matricula(username)
     atributos = sorted(lista_atributos, key=lambda item: item.get('atributo') or '')
     registros = load_registros(request)
+    area = None
+    funcao = await get_funcao(username)
+    if "qualidade" in funcao.lower():
+        area = "Qualidade"
+    elif "planejamento" in funcao.lower():
+        area = "Planejamento"
     return templates.TemplateResponse("indexOperacao.html", {
         "request": request,
         "registros": registros,
         "indicadores": indicadores,
         "username": username,
         "atributos": atributos,
-        "role_": user.get("role")
+        "role_": user.get("role"),
+        "area": area
     })
 
 @router.get("/matriz/apoio")
@@ -182,13 +189,20 @@ async def index_apoio(request: Request):
     indicadores = await get_indicadores()
     atributos = await get_atributos_apoio()
     registros = load_registros(request)
+    area = None
+    funcao = await get_funcao(username)
+    if "qualidade" in funcao.lower():
+        area = "Qualidade"
+    elif "planejamento" in funcao.lower():
+        area = "Planejamento"
     return templates.TemplateResponse("indexApoio.html", {
         "request": request,
         "registros": registros,
         "indicadores": indicadores,
         "username": username,
         "atributos": atributos,
-        "role_": user.get("role")
+        "role_": user.get("role"),
+        "area": area
     })
 
 @router.get("/matriz/apoio/cadastro")
@@ -221,13 +235,21 @@ async def index_apoio(request: Request):
         area = "PLAN"
     atributos = await get_all_atributos_cadastro_apoio(area)
     registros = load_registros(request)
+    funcao = await get_funcao(username)
+    if area == "QUALID":
+        area = "Qualidade"
+    elif area == "PLAN":
+        area = "Planejamento"
+    else:
+        area = None
     return templates.TemplateResponse("indexApoioCadastro.html", {
         "request": request,
         "registros": registros,
         "indicadores": indicadores,
         "username": username,
         "atributos": atributos,
-        "role_": user.get("role")
+        "role_": user.get("role"),
+        "area": area
     })
 
 @router.get("/matriz/adm")
@@ -243,13 +265,20 @@ async def index_adm(request: Request):
     indicadores = await get_indicadores()
     atributos = await get_atributos_adm()
     registros = load_registros(request)
+    area = None
+    funcao = await get_funcao(username)
+    if "qualidade" in funcao.lower():
+        area = "Qualidade"
+    elif "planejamento" in funcao.lower():
+        area = "Planejamento"
     return templates.TemplateResponse("indexAdm.html", {
         "request": request,
         "registros": registros,
         "indicadores": indicadores,
         "username": username,
         "atributos": atributos,
-        "role_": user.get("role")
+        "role_": user.get("role"),
+        "area": area
     })
 
 @router.get("/matriz/adm/acordo")
@@ -437,10 +466,13 @@ async def pesquisar_mmais1(request: Request, atributo: str = Form(...)):
     else:
         page = "demais"
         show_das = True
+    show_checkbox = False
+    if "/matriz/apoio" in path or '/matriz/adm' in path:
+        show_checkbox = True
     registros = await query_m_mais1(atributo, username, page, area)
     html_content = templates.TemplateResponse(
     "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": False, "show_das": show_das}
+    {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das}
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
@@ -641,7 +673,6 @@ async def submit_table(request: Request):
                 if validar_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
                     hoje = datetime.now().day
                     dia_um = datetime.now().replace(day=1).date()
-                    print(periodo_bd, dia_um)
                     if hoje > 10 and periodo_bd == dia_um.strftime("%Y-%m-%d"):
                         
                         # Retorna o HTML parcial pedindo justificativa
@@ -768,18 +799,25 @@ def duplicate_search_results(
     user = get_current_user(request)
     username = request.cookies.get("username")
     role = user.get("role")    
+    page = None
+    current_page = request.headers.get("hx-current-url", "desconhecido").lower()
+    path = urlparse(current_page).path.lower()
+    if "cadastro" in path:
+        page = "cadastro"
+    else:
+        page = "demais"
     if tipo_pesquisa == "m0":
         if role == 'operacao':
-            cache_key = f"pesquisa_m0:{atributo}"
+            cache_key = f"pesquisa_m0:{atributo}:{page}"
         elif role == 'adm' or role == 'apoio qualidade' or role == 'apoio planejamento':
-            cache_key = f"pesquisa_m0:{atributo}"
+            cache_key = f"pesquisa_m0:{atributo}:{page}"
         else:
             raise HTTPException(status_code=422, detail="xPesquisax: Role invalida!")
     elif tipo_pesquisa == "m1":
         if role == 'operacao':
-            cache_key = f"pesquisa_m1:{atributo}"
+            cache_key = f"pesquisa_m1:{atributo}:{page}"
         elif role == 'adm' or role == 'apoio qualidade' or role == 'apoio planejamento':
-            cache_key = f"pesquisa_m1:{atributo}"
+            cache_key = f"pesquisa_m1:{atributo}:{page}"
         else:
             raise HTTPException(status_code=422, detail="xPesquisax: Role invalida!")
     else:
@@ -1079,7 +1117,7 @@ def clear_registros_route(request: Request):
         return HTMLResponse(content=f"<div style='color: red;'>Erro interno ao limpar os registros: {e}</div>", status_code=500)
     
 @router.get("/export_table")
-async def export_table(request: Request,  atributo: str = Query(...), tipo: str | None = Query(None, alias="duplicar_tipo_pesquisa")):
+async def export_table(request: Request,  atributo: str = Query(...), tipo: str | None = Query(None, alias="duplicar_tipo_pesquisa"), cache_key: str = Query(None, alias="cache_key")):
     user = get_current_user(request)
     username = user.get("usuario")
     if not user:
@@ -1087,6 +1125,13 @@ async def export_table(request: Request,  atributo: str = Query(...), tipo: str 
     if not tipo:
         raise HTTPException(status_code=422, detail="O tipo de pesquisa não foi recebido.")
     
+    current_page = request.headers.get("hx-current-url", "desconhecido")
+    page = None
+    path = urlparse(current_page).path.lower()
+    if "cadastro" in path:
+        page = "cadastro"
+    else:
+        page = "demais"
     possible_keys = []
     if tipo == "m0_all" or tipo == "m1_all" or tipo == "m+1_all":
         possible_keys = [f"all_atributos:{tipo}:{username}"]
@@ -1097,13 +1142,16 @@ async def export_table(request: Request,  atributo: str = Query(...), tipo: str 
     else:
         if not atributo:
             raise HTTPException(status_code=422, detail="Informe o parâmetro 'atributo' para exportar.")
-        tipo_map = {
-            "m0": f"pesquisa_m0:{atributo}",
-            "m1": f"pesquisa_m1:{atributo}",
-            "m+1": f"pesquisa_m_mais1:{atributo}"
-        }
-        key = tipo_map.get(tipo)
-        possible_keys = [key]
+        if cache_key:
+            possible_keys = [cache_key]
+        else:
+            tipo_map = {
+                "m0": f"pesquisa_m0:{atributo}:{page}",
+                "m1": f"pesquisa_m1:{atributo}:{page}",
+                "m+1": f"pesquisa_m+1:{atributo}:{page}"
+            }
+            key = tipo_map.get(tipo)
+            possible_keys = [key]
 
     registros_pesquisa = get_from_cache(possible_keys[0])
 

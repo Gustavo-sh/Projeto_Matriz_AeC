@@ -64,8 +64,17 @@
       const cacheKeyInput = document.getElementById("cache_key_pesquisa");
       const tipo = evt.detail?.tipo;
       const atributo = evt.detail?.atributo;
+      let page = null;
+      const url = window.location.pathname.toLowerCase();
+      // let area = document.body.dataset.area;
+      // area = area ? area : "None";
+      if (url.includes("cadastro")) {
+        page = "cadastro";
+      } else {
+        page = "demais";
+      }
       if (cacheKeyInput && tipo && atributo) {
-        const novaCacheKey = `pesquisa_${tipo}:${atributo}`;
+        const novaCacheKey = `pesquisa_${tipo}:${atributo}:${page}`;
         cacheKeyInput.value = novaCacheKey;
         console.log("[APOIO CADASTRO] cache_key atualizada:", novaCacheKey);
       }
@@ -121,9 +130,11 @@
     exportBtn.addEventListener("click", function () {
       const atributo = document.getElementById("atributo_select")?.value || "";
       const tipo = document.getElementById("duplicar_tipo_pesquisa")?.value || "";
+      const cache_key = document.getElementById("cache_key_pesquisa")?.value || "";
       const params = new URLSearchParams();
       params.append("atributo", atributo);
       params.append("duplicar_tipo_pesquisa", tipo);
+      params.append("cache_key", cache_key);
       const url = "/export_table?" + params.toString();
       window.open(url, "_blank");
     });

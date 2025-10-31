@@ -1,5 +1,11 @@
 {% for r in registros %}
-<tr>
+<tr 
+  class="
+    {% if r.da_exop == 1 %} linha-acordo 
+    {% elif r.da_exop == 2 %} linha-nao-acordo 
+    {% endif %}
+  "
+>
     {% if show_checkbox %}
     <td>
         <input type="checkbox" name="registro_ids" value="{{ r.id }}" class="registro-checkbox"> 

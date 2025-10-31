@@ -580,9 +580,11 @@
     btn.addEventListener("click", function () {
       const atributo = document.getElementById("atributo_select")?.value || "";
       const tipo = document.getElementById("duplicar_tipo_pesquisa")?.value || "";
+      const cache_key = document.getElementById("cache_key_pesquisa")?.value || "";
       const params = new URLSearchParams();
       params.append("atributo", atributo);
       params.append("duplicar_tipo_pesquisa", tipo);
+      params.append("cache_key", cache_key);
       const url = "/export_table?" + params.toString();
       window.open(url, "_blank");
     });
@@ -627,25 +629,54 @@
 
 
 /* =============================
- * LOADER
+ * LOADER ROBUSTO PARA HTMX
+ * Suporta: swap, no-swap, outerHTML, abort, error, dblclick, etc.
  * ============================= */
 (function () {
-document.body.addEventListener("htmx:beforeRequest", function () {
-    document.getElementById("overlay").style.display = "block";
-    document.getElementById("loader").style.display = "block";
-});
-})();
+  const overlay = document.getElementById("overlay");
+  const loader  = document.getElementById("loader");
+  if (!overlay || !loader) return;
 
-(function () {
-document.body.addEventListener("htmx:afterSwap", function () {
-    document.getElementById("overlay").style.display = "none";
-    document.getElementById("loader").style.display = "none";
-});
-})();
+  let inflight = 0;
+  let failSafeTimer = null;
 
-(function () {
-document.body.addEventListener("htmx:responseError", function () {
-    document.getElementById("overlay").style.display = "none";
-    document.getElementById("loader").style.display = "none";
-});
+  function showLoader() {
+    inflight++;
+    overlay.style.display = "block";
+    loader.style.display  = "block";
+
+    // failsafe: se algo travar, desmonta após 12s
+    clearTimeout(failSafeTimer);
+    failSafeTimer = setTimeout(() => {
+      inflight = 0;
+      hideLoader();
+    }, 12000);
+  }
+
+  function hideLoader() {
+    if (inflight > 0) inflight--;
+    if (inflight === 0) {
+      overlay.style.display = "none";
+      loader.style.display  = "none";
+      clearTimeout(failSafeTimer);
+    }
+  }
+
+  // Início de qualquer requisição HTMX
+  document.body.addEventListener("htmx:beforeRequest", showLoader);
+
+  // Fim quando conteúdo chegou e foi aplicado
+  document.body.addEventListener("htmx:afterSwap", hideLoader);
+
+  // Quando resposta chega mas não gera swap
+  document.body.addEventListener("htmx:afterRequest", hideLoader);
+
+  // Em erro de response
+  document.body.addEventListener("htmx:responseError", hideLoader);
+
+  // Em erro de request antes de chegar ao servidor
+  document.body.addEventListener("htmx:requestError", hideLoader);
+
+  // Quando requisição é abortada
+  document.body.addEventListener("htmx:abort", hideLoader);
 })();

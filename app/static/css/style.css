@@ -889,3 +889,12 @@ body.register-page {
 }
 
 .dropdown-content.show { display: block; }
+
+.linha-acordo {
+  background-color: #d4f8d4 !important;
+}
+
+/* Vermelho - Não Acordo Exop */
+.linha-nao-acordo {
+  background-color: #f8d4d4 !important;
+}
