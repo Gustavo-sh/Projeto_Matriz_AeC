@@ -82,22 +82,7 @@
 })();
 
 
-/* =============================
- * 3) Select-all via botão ("Selecionar Tudo" / "Desmarcar Tudo")
- * ============================= */
-(function () {
-  document.addEventListener("DOMContentLoaded", function () {
-    const selectAllButton = document.getElementById("selecionar-tudo-btn");
-    if (!selectAllButton) return;
 
-    selectAllButton.addEventListener("click", function () {
-      const checkboxes = document.querySelectorAll('input[name="registro_ids"]');
-      const shouldSelect = Array.from(checkboxes).some((cb) => !cb.checked);
-      checkboxes.forEach((cb) => (cb.checked = shouldSelect));
-      selectAllButton.textContent = shouldSelect ? "Desmarcar Tudo" : "Selecionar Tudo";
-    });
-  });
-})();
 
 
 /* =============================

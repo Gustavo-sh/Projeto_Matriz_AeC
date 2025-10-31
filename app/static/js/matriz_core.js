@@ -554,12 +554,15 @@
 
 
 /* =============================
- * SELECT ALL padrão por botão
+ * BLOCO: SELECT-ALL na TABELA DE PESQUISA
  * ============================= */
 (function () {
   document.addEventListener("DOMContentLoaded", function () {
+    const isApoioCadastro = window.location.pathname.toLowerCase().includes("cadastro");
+  if (isApoioCadastro) return; // Não habilita select-all aqui
     const selectAllButton = document.getElementById("selecionar-tudo-btn");
     if (!selectAllButton) return;
+
     selectAllButton.addEventListener("click", function () {
       const checkboxes = document.querySelectorAll('input[name="registro_ids"]');
       const shouldSelect = Array.from(checkboxes).some((cb) => !cb.checked);

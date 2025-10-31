@@ -101,22 +101,8 @@
 })();
 
 
-/* =============================
- * 4) Select-All via CHECKBOX MESTRE (id="select-all-pesquisa")
- * ============================= */
-(function () {
-  document.addEventListener("DOMContentLoaded", function () {
-    document.body.addEventListener("change", function (evt) {
-      if (evt.target && evt.target.id === "select-all-pesquisa") {
-        const isChecked = evt.target.checked;
-        const checkboxes = document.querySelectorAll(
-          '#tabela-pesquisa input[type="checkbox"][name="registro_ids"]'
-        );
-        checkboxes.forEach((checkbox) => (checkbox.checked = isChecked));
-      }
-    });
-  });
-})();
+
+
 
 
 /* =============================
