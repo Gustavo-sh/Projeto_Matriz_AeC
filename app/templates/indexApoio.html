@@ -12,14 +12,15 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', path='/css/style_core.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style_core_remake.css') }}">
     <link rel="icon" type="image/png" href="/static/images/fav.png">
 </head>
 <body data-area="{{ area }}">
     <div id="internal-error" class="erro-fixo oculto" role="alert" aria-live="assertive">
     </div>
     <form action="/logout" method="post">
-        <button type="submit" class="logout-btn">Logout</button>
+        <button type="submit" class="logout-btn">Sair do Sistema</button>
     </form>
 
     <div class="dropdown">
@@ -31,6 +32,11 @@
         <a href="/matriz/apoio/cadastro">Cadastrar Uma Matriz Administrativa</a>
     </div>
     </div>
+
+    <div
+        class="robby_div">
+    </div>
+
 
     <div class="titulo-principal">
         <h2>Matriz de Distribuição - Areas de Apoio</h2>        

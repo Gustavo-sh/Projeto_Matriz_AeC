@@ -1,7 +1,7 @@
 /* ===== Layout geral ===== */
 body {
   font-family: Arial, sans-serif;
-  background: url("/static/images/fundo6.png") no-repeat center center fixed;
+  background: #16283c;
   background-size: cover;
   color: #222;
   display: flex;
@@ -40,13 +40,14 @@ h4 , h5{
 .logout-btn {
   position: absolute;
   top: 20px;
-  right: 20px;
-  background: #dc3545;
+  left: 20px;
+  background: #305a86;
   color: #fff;
   padding: 10px 16px;
   border: none;
   border-radius: 6px;
   font-weight: bold;
+  font-size: 17px;
   cursor: pointer;
   transition: background 0.2s ease-in-out;
   box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
@@ -64,7 +65,7 @@ h4 , h5{
 
 .user-info,
 .form-container {
-  background: #fff;
+  background: #d8d8d8;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
@@ -72,7 +73,7 @@ h4 , h5{
   flex-direction: column;
   box-sizing: border-box;
 }
-.user-info { width: 600px; }
+.user-info { width: 600px;}
 .form-container { width: 900px; }
 
 /* ===== Labels e Inputs ===== */
@@ -86,9 +87,8 @@ h4 , h5{
   color: #333;
   margin-bottom: 6px;
   padding: 4px 8px;
-  background: linear-gradient(135deg, #e3f2fd, #f1f8ff);
   border-radius: 4px;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+  background: #dadede;
 }
 
 .form-container input:not([type="radio"]),
@@ -108,7 +108,7 @@ h4 , h5{
 .user-info input:focus,
 .flatpickr-input-data:focus,
 .form-mmd input:focus {
-  border-color: #007bff;
+  border-color: #4c6e92;
   box-shadow: 0 0 4px rgba(0,123,255,0.4);
   outline: none;
 }
@@ -124,7 +124,7 @@ h4 , h5{
   transition: all 0.2s ease-in-out;
 }
 .flatpickr-input-data-esp:focus  {
-  border-color: #007bff;
+  border-color: #bdc8d4;
   box-shadow: 0 0 4px rgba(0,123,255,0.4);
   outline: none;
 }
@@ -132,16 +132,17 @@ h4 , h5{
 /* ===== Botões ===== */
 .form-container button, 
 .user-info button {
-  width: 100%;
+  width: 70%;
   padding: 10px;
   margin-top: 18px;
-  background: #007bff;
+  background: #305a86;
   color: #fff;
   font-weight: bold;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.2s ease-in-out;
+  align-self: center;
 }
 .form-container button:hover, 
 .user-info button:hover { background: #0056b3; }
@@ -168,7 +169,7 @@ h4 , h5{
 
 /* ===== Registros (tabelas) ===== */
 .registros {
-  background: #fff;
+  background: #d8d8d8;
   padding: 15px;
   border-radius: 8px;
   box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
@@ -205,7 +206,7 @@ h4 , h5{
   background-clip: padding-box; /* evita “costura” nas colunas fixas */
 }
 .tabela-pesquisa th {
-  background: #007BFF !important;
+  background: #305a86 !important;
   color: #fff;
   font-weight: bold;
   position: sticky;
@@ -260,7 +261,7 @@ h4 , h5{
 .tabela-pesquisa th:nth-child(3) {
   top: 0;           /* mantém fixo verticalmente */
   z-index: 6;       /* acima das células normais */
-  background: #007BFF !important; /* mantém azul */
+  background: #305a86 !important; /* mantém azul */
   color: #fff;
 }
 /* ===== Tabela Matriz ===== */
@@ -278,7 +279,7 @@ h4 , h5{
   white-space: nowrap;
 }
 .tabela-matriz th {
-  background: #007BFF;
+  background: #305a86;
   color: white;
   font-weight: bold;
   position: sticky;
@@ -612,12 +613,12 @@ body.register-page {
 }
 
 .select-all,
-.export-btn {
+.export-btn ,
+.clear_registros_btn {
 	box-shadow: 0px 1px 0px 0px #f0f7fa;
-	background:linear-gradient(to bottom, #33bdef 5%, #019ad2 100%);
-	background-color:#33bdef;
+	background-color:#305a86;
 	border-radius:6px;
-	border:1px solid #057fd0;
+	border:1px solid #305a86;
 	display:inline-block;
 	cursor:pointer;
 	color:#ffffff;
@@ -630,7 +631,8 @@ body.register-page {
   margin: 10px;
 }
 .select-all:hover,
-.export-btn:hover {
+.export-btn:hover,
+.clear_registros_btn:hover {
 	background:linear-gradient(to bottom, #019ad2 5%, #33bdef 100%);
 	background-color:#019ad2;
 }
@@ -718,7 +720,7 @@ body.register-page {
   display: inline-block;
   width: 220px;
   padding: 10px;
-  background: #63cf1b;
+  background: #305a86;
   color: #fff;
   font-weight: bold;
   border: none;
@@ -757,6 +759,7 @@ body.register-page {
 
 .header-tab-info {
   margin-bottom: 30px;
+  color: #fff;
 }
 
 .container_mmd {
@@ -790,7 +793,7 @@ body.register-page {
   color: #333;
   margin-bottom: 6px;
   padding: 4px 8px;
-  background: linear-gradient(135deg, #e3f2fd, #f1f8ff);
+  background: #dadede;
   border-radius: 4px;
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
 
@@ -839,13 +842,13 @@ body.register-page {
 
 .dropdown {
     position: absolute;
-    top: 20px;
+    top: 60px;
     left: 20px;
     display: inline-block;
 }
 
 .dropdown-button {
-  background-color: #007BFF;
+  background-color: #305a86;
   color: white;
   padding: 10px 18px;
   font-size: 16px;
@@ -897,4 +900,25 @@ body.register-page {
 /* Vermelho - Não Acordo Exop */
 .linha-nao-acordo {
   background-color: #f8d4d4 !important;
+}
+
+.tr_button {
+  width: 100% !important;
+}
+
+.robby_div {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 150px;                 /* ajuste conforme tamanho da logo */
+  height: 80px;
+  background-image: url("/static/images/robby.png");
+  background-repeat: no-repeat;
+  background-size: contain;     /* mantém proporção da logo */
+  background-position: center;
+}
+
+.button-submit-form {
+  width: 200px !important;
+  margin: 0 auto !important;
 }

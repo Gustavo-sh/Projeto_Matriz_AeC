@@ -12,14 +12,15 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', path='/css/style_core.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style_core_remake.css') }}">
     <link rel="icon" type="image/png" href="/static/images/fav.png">
 </head>
 <body>
     <div id="internal-error" class="erro-fixo oculto" role="alert" aria-live="assertive">
     </div>
     <form action="/logout" method="post">
-        <button type="submit" class="logout-btn">Logout</button>
+        <button type="submit" class="logout-btn">Sair do Sistema</button>
     </form>
 
     <div class="dropdown">
@@ -29,6 +30,10 @@
         <a href="https://drive.google.com/file/d/1j5KsKq894RbKyZWRAY5eXsSDzMBwY-J_/view?usp=sharing" target="_blank">Documentação Sistema Matriz - Operação</a>
         <a href="https://docs.google.com/spreadsheets/d/1mv2McMERd1z7pkpYlpy7ELpIVwcnXeD6CmXVzSGDKpE/edit?usp=sharing" target="_blank">Alteração de Matriz Dentro do Prazo</a>
     </div>
+    </div>
+
+    <div
+        class="robby_div">
     </div>
 
     <div class="titulo-principal">
@@ -245,6 +250,7 @@
 
                     <button
                         type="button"
+                        class="tr_button"
                         hx-post="/trazer_resultados"
                         hx-include="closest form"
                         hx-target="#bloco-metas"
@@ -258,7 +264,7 @@
                 </div>
 
                 <div class="form-submit">
-                    <button type="submit">Enviar</button>
+                    <button type="submit" class="button-submit-form">Enviar</button>
                 </div>
             </form>
         </div>
@@ -276,19 +282,10 @@
                         <th>Id - Nome Indicador</th>
                         <th>Meta</th>
                         <th>Moedas</th>
-                        <th>Tipo Indicador</th>
-                        <th>Acumulado</th>
-                        <th>Esquema Acumulado</th>
-                        <th>Tipo Matriz</th>
                         <th>Data Inicio</th>
                         <th>Data Fim</th>
                         <th>Periodo</th>
-                        <th>Escala</th>
-                        <th>Tipo de Faturamento</th>
-                        <th>Descrição</th>
                         <th>Ativo</th>
-                        <th>Chamado</th>
-                        <th>Criterio</th>
                         <th>Area</th>
                         <th>Responsavel</th>
                         <th>Gerente</th>
@@ -298,13 +295,10 @@
                         <th>Data Sub Por</th>
                         <th>Qualidade</th>
                         <th>Da Qualidade</th>
-                        <th>Data Da Qualidade</th>
                         <th>Planejamento</th>
                         <th>Da Planejamento</th>
-                        <th>Data Da Planejamento</th>
                         <th>Exop</th>
                         <th>Da Exop</th>
-                        <th>Data Da Exop</th>
                     </tr>
                 </thead>
                 <tbody id="tabela-pesquisa">
@@ -410,6 +404,17 @@
         </div>
         <div id="mensagens-registros" class="mensagens-registros"></div>
 
+            <div class="clear_registros">
+                <button
+                    class="clear_registros_btn"
+                    hx-post="/clear_registros"
+                    hx-target="#registros"
+                    hx-swap="innerHTML"
+                    hx-confirm="Deseja realmente limpar a tabela?">
+                    Limpar Tabela
+                </button>
+            </div>
+            
             <div class="submit-tabela">
             <button
                     hx-post="/submit_table"

@@ -396,10 +396,11 @@ async def pesquisar_m0(request: Request, atributo: str = Form(...)):
     for dic in registros:
         if dic.get("id_nome_indicador") == "48 - Presença":
             registros.remove(dic)
-    html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das}
-    )
+    html_content = None
+    if "operacao" in funcao.lower():
+        html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
+    else:
+        html_content = templates.TemplateResponse("_pesquisa.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
@@ -436,10 +437,11 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
     for dic in registros:
         if dic.get("id_nome_indicador") == "48 - Presença":
             registros.remove(dic)
-    html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das} 
-    )
+    html_content = None
+    if "operacao" in funcao.lower():
+        html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
+    else:
+        html_content = templates.TemplateResponse("_pesquisa.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
@@ -479,10 +481,11 @@ async def pesquisar_mmais1(request: Request, atributo: str = Form(...)):
     for dic in registros:
         if dic.get("id_nome_indicador") == "48 - Presença":
             registros.remove(dic)
-    html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das}
-    )
+    html_content = None
+    if "operacao" in funcao.lower():
+        html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
+    else:
+        html_content = templates.TemplateResponse("_pesquisa.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
