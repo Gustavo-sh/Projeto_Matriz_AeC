@@ -522,70 +522,84 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
             cur = conn.cursor()
             for update_item in lista_de_updates:
                 atributo, periodo, id_nome_indicador = update_item
-                cur.execute(f"""
-                UPDATE dbo.Matriz_Geral
-                SET 
-                    {campo_usuario} = ?,
-                    {campo_da} = ?,
-                    {campo_data} = ?
-                WHERE 
-                    Atributo = ? AND 
-                    periodo = ? AND 
-                    id_nome_indicador = ?
-            """, (username, tipo_defined, agora, atributo, periodo, id_nome_indicador))
+                if role_defined == "exop":
+                    cur.execute(f"""
+                    UPDATE dbo.Matriz_Geral
+                    SET 
+                        ativo = 1,
+                        {campo_usuario} = ?,
+                        {campo_da} = ?,
+                        {campo_data} = ?
+                    WHERE 
+                        Atributo = ? AND 
+                        periodo = ? AND 
+                        id_nome_indicador = ?
+                """, (username, tipo_defined, agora, atributo, periodo, id_nome_indicador))
+                else:
+                    cur.execute(f"""
+                    UPDATE dbo.Matriz_Geral
+                    SET 
+                        {campo_usuario} = ?,
+                        {campo_da} = ?,
+                        {campo_data} = ?
+                    WHERE 
+                        Atributo = ? AND 
+                        periodo = ? AND 
+                        id_nome_indicador = ?
+                """, (username, tipo_defined, agora, atributo, periodo, id_nome_indicador))
             conn.commit() 
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
 
-async def update_da_adm_10(updates: list, tipo, username): 
-    agora = datetime.now()
-    tipo_defined = 1 if tipo == 'Acordo' else 2
-    loop = asyncio.get_event_loop()
-    def _sync_db_call():
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            try:
-                for update_item in updates:
-                    atributo, periodo, id_nome_indicador = update_item.get('atributo'), update_item.get('periodo'), update_item.get('id_nome_indicador')
-                    if tipo_defined == 1:
-                        cur.execute(f"""
-                        UPDATE dbo.Matriz_Geral
-                        SET 
-                            ativo = 0
-                        WHERE 
-                            Atributo = ? AND 
-                            periodo = ? AND 
-                            id_nome_indicador = ? AND
-                            ativo = 1
-                    """, (atributo, periodo, id_nome_indicador))
-                        cur.execute(f"""
-                        UPDATE dbo.Matriz_Geral
-                        SET 
-                            ativo = 1,
-                            da_superintendente = 1,
-                            exop = ? ,
-                            data_da_exop = ? 
-                        WHERE 
-                            Atributo = ? AND 
-                            periodo = ? AND 
-                            id_nome_indicador = ? AND
-                            ativo = 10
-                    """, (username, agora, atributo, periodo, id_nome_indicador))
-                    else:
-                        cur.execute(f"""
-                        UPDATE dbo.Matriz_Geral
-                        SET 
-                            da_superintendente = 2
-                        WHERE 
-                            Atributo = ? AND 
-                            periodo = ? AND 
-                            id_nome_indicador = ? AND
-                            ativo = 11
-                    """, (atributo, periodo, id_nome_indicador))
-                conn.commit() 
-            finally:
-                cur.close()
-    await loop.run_in_executor(None, _sync_db_call)
+# async def update_da_adm_10(updates: list, tipo, username): 
+#     agora = datetime.now()
+#     tipo_defined = 1 if tipo == 'Acordo' else 2
+#     loop = asyncio.get_event_loop()
+#     def _sync_db_call():
+#         with get_db_connection() as conn:
+#             cur = conn.cursor()
+#             try:
+#                 for update_item in updates:
+#                     atributo, periodo, id_nome_indicador = update_item.get('atributo'), update_item.get('periodo'), update_item.get('id_nome_indicador')
+#                     if tipo_defined == 1:
+#                         cur.execute(f"""
+#                         UPDATE dbo.Matriz_Geral
+#                         SET 
+#                             ativo = 0
+#                         WHERE 
+#                             Atributo = ? AND 
+#                             periodo = ? AND 
+#                             id_nome_indicador = ? AND
+#                             ativo = 1
+#                     """, (atributo, periodo, id_nome_indicador))
+#                         cur.execute(f"""
+#                         UPDATE dbo.Matriz_Geral
+#                         SET 
+#                             ativo = 1,
+#                             da_superintendente = 1,
+#                             exop = ? ,
+#                             data_da_exop = ? 
+#                         WHERE 
+#                             Atributo = ? AND 
+#                             periodo = ? AND 
+#                             id_nome_indicador = ? AND
+#                             ativo = 10
+#                     """, (username, agora, atributo, periodo, id_nome_indicador))
+#                     else:
+#                         cur.execute(f"""
+#                         UPDATE dbo.Matriz_Geral
+#                         SET 
+#                             da_superintendente = 2
+#                         WHERE 
+#                             Atributo = ? AND 
+#                             periodo = ? AND 
+#                             id_nome_indicador = ? AND
+#                             ativo = 11
+#                     """, (atributo, periodo, id_nome_indicador))
+#                 conn.commit() 
+#             finally:
+#                 cur.close()
+#     await loop.run_in_executor(None, _sync_db_call)
 
 async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas): 
     loop = asyncio.get_event_loop()
@@ -811,7 +825,7 @@ async def get_acordos_apoio():
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(f"""
-                select * from matriz_geral (nolock) where (area = 'Qualidade' and da_qualidade = 1) or (area = 'Planejamento' and da_planejamento = 1) and (da_exop = 0)
+                select * from matriz_geral (nolock) where ((area = 'Qualidade' and da_qualidade = 1) or (area = 'Planejamento' and da_planejamento = 1)) and (da_exop = 0)
             """)
             resultados = cur.fetchall()
             cur.close()

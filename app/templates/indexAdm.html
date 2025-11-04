@@ -29,6 +29,7 @@
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSdmXd6R6mWNhxWsHVXh40uZozdGN7075_gMF-FCpI-ZZ6Yq1w/viewform?usp=header" target="_blank">Reportar Um Bug/Erro</a>
         <a href="https://drive.google.com/file/d/1GDvPV8JEBafwFnY3N3YeZLL8F29i-b4Z/view?usp=sharing" target="_blank">Documentação Sistema Matriz - ADM</a>
         <a href="https://docs.google.com/spreadsheets/d/1mv2McMERd1z7pkpYlpy7ELpIVwcnXeD6CmXVzSGDKpE/edit?usp=sharing" target="_blank">Alteração de Matriz Dentro do Prazo</a>
+        <a href="/matriz/adm/acordo">Ir para a página de acordo</a>
     </div>
     </div>
 
@@ -38,14 +39,7 @@
 
 
     <div class="titulo-principal">
-        <h2>Matriz de Distribuição - ADM</h2>        
-    </div>
-    <div class="header-tab-info">
-        Clique no link para 
-        <a href="/matriz/adm/acordo" class="tab-link-text">
-            ir para a página de acordo. 
-        </a>
-        Atenção! Você será redirecionado para a página de login caso não possua acesso a essa funcionalidade.
+        <h2>Matriz de Distribuição - ADM Cadastro</h2>        
     </div>
 
     <div class="container">
@@ -95,7 +89,7 @@
                 Pesquisar Mes Seguinte
             </button>
 
-            <button
+            <!-- <button
                 type="button"
                 hx-post="/pesquisaracordos" 
                 hx-target="#tabela-pesquisa" 
@@ -140,11 +134,11 @@
                 hx-swap="innerHTML"
                 hx-vals='{"tipo": "m+1_administrativas"}'>
                 Pesquisar Matrizes Administrativas Mes Seguinte
-            </button>
+            </button> -->
 
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
 
-            {% if username in ["277561", "117699", "154658"] %}
+            <!-- {% if username in ["277561", "117699", "154658"] %}
             <div>
                 <form hx-post="/upload_excel"
                     hx-target="#tabela-pesquisa"
@@ -157,7 +151,7 @@
 
                 <div id="upload_result" class="mensagens-import"></div>
             </div>
-            {% endif %}
+            {% endif %} -->
         </div>
 
         <div class="form-container">
@@ -384,7 +378,7 @@
             
             
             <input type="hidden" name="tipo_pesquisa_admapoio" id="tipo_pesquisa_admapoio" value="">
-            <h4>Selecione os registros que deseja dar acordo, não acordo ou duplicar antes de clicar nos botões abaixo.</h4>
+            <!-- <h4>Selecione os registros que deseja dar acordo, não acordo ou duplicar antes de clicar nos botões abaixo.</h4>
             <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
                 <button type="submit" 
                         name="status_acao" 
@@ -401,10 +395,10 @@
                         hx-confirm="Confirma o Não Acordo para os registros selecionados?">
                     Não Acordo
                 </button>
-            </div>
+            </div> -->
         </form>
 
-        <div class="container_mmd">
+        <!-- <div class="container_mmd">
             <form hx-post="/update_meta_moedas" 
                   hx-target="#tabela-pesquisa" 
                   class="form-mmd" 
@@ -420,13 +414,11 @@
                         <input type="number" name="moedas_duplicar" id="moedas_duplicar" class="inputs_form_mmd">
                     </label>
 
-                    <!-- <label>Motivo (Quem soliciou, Quando, Meta anterior, Moeda anterior): *
-                        <input type="text" name="descricao_duplicar" id="descricao_duplicar" class="inputs_form_mmd">
-                    </label> -->
+                    
                 </div>
                 <button type="submit">Alterar Meta e Moedas</button>
             </form>
-        </div>
+        </div> -->
 
         <div id="container-duplicar-pesquisa" class="container-duplicar-pesquisa" style="margin-top: 20px; text-align: center;">
     

@@ -42,8 +42,12 @@
       tipoValor = "m0";
     } else if (url.includes("/pesquisarm1")) {
       tipoValor = "m1";
-    } else if (url.includes("/pesquisarmmais1")) {
+    } else if (url.includes("/pesquisarmmais1")) { a
       tipoValor = "m+1";
+    } else if (url.includes("/pesquisarnaoacordos")) {
+      if (cacheKey) cacheKey.value = "nao_acordos_apoio";
+    } else if (url.includes("/pesquisaracordos")) {
+      if (cacheKey) cacheKey.value = "acordos_apoio";
     }
     // Pesquisas especiais desta página
     else if (url.includes("/pesquisarnaoacordos")) {
@@ -67,7 +71,33 @@
 
 
 /* =============================
- * 2) Cache Key: construir e manter atualizada
+ * 2) construção personalizada da cache key para os botões de pesquisar matrizes administrativas
+ * ============================= */
+(function () {
+  document.addEventListener("DOMContentLoaded", function () {
+    document.body.addEventListener("click", function (evt) {
+      const btn = evt.target;
+
+      // IDs que queremos tratar
+      const idsValidos = ["m0_administrativas", "m+1_administrativas"];
+      if (!idsValidos.includes(btn.id)) return;
+
+      // Obtém o campo onde será alterado o valor
+      const cacheKeyInput = document.getElementById("cache_key_pesquisa");
+      if (!cacheKeyInput) return;
+
+      // Monta a nova cache key baseado no ID clicado
+      const novaCacheKey = `matrizes_administrativas_pg_adm:${btn.id}`;
+
+      cacheKeyInput.value = novaCacheKey;
+      console.log("[ADM] cache_key_pesquisa atualizada para:", novaCacheKey);
+    });
+  });
+})();
+
+
+/* =============================
+ * 3) Cache Key: construir e manter atualizada
  * ============================= */
 (function () {
   document.addEventListener("DOMContentLoaded", function () {

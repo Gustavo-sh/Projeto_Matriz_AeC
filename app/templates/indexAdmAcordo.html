@@ -38,7 +38,7 @@
 
 
     <div class="titulo-principal">
-        <h2>Matriz de Distribuição - Acordo ou Não Acordo Matrizes Já Cadastradas</h2>        
+        <h2>Matriz de Distribuição - ADM Acordo</h2>        
     </div>
 
     <div class="container">
@@ -51,11 +51,73 @@
 
             <button
                 type="button"
+                hx-post="/pesquisaracordos" 
+                hx-target="#tabela-pesquisa" 
+                hx-swap="innerHTML"
+                hx-include="[id='atributo_select']">
+                Pesquisar Acordos Areas de Apoio
+            </button>
+
+            <button
+                type="button"
+                hx-post="/pesquisarnaoacordos" 
+                hx-target="#tabela-pesquisa" 
+                hx-swap="innerHTML"
+                hx-include="[id='atributo_select']">
+                Pesquisar Não Acordos Areas de Apoio
+            </button>
+
+            <button
+                type="button"
+                hx-post="/pesquisarnaoacordosexop" 
+                hx-target="#tabela-pesquisa" 
+                hx-swap="innerHTML"
+                hx-include="[id='atributo_select']">
+                Pesquisar Não Acordos Exop
+            </button>
+
+            <button
+                id="m0_administrativas"
+                type="button"
+                hx-post="/pesquisar/matrizes_administrativas" 
+                hx-target="#tabela-pesquisa"
+                hx-swap="innerHTML"
+                hx-vals='{"tipo": "m0_administrativas"}'>
+                Pesquisar Matrizes Administrativas Mes Atual
+            </button>
+
+            <button
+                id="m+1_administrativas"
+                type="button"
+                hx-post="/pesquisar/matrizes_administrativas" 
+                hx-target="#tabela-pesquisa"
+                hx-swap="innerHTML"
+                hx-vals='{"tipo": "m+1_administrativas"}'>
+                Pesquisar Matrizes Administrativas Mes Seguinte
+            </button>
+
+            {% if username in ["277561", "117699", "154658"] %}
+            <div>
+                <form hx-post="/upload_excel"
+                    hx-target="#tabela-pesquisa"
+                    hx-swap="innerHTML"
+                    enctype="multipart/form-data"
+                    style="margin-left:100px;">
+                <input type="file" name="file" accept=".xlsx,.xls" required>
+                <button type="submit">Importar Excel</button>
+                </form>
+
+                <div id="upload_result" class="mensagens-import"></div>
+            </div>
+            {% endif %}
+
+            <!-- <button
+                type="button"
                 hx-post="/pesquisar/atributos_ativo_10" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML">
                 Pesquisar Solicitações Fora do Prazo
-            </button>
+            </button> -->
 
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
         </div>
@@ -65,7 +127,7 @@
         <h4>Resultado por Atributo</h4>
         <button type="button" id="export-btn" class="export-btn">Export para Excel</button>
         <form id="form-acordo" 
-            hx-post="/processar_acordo_adm_10" 
+            hx-post="/processar_acordo" 
             hx-target="#tabela-pesquisa" 
             hx-swap="innerHTML"
             hx-include="#tabela-pesquisa input[name='registro_ids']:checked">
@@ -146,6 +208,32 @@
                 </button>
             </div>
         </form>
+
+        {% if username in ["277561", "117699", "154658"] %}
+        <div class="container_mmd">
+            <form hx-post="/update_meta_moedas" 
+                  hx-target="#tabela-pesquisa" 
+                  class="form-mmd" 
+                  hx-swap="innerHTML" 
+                  hx-include="#tabela-pesquisa input[name='registro_ids']:checked, #cache_key_pesquisa"
+                  hx-confirm="Confirma a alteração da meta e moedas para os registros selecionados?">
+                <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;">
+                    <label>Nova Meta: *
+                        <input type="text" name="meta_duplicar" id="meta_duplicar" class="inputs_form_mmd">
+                    </label>
+
+                    <label>Nova Moeda: *
+                        <input type="number" name="moedas_duplicar" id="moedas_duplicar" class="inputs_form_mmd">
+                    </label>
+
+                    <!-- <label>Motivo (Quem soliciou, Quando, Meta anterior, Moeda anterior): *
+                        <input type="text" name="descricao_duplicar" id="descricao_duplicar" class="inputs_form_mmd">
+                    </label> -->
+                </div>
+                <button type="submit">Alterar Meta e Moedas</button>
+            </form>
+        </div>
+        {% endif %}
 
         <div id="pesquisa-form-data" style="display:none;">
             <input type="hidden" name="atributo" id="duplicar_atributo" value="">

@@ -19,7 +19,7 @@ from app.cache import (
 )
 from app.connections_db import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_matriculas_cadastro_adm, get_atributos_cadastro_apoio,
-    query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1, update_da_adm_10,
+    query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1, #update_da_adm_10,
     get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_matrizes_administrativas, update_meta_moedas_bd, get_matrizes_ativo_10, get_nao_acordos_exop,
     get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm
 )
@@ -291,15 +291,15 @@ async def index_adm(request: Request):
         return RedirectResponse("/login", status_code=303)
     _check_role_or_forbid(user, ["adm"])
     username = request.cookies.get("username")
-    if str(username) not in adm_acordo:
-        session_token = str(uuid.uuid4())
-        resp = RedirectResponse("/redirect_by_role", status_code=303)
-        resp.set_cookie("session_token", session_token, httponly=True)
-        resp.set_cookie("logged_in", "true", httponly=True)
-        resp.set_cookie("last_active", datetime.utcnow().isoformat(), httponly=True)
-        resp.set_cookie("username", username, httponly=True)
-        resp.set_cookie("role", user.get("role"), httponly=True)
-        return resp
+    # if str(username) not in adm_acordo:
+    #     session_token = str(uuid.uuid4())
+    #     resp = RedirectResponse("/redirect_by_role", status_code=303)
+    #     resp.set_cookie("session_token", session_token, httponly=True)
+    #     resp.set_cookie("logged_in", "true", httponly=True)
+    #     resp.set_cookie("last_active", datetime.utcnow().isoformat(), httponly=True)
+    #     resp.set_cookie("username", username, httponly=True)
+    #     resp.set_cookie("role", user.get("role"), httponly=True)
+    #     return resp
     indicadores = await get_indicadores()
     atributos = await get_atributos_adm()
     registros = load_registros(request)
@@ -608,9 +608,14 @@ async def all_atributes_operacao(request: Request, tipo_pesquisa: str = Form(...
     current_page = request.headers.get("hx-current-url", "desconhecido")
     username = request.cookies.get("username", "anon")
     atributos = await get_atributos_matricula(username)
+
     atributos_format = " ,".join(f"'{a["atributo"]}'" for a in atributos)
     
     registros = await get_atributos_gerente(tipo_pesquisa, atributos_format, username)
+
+    for dic in registros:
+        if dic.get("id_nome_indicador") == "48 - Presença":
+            registros.remove(dic)
 
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -619,7 +624,7 @@ async def all_atributes_operacao(request: Request, tipo_pesquisa: str = Form(...
     else:
         show_das = True
     html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
+    "_pesquisaOperacao.html", 
     {"request": request, "registros": registros, "show_checkbox": False, "show_das": show_das}
     )
     response = Response(content=html_content.body, media_type="text/html")
@@ -683,23 +688,23 @@ async def submit_table(request: Request):
                 cond['periodo'] == periodo_bd and 
                 cond['id_nome_indicador'] == id_nome_indicador_bd):
                 if validar_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
-                    hoje = datetime.now().day
-                    dia_um = datetime.now().replace(day=1).date()
-                    if hoje > 10 and periodo_bd == dia_um.strftime("%Y-%m-%d"):
+                    # hoje = datetime.now().day
+                    # dia_um = datetime.now().replace(day=1).date()
+                    # if hoje > 10 and periodo_bd == dia_um.strftime("%Y-%m-%d"):
                         
-                        # Retorna o HTML parcial pedindo justificativa
-                        return templates.TemplateResponse(
-                            "_justificativa.html",
-                            {
-                                "request": request,
-                                "indicador": cond["id_nome_indicador"],
-                                "atributo": cond["atributo"],
-                                "periodo": cond["periodo"],
-                            },
-                        )
-                    else:
+                    #     # Retorna o HTML parcial pedindo justificativa
+                    #     return templates.TemplateResponse(
+                    #         "_justificativa.html",
+                    #         {
+                    #             "request": request,
+                    #             "indicador": cond["id_nome_indicador"],
+                    #             "atributo": cond["atributo"],
+                    #             "periodo": cond["periodo"],
+                    #         },
+                    #     )
+                    # else:
                         return (
-                            f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.</p>"  
+                            f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.\nSe deseja alterar essa matriz, gentileza acessar link de alteração de matriz no botão links importantes.</p>"  
                         )
                     
     await save_registros_bd(registros, username, None, None)
@@ -869,6 +874,7 @@ def duplicate_search_results(
         registro_copia["periodo"] = periodo 
         registro_copia["dmm"] = dmm
         registro_copia["possui_dmm"] = possuiDmm
+        registro_copia["ativo"] = 0
         registros_atuais.append(registro_copia)
     save_registros(request, registros_atuais)
     html_content = templates.TemplateResponse(
@@ -1026,52 +1032,52 @@ async def processar_acordo(
         }
     )
 
-@router.post("/processar_acordo_adm_10", response_class=HTMLResponse)
-async def processar_acordo_adm_10(
-    request: Request, 
-    registro_ids: List[str] = Form([], alias="registro_ids"),
-    status_acao: str = Form(..., alias="status_acao")
-):
-    user = get_current_user(request)
-    _check_role_or_forbid(user, ["adm"])
-    if not registro_ids:
-        raise HTTPException(
-            status_code=422,
-            detail="xPesquisax: Selecione pelo menos um registro para dar Acordo ou Não Acordo."
-        )
-    registros_pesquisa = get_from_cache("matrizes_ativo_10")
-    if not registros_pesquisa:
-         raise HTTPException(status_code=422, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
-    ids_selecionados = set(registro_ids)
-    registros_apos_acao = []
-    updates_a_executar = []
-    username = user.get("usuario")
-    current_page = request.headers.get("hx-current-url", "desconhecido").lower()
-    path = urlparse(current_page).path.lower()
-    show_das = None
-    if "cadastro" in path:
-        show_das = None
-    else:
-        show_das = True
-    for r in registros_pesquisa:
-        if str(r.get("id")) not in ids_selecionados:
-            registros_apos_acao.append(r)
-        else:
-            updates_a_executar.append(r)
-    if updates_a_executar:
-        await update_da_adm_10(updates_a_executar, status_acao, username) 
-    CACHE_TTL = timedelta(minutes=1)
-    set_cache("matrizes_ativo_10", registros_apos_acao, CACHE_TTL)
-    return templates.TemplateResponse(
-        "_pesquisa.html", 
-        {
-            "request": request, 
-            "registros": registros_apos_acao,
-            "show_checkbox": True,
-            "show_das": show_das,
-            "show_just": True
-        }
-    )
+# @router.post("/processar_acordo_adm_10", response_class=HTMLResponse)
+# async def processar_acordo_adm_10(
+#     request: Request, 
+#     registro_ids: List[str] = Form([], alias="registro_ids"),
+#     status_acao: str = Form(..., alias="status_acao")
+# ):
+#     user = get_current_user(request)
+#     _check_role_or_forbid(user, ["adm"])
+#     if not registro_ids:
+#         raise HTTPException(
+#             status_code=422,
+#             detail="xPesquisax: Selecione pelo menos um registro para dar Acordo ou Não Acordo."
+#         )
+#     registros_pesquisa = get_from_cache("matrizes_ativo_10")
+#     if not registros_pesquisa:
+#          raise HTTPException(status_code=422, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
+#     ids_selecionados = set(registro_ids)
+#     registros_apos_acao = []
+#     updates_a_executar = []
+#     username = user.get("usuario")
+#     current_page = request.headers.get("hx-current-url", "desconhecido").lower()
+#     path = urlparse(current_page).path.lower()
+#     show_das = None
+#     if "cadastro" in path:
+#         show_das = None
+#     else:
+#         show_das = True
+#     for r in registros_pesquisa:
+#         if str(r.get("id")) not in ids_selecionados:
+#             registros_apos_acao.append(r)
+#         else:
+#             updates_a_executar.append(r)
+#     if updates_a_executar:
+#         await update_da_adm_10(updates_a_executar, status_acao, username) 
+#     CACHE_TTL = timedelta(minutes=1)
+#     set_cache("matrizes_ativo_10", registros_apos_acao, CACHE_TTL)
+#     return templates.TemplateResponse(
+#         "_pesquisa.html", 
+#         {
+#             "request": request, 
+#             "registros": registros_apos_acao,
+#             "show_checkbox": True,
+#             "show_das": show_das,
+#             "show_just": True
+#         }
+#     )
 
 @router.post("/update_meta_moedas", response_class=HTMLResponse)
 async def update_meta_moedas(
