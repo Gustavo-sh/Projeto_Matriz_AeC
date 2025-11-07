@@ -134,12 +134,10 @@ async def register_user(request: Request, username: str = Form(...), password: s
             role = "apoio qualidade"
         elif "COORDENADOR DE PLANEJAMENTO" in funcao_upper or "GERENTE DE PLANEJAMENTO" in funcao_upper:
             role = "apoio planejamento"
-        elif "COORDENADOR DE OPERACAO" in funcao_upper or "GERENTE DE OPERACAO" in funcao_upper:
+        elif "GERENTE DE OPERACAO" in funcao_upper:
             role = "operacao"
         elif "DESENVOLVIMENTO OPERACIONAL" in funcao_upper:
             role = "adm"
-        else:
-            role = None
     if not role:
         return RedirectResponse("/register?erro=Função não autorizada para cadastro.", status_code=303)
     hashed_password = pwd_context.hash(password)
