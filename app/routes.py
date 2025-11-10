@@ -21,7 +21,7 @@ from app.connections_db import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_matriculas_cadastro_adm, get_atributos_cadastro_apoio,
     query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1, #update_da_adm_10,
     get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_matrizes_administrativas, update_meta_moedas_bd, get_matrizes_ativo_10, get_nao_acordos_exop,
-    get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm
+    get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm, get_matrizes_nao_cadastradas
 )
 from app.validations import validation_submit_table, validation_import_from_excel, validation_meta_moedas
 
@@ -1203,6 +1203,28 @@ async def export_table(request: Request,  atributo: str = Query(...), tipo: str 
     output.seek(0)
 
     filename = f"pesquisa_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+    )
+
+@router.get("/export_atributos_sem_matriz")
+async def export_atributos_sem_matriz(request: Request):
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sessão inválida")
+
+    registros_pesquisa = await get_matrizes_nao_cadastradas()
+
+    # Cria o DataFrame corretamente
+    df = pd.DataFrame(registros_pesquisa, columns=['atributos'])
+
+    output = BytesIO()
+    df.to_excel(output, index=False, sheet_name='Matrizes_Nao_Cadastradas', engine='openpyxl')
+    output.seek(0)
+
+    filename = f"matrizes_nao_cadastradas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     return StreamingResponse(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

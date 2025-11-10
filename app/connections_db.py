@@ -814,6 +814,58 @@ async def get_nao_acordos_exop():
     set_cache(cache_key, registros, CACHE_TTL)
     return registros
 
+async def get_matrizes_nao_cadastradas():
+    cache_key = f"matrizes_nao_cadastradas"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+    resultados = None
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+                set nocount on
+                select distinct atributo, count(matricula) as atendentes
+                into #atrb_valid_hmn
+                from rlt.hmn (nolock) 
+                where data = convert(date, getdate()-1)
+                and tipohierarquia = 'operação' and nivelhierarquico = 'operacional'
+                and funcaorm not like '%analista%'
+                and situacaohominum in ('ativo', 'treinamento')
+                group by atributo, funcaorm
+
+                select distinct atributo 
+                into #in_mg_not_in_hmn 
+                from robbyson.dbo.matriz_geral (nolock)
+                where periodo = '2025-11-01'
+                except
+                select atributo 
+                from #atrb_valid_hmn
+                where atendentes > 0
+
+                select atributo 
+                from #atrb_valid_hmn
+                where atendentes > 0
+                and atributo is not null
+                except
+                select distinct atributo
+                from robbyson.dbo.matriz_geral mg (nolock)
+                where mg.atributo not in (select inmg.atributo from #in_mg_not_in_hmn inmg)
+                and mg.periodo = '2025-11-01'
+
+                drop table #atrb_valid_hmn
+                drop table #in_mg_not_in_hmn
+            """)
+            resultados = cur.fetchall()
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    registros = [row[0] for row in resultados]
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, registros, CACHE_TTL)
+    return registros
+
 async def get_acordos_apoio():
     cache_key = f"acordos_apoio"
     cached = get_from_cache(cache_key)
