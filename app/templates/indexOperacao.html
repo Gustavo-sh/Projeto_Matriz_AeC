@@ -32,6 +32,49 @@
     </div>
     </div>
 
+    <!-- Ícone do menu (igual ao Office) -->
+    <div id="app-launcher-btn">Matrizes Alteradas Por Apoio</div>
+
+    <!-- Painel lateral -->
+    <div id="app-launcher-panel">
+        <div class="launcher-header">
+            <span>Matrizes Alteradas Pela Area de Apoio</span>
+            <button id="close-launcher">✖</button>
+        </div>
+
+        <!-- Conteúdo interno — pode ser tabela -->
+        <div class="launcher-content">
+            <table class="launcher-table">
+                <thead>
+                    <tr>
+                        <th>Atributo</th>
+                        <th>Id_nome_indicador</th>
+                        <th>Meta Antiga</th>
+                        <th>Meta Nova</th>
+                        <th>Alterado Por</th>
+                        <th>Resultado M0</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in matrizes_alteradas %}
+                    <tr>
+                        <td>{{ m.atributo }}</td>
+                        <td>{{ m.id_nome_indicador }}</td>
+                        <td>{{ m.meta_antiga }}</td>
+                        <td>{{ m.meta_nova }}</td>
+                        <td>{{ m.alterado_por }}</td>
+                        <td>{{ m.resultado_m0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- BACKDROP -->
+    <div id="launcher-backdrop"></div>
+
+
     <div
         class="robby_div">
     </div>
@@ -123,7 +166,7 @@
         <div class="form-container">
             <h4>Gerar um novo indicador</h4>  
             <h5>Campos com * são obrigatórios!</h5>  
-            <form hx-post="/add" hx-target="#registros" hx-swap="innerHTML" class="form-grid">
+            <form hx-post="/add" hx-target="#registros" hx-swap="innerHTML" hx-include="#possuiDmm, #dmm" class="form-grid">
                 
                 <div>
                     <label>ID - Nome Indicador: *</label>
@@ -204,14 +247,7 @@
                     <label>Responsavel: *</label>
                     <input type="text" name="responsavel">
 
-                    <label>Possui DMM: *</label>
-                    <div class="radio-group">
-                        <label><input type="radio" name="possuiDmm" value="Sim"> Sim</label>
-                        <label><input type="radio" name="possuiDmm" value="Não" checked> Não</label>
-                    </div>
-
-                    <label>DMM:</label>
-                    <input type="text" id="dmm" name="dmm" placeholder="Selecione as datas, caso haja">
+                    
 
                     <input type="hidden" id="atributo_hidden" name="atributo" value="">
                 </div>
@@ -267,6 +303,18 @@
                     <button type="submit" class="button-submit-form">Enviar</button>
                 </div>
             </form>
+        </div>
+
+        <div class="dmm-container">
+            <h4>DMM</h4>  
+            <label>Possui DMM: *</label>
+            <div class="radio-group" id="possuiDmm">
+                <label><input type="radio" name="possuiDmm" value="Sim"> Sim</label>
+                <label><input type="radio" name="possuiDmm" value="Não" checked> Não</label>
+            </div>
+
+            <label>DMM:</label>
+            <input type="text" id="dmm" name="dmm" placeholder="Selecione as datas, caso haja">
         </div>
     </div>
 

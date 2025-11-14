@@ -21,9 +21,9 @@ from app.connections_db import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_matriculas_cadastro_adm, get_atributos_cadastro_apoio,
     query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1, #update_da_adm_10,
     get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_matrizes_administrativas, update_meta_moedas_bd, get_matrizes_ativo_10, get_nao_acordos_exop,
-    get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm, get_matrizes_nao_cadastradas
+    get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm, get_matrizes_nao_cadastradas, get_matrizes_alteradas_apoio, update_dmm_bd
 )
-from app.validations import validation_submit_table, validation_import_from_excel, validation_meta_moedas
+from app.validations import validation_submit_table, validation_import_from_excel, validation_meta_moedas, validation_dmm
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -157,6 +157,7 @@ async def matriz_page(request: Request):
     indicadores = await get_indicadores()
     lista_atributos = await get_atributos_matricula(username)
     atributos = sorted(lista_atributos, key=lambda item: item.get('atributo') or '')
+    matrizes_alteradas = await get_matrizes_alteradas_apoio(username)
     registros = load_registros(request)
     area = None
     funcao = await get_funcao(username)
@@ -171,7 +172,8 @@ async def matriz_page(request: Request):
         "username": username,
         "atributos": atributos,
         "role_": user.get("role"),
-        "area": area
+        "area": area,
+        "matrizes_alteradas": matrizes_alteradas
     })
 
 @router.get("/matriz/apoio")
@@ -1082,11 +1084,12 @@ async def update_meta_moedas(
     request: Request, 
     registro_ids: List[str] = Form([], alias="registro_ids"),
     meta: str = Form(..., alias="meta_duplicar"),
-    moedas: int = Form(..., alias="moedas_duplicar"),
+    moedas: str = Form(..., alias="moedas_duplicar"),
     cache_key: str = Form(..., alias="cache_key") 
 ):
     user = get_current_user(request)
-    _check_role_or_forbid(user, ["adm"])
+    username = user.get("usuario")
+    role = user.get("role")
     if not registro_ids:
         raise HTTPException(
             status_code=422,
@@ -1095,7 +1098,7 @@ async def update_meta_moedas(
     if not meta:
         raise HTTPException(
             status_code=422,
-            detail="xPesquisax: Meta e Moedas devem ser preenchidos para poder alterar os dados."
+            detail="xPesquisax: Preencha pelo menos o campo meta para efetuar a alteração."
         )
     registros_pesquisa = get_from_cache(cache_key)
     if not registros_pesquisa:
@@ -1122,7 +1125,7 @@ async def update_meta_moedas(
             periodo = r.get("periodo")
             updates_a_executar.append((atributo, periodo, id_nome_indicador)) 
     if updates_a_executar:
-        await update_meta_moedas_bd(updates_a_executar, meta, moedas) 
+        await update_meta_moedas_bd(updates_a_executar, meta, moedas, role, username) 
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros_apos_acao, CACHE_TTL)
     return templates.TemplateResponse(
@@ -1134,6 +1137,49 @@ async def update_meta_moedas(
             "show_das": show_das
         }
     )
+
+@router.post("/update_dmm", response_class=HTMLResponse)
+async def update_dmm(
+    request: Request, 
+):
+    form = await request.form()
+    dmm = (form.get("dmm_apoio") or "").strip()
+    cache_key = (form.get("cache_key_pesquisa_dmm") or form.get("cache_key_pesquisa") or form.get("cache_key") or "").strip()
+    erro = await validation_dmm(dmm)
+    print(cache_key)
+    if erro:
+        raise HTTPException(status_code=422, detail=erro)
+    if not dmm:
+        raise HTTPException(
+            status_code=422,
+            detail="xPesquisax: Coloquei exatamente 5 dmms para efetuar a alteração."
+        )
+    registros_pesquisa = get_from_cache(cache_key)
+    if not registros_pesquisa:
+        raise HTTPException(status_code=422, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
+    current_page = request.headers.get("hx-current-url", "desconhecido").lower()
+    path = urlparse(current_page).path.lower()
+    show_das = None
+    if "cadastro" in path:
+        show_das = None
+    else:
+        show_das = True
+    await update_dmm_bd(registros_pesquisa[0]["atributo"], registros_pesquisa[0]["periodo"], dmm)
+    for r in registros_pesquisa:
+        r["possui_dmm"] = "Sim"
+        r["dmm"] = dmm
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, registros_pesquisa, CACHE_TTL)
+    return templates.TemplateResponse(
+        "_pesquisa.html", 
+        {
+            "request": request, 
+            "registros": registros_pesquisa,
+            "show_checkbox": True,
+            "show_das": show_das
+        }
+    )
+
 
 @router.post("/clear_registros", response_class=HTMLResponse)
 def clear_registros_route(request: Request):

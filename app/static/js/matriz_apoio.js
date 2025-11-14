@@ -24,7 +24,7 @@
 
     const atributoInput = document.getElementById("duplicar_atributo");
     const tipoPesquisaHidden = document.getElementById("duplicar_tipo_pesquisa");
-    const cacheKey = document.getElementById("cache_key_pesquisa");
+    const cacheKey = document.getElementById("cache_key_pesquisa_dmm");
     const atributoAtual = document.getElementById("atributo_select")?.value || "";
 
     let tipoValor = null;
@@ -60,7 +60,7 @@
 (function () {
   document.addEventListener("DOMContentLoaded", function () {
     document.body.addEventListener("buildCacheKey", function (evt) {
-      const cacheKeyInput = document.getElementById("cache_key_pesquisa");
+      const cacheKeyInput = document.getElementById("cache_key_pesquisa_dmm");
       const tipo = evt.detail?.tipo;
       const atributo = evt.detail?.atributo;
       let page = null;
@@ -95,7 +95,7 @@
     exportBtn.addEventListener("click", function () {
       const atributo = document.getElementById("atributo_select")?.value || "";
       const tipo = document.getElementById("duplicar_tipo_pesquisa")?.value || "";
-      const cache_key = document.getElementById("cache_key_pesquisa")?.value || "";
+      const cache_key = document.getElementById("cache_key_pesquisa_dmm")?.value || "";
       const params = new URLSearchParams();
       params.append("atributo", atributo);
       params.append("duplicar_tipo_pesquisa", tipo);
@@ -112,8 +112,20 @@
  * ============================= */
 (function () {
   window.addEventListener("DOMContentLoaded", function () {
-    const dmmDuplicar = document.querySelector("#dmm_duplicar");
+    const dmmDuplicar = document.querySelector("#dmm_apoio");
     if (!dmmDuplicar || typeof flatpickr === "undefined") return;
+
+    function obterIntervaloDaTabela() {
+      const linha = document.querySelector(".tabela-pesquisa tbody tr");
+      if (!linha) return { inicio: null, fim: null };
+
+      const celulas = linha.querySelectorAll("td");
+
+      return {
+        inicio: celulas[9]?.innerText.trim() || null,
+        fim: celulas[10]?.innerText.trim() || null,
+      };
+    }
 
     flatpickr(dmmDuplicar, {
       mode: "multiple",
@@ -131,28 +143,34 @@
       },
     });
 
-    // Habilita o DMM duplicar apenas quando os campos de data estão completos
     const checkDmmLimits = function () {
-      const inicio = document.getElementById("data_inicio_duplicar")?.value;
-      const fim = document.getElementById("data_fim_duplicar")?.value;
-      const possui = document.querySelector("input[name='possuiDmmDuplicar']:checked")?.value;
-      if (possui === "Sim" && inicio && fim) {
-        dmmDuplicar._flatpickr.set("minDate", inicio);
-        dmmDuplicar._flatpickr.set("maxDate", fim);
-        dmmDuplicar._flatpickr.set("clickOpens", true);
-      } else {
-        dmmDuplicar._flatpickr.clear();
+      const possui = document.querySelector("input[name='possuiDmm_apoio']:checked")?.value;
+
+      const { inicio, fim } = obterIntervaloDaTabela();
+
+      if (possui !== "Sim" || !inicio || !fim) {
         dmmDuplicar._flatpickr.set("clickOpens", false);
+        return;
       }
+
+      dmmDuplicar._flatpickr.set("minDate", inicio);
+      dmmDuplicar._flatpickr.set("maxDate", fim);
+      dmmDuplicar._flatpickr.set("clickOpens", true);
     };
 
-    ["#data_inicio_duplicar", "#data_fim_duplicar"].forEach((sel) => {
-      const el = document.querySelector(sel);
-      if (el) el.addEventListener("change", checkDmmLimits);
-    });
+    // 🔥 Quando o usuário clica no input → checar intervalo ANTES de abrir o calendário
+    dmmDuplicar.addEventListener("mousedown", checkDmmLimits);
 
-    document.querySelectorAll("input[name='possuiDmmDuplicar']").forEach((r) =>
+    // Quando escolher Sim/Não
+    document.querySelectorAll("input[name='possuiDmm_apoio']").forEach((r) =>
       r.addEventListener("change", checkDmmLimits)
     );
+
+    // Quando a tabela for atualizada pelo HTMX
+    document.body.addEventListener("htmx:afterSwap", function (evt) {
+      if (evt.target.id === "tabela-pesquisa") {
+        checkDmmLimits();
+      }
+    });
   });
 })();

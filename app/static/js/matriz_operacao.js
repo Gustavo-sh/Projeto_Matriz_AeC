@@ -700,3 +700,28 @@
   // Quando requisição é abortada
   document.body.addEventListener("htmx:abort", hideLoader);
 })();
+
+(function () {
+  const btn = document.getElementById("app-launcher-btn");
+  const panel = document.getElementById("app-launcher-panel");
+  const backdrop = document.getElementById("launcher-backdrop");
+  const closeBtn = document.getElementById("close-launcher");
+
+  // Abre
+  btn.addEventListener("click", () => {
+    panel.classList.add("open");
+    backdrop.classList.add("active");
+  });
+
+  // Fecha no X
+  closeBtn.addEventListener("click", () => {
+    panel.classList.remove("open");
+    backdrop.classList.remove("active");
+  });
+
+  // Fecha clicando fora
+  backdrop.addEventListener("click", () => {
+    panel.classList.remove("open");
+    backdrop.classList.remove("active");
+  });
+})();

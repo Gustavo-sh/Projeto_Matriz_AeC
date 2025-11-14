@@ -551,6 +551,24 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
 
+async def update_dmm_bd(atributo, periodo, dmm): 
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+            UPDATE dbo.Matriz_Geral
+            SET 
+                dmm = ?
+            WHERE 
+                Atributo = ? AND 
+                periodo = ?
+            """, (str(dmm), atributo, periodo,))
+            conn.commit() 
+            cur.close()
+    await loop.run_in_executor(None, _sync_db_call)
+
+
 # async def update_da_adm_10(updates: list, tipo, username): 
 #     agora = datetime.now()
 #     tipo_defined = 1 if tipo == 'Acordo' else 2
@@ -601,23 +619,66 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
 #                 cur.close()
 #     await loop.run_in_executor(None, _sync_db_call)
 
-async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas): 
+async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, role, username): 
+    agora = datetime.now()
+    role_defined = None
+    if role == "apoio qualidade":
+        role_defined = "qualidade"
+    elif role == "apoio planejamento":
+        role_defined = "planejamento"
     loop = asyncio.get_event_loop()
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
             for update_item in lista_de_updates:
                 atributo, periodo, id_nome_indicador = update_item
-                cur.execute(f"""
-                UPDATE dbo.Matriz_Geral
-                SET 
-                    meta = ?,
-                    moedas = ?
-                WHERE 
-                    Atributo = ? AND 
-                    periodo = ? AND 
-                    id_nome_indicador = ?
-            """, (meta, moedas, atributo, periodo, id_nome_indicador))
+                if moedas != '':
+                    cur.execute(f"""
+                    UPDATE dbo.Matriz_Geral
+                    SET 
+                        meta = ?,
+                        moedas = ?
+                    WHERE 
+                        Atributo = ? AND 
+                        periodo = ? AND 
+                        id_nome_indicador = ?
+                """, (meta, moedas, atributo, periodo, id_nome_indicador))
+                else:
+                    if role_defined == "qualidade":
+                        cur.execute(f"""
+                        UPDATE dbo.Matriz_Geral
+                        SET 
+                            meta = ?,
+                            qualidade = ?,
+                            da_qualidade = 1,
+                            data_da_qualidade = ?
+                        WHERE 
+                            Atributo = ? AND 
+                            periodo = ? AND 
+                            id_nome_indicador = ?
+                    """, (meta, username, agora, atributo, periodo, id_nome_indicador))
+                    elif role_defined == "planejamento":
+                        cur.execute(f"""
+                        UPDATE dbo.Matriz_Geral
+                        SET 
+                            meta = ?,
+                            planejamento = ?,
+                            da_planejamento = 1,
+                            data_da_planejamento = ?
+                        WHERE 
+                            Atributo = ? AND 
+                            periodo = ? AND 
+                            id_nome_indicador = ?
+                    """, (meta, username, agora, atributo, periodo, id_nome_indicador))
+                    cur.execute(f"""
+                    UPDATE dbo.Matriz_Geral
+                    SET 
+                        meta = ?
+                    WHERE 
+                        Atributo = ? AND 
+                        periodo = ? AND 
+                        id_nome_indicador = ?
+                    """, (meta, atributo, periodo, id_nome_indicador))
             conn.commit() 
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
@@ -637,6 +698,49 @@ def validar_datas(data_inicio_bd, data_fim_bd, data_inicio_sbmit, data_fim_submi
             return True
     else:
         return True
+
+async def get_matrizes_alteradas_apoio(username):
+    cache_key = f"matrizes_alteradas_apoio:{username}"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+
+    loop = asyncio.get_event_loop()
+
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT atributo,
+                       id_nome_indicador,
+                       meta_antiga,
+                       nova_meta,
+                       alterado_por,
+                       resultado_m0
+                FROM robbyson.dbo.log_alt_apoio_matriz_geral (NOLOCK)
+                WHERE gerente = ?
+            """, (username,))
+
+            rows = cur.fetchall()
+            cur.close()
+
+            return [
+                {
+                    "atributo": r[0],
+                    "id_nome_indicador": r[1],
+                    "meta_antiga": r[2],
+                    "meta_nova": r[3],
+                    "alterado_por": r[4],
+                    "resultado_m0": r[5],
+                }
+                for r in rows
+            ]
+
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    set_cache(cache_key, resultados)
+
+    return resultados
+
 
 async def get_resultados_indicadores_m3():
     cache_key = "resultados_indicadores_m3"

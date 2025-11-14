@@ -202,7 +202,17 @@ async def validation_meta_moedas(registros, meta, moedas):
         except ValueError:
             return f"xPesquisax: Meta deve ser um número válido! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
     try:
-        int(moedas)
+        if moedas != "":
+            int(moedas)
     except ValueError:
-        return f"xPesquisax: Moedas deve ser um número inteiro! indicador:{registros["id_nome_indicador"]}, moedas informada:{moedas}"
+        return f"xPesquisax: Moedas deve ser um número inteiro! indicador: {registros["id_nome_indicador"]}, moedas informada: {moedas}"
+    return None
+
+async def validation_dmm(dmm):
+    try:
+        qtd_dmm = len(dmm.split(","))
+        if qtd_dmm != 5:
+            return f"xPesquisax: Selecione extamente 5 dmms! Dmms selecionados: {qtd_dmm}"
+    except Exception as e:
+        return f"xPesquisax: Erro na validação de dmm: {e}"
     return None
