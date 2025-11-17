@@ -201,7 +201,7 @@ async def index_apoio(request: Request):
         "indicadores": indicadores,
         "username": username,
         "atributos": atributos,
-        "role_": user.get("role"),
+        "role": user.get("role"),
         "area": area
     })
 

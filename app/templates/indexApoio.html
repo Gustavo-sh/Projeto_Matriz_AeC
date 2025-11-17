@@ -92,10 +92,11 @@
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
         </div>
 
+        {% if role == "apoio planejamento" %}
         <form hx-post="/update_dmm"
                 hx-target="#tabela-pesquisa"
                 hx-swap="innerHTML"
-                hx-include="#cache_key_pesquisa_dmm"
+                hx-include="#cache_key_pesquisa"
                 hx-confirm="Confirma a alteração do DMM para os registros selecionados?">
             <div class="dmm-container">
                 <h4>DMM</h4>  
@@ -110,6 +111,7 @@
                 <button type="submit">Alterar DMM</button>
             </div>
         </form>
+        {% endif %}
     </div>
 
     <div class="registros">
@@ -174,7 +176,7 @@
                 Selecionar Tudo
             </button>
             
-            <input type="hidden" name="cache_key_pesquisa_dmm" id="cache_key_pesquisa_dmm" value="">
+            <input type="hidden" name="cache_key" id="cache_key_pesquisa" value="">
             <input type="hidden" name="tipo_pesquisa_admapoio" id="tipo_pesquisa_admapoio" value="">
             <h4>Selecione os registros que deseja dar acordo ou não acordo antes de clicar nos botões abaixo.</h4>
             <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
@@ -201,7 +203,7 @@
                   hx-target="#tabela-pesquisa" 
                   class="form-mmd" 
                   hx-swap="innerHTML" 
-                  hx-include="#tabela-pesquisa input[name='registro_ids']:checked, #cache_key_pesquisa_dmm"
+                  hx-include="#tabela-pesquisa input[name='registro_ids']:checked, #cache_key_pesquisa"
                   hx-confirm="Confirma a alteração da meta para os registros selecionados? Ao definir a nova meta você automaticamente dá o de acordo para os indicadores alterados.">
                 <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;">
                     <label>Nova Meta: *

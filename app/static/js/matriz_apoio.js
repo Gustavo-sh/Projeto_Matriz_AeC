@@ -24,7 +24,7 @@
 
     const atributoInput = document.getElementById("duplicar_atributo");
     const tipoPesquisaHidden = document.getElementById("duplicar_tipo_pesquisa");
-    const cacheKey = document.getElementById("cache_key_pesquisa_dmm");
+    const cacheKey = document.getElementById("cache_key_pesquisa");
     const atributoAtual = document.getElementById("atributo_select")?.value || "";
 
     let tipoValor = null;
@@ -60,7 +60,7 @@
 (function () {
   document.addEventListener("DOMContentLoaded", function () {
     document.body.addEventListener("buildCacheKey", function (evt) {
-      const cacheKeyInput = document.getElementById("cache_key_pesquisa_dmm");
+      const cacheKeyInput = document.getElementById("cache_key_pesquisa");
       const tipo = evt.detail?.tipo;
       const atributo = evt.detail?.atributo;
       let page = null;
@@ -95,7 +95,7 @@
     exportBtn.addEventListener("click", function () {
       const atributo = document.getElementById("atributo_select")?.value || "";
       const tipo = document.getElementById("duplicar_tipo_pesquisa")?.value || "";
-      const cache_key = document.getElementById("cache_key_pesquisa_dmm")?.value || "";
+      const cache_key = document.getElementById("cache_key_pesquisa")?.value || "";
       const params = new URLSearchParams();
       params.append("atributo", atributo);
       params.append("duplicar_tipo_pesquisa", tipo);
