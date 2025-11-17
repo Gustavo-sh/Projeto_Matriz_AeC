@@ -351,6 +351,116 @@ async def get_all_atributos():
     set_cache(cache_key, resultados)
     return resultados
 
+async def query_mes(atributo, username, page, area, mes):
+    cache_key = f"pesquisa_{mes}:{atributo}:{page}"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+    tipo_pesquisa = None
+    if mes == 'm0':
+        tipo_pesquisa = -1
+    elif mes == 'm+1':
+        tipo_pesquisa = 0
+    elif mes == 'm1':
+        tipo_pesquisa = -2
+    resultados = None
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            if page == "demais":
+                # if area is not None:
+                #     cur.execute(f"""
+                #     select * from Robbyson.dbo.Matriz_Geral (nolock)
+                #     WHERE Atributo = ?
+                #     and area = ?
+                #     and tipo_matriz like 'OPERA%'
+                #     AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
+                #     AND ativo in (0, 1)
+                #     """,(atributo,area,))
+                cur.execute(f"""
+                set nocount on
+                select id_indicador, id_formato into #formatos from rby_indicador
+
+                select fef.atributo, fef.id, fef.metasugerida, fef.resultado, fef.atingimento, f.id_formato 
+                into #fef
+                from Robbyson.dbo.factibilidadeEfaixas fef (nolock)
+                left join #formatos f on f.id_indicador = fef.id
+                where fef.data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, ?, GETDATE())))
+
+                select mg.atributo, id_nome_indicador, 
+                case when fef.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.metasugerida AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') 
+                when fef.id_formato = 3 then format(fef.metasugerida, 'P') else CAST(ROUND(fef.metasugerida, 2) AS NVARCHAR(MAX)) end as metasugerida, 
+                case when fef.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.resultado AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') 
+                when fef.id_formato = 3 then format(fef.resultado, 'P') else CAST(ROUND(fef.resultado, 2) AS NVARCHAR(MAX)) end as resultado, 
+                format(fef.atingimento, 'P') as atingimento, mg.meta, moedas, tipo_indicador, 
+                acumulado, esquema_acumulado, tipo_matriz, data_inicio, data_fim, periodo, escala, tipo_de_faturamento, descricao, ativo, 
+                chamado, criterio, area, responsavel, gerente, possui_dmm, dmm, submetido_por, data_submetido_por, qualidade, da_qualidade, 
+                data_da_qualidade, planejamento, da_planejamento, data_da_planejamento, exop, da_exop, data_da_exop
+                from Robbyson.dbo.Matriz_Geral mg (nolock)
+                left join #fef fef on fef.id = LTRIM(RTRIM(LEFT(id_nome_indicador, CHARINDEX('-', id_nome_indicador) - 1)))
+                and fef.atributo = ?
+                WHERE mg.atributo = ?
+                and tipo_matriz like 'OPERA%'
+                AND periodo = dateadd(d,1,eomonth(GETDATE(),?))
+                AND ativo in (0, 1)
+
+                drop table #formatos
+                drop table #fef
+                """,(tipo_pesquisa, atributo, atributo, tipo_pesquisa))
+            elif page == "cadastro":
+                cur.execute(f"""
+                set nocount on
+                select id_indicador, id_formato into #formatos from rby_indicador
+
+                select fef.atributo, fef.id, fef.metasugerida, fef.resultado, fef.atingimento, f.id_formato 
+                into #fef
+                from Robbyson.dbo.factibilidadeEfaixas fef (nolock)
+                left join #formatos f on f.id_indicador = fef.id
+                where fef.data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, ?, GETDATE())))
+
+                select mg.atributo, id_nome_indicador, 
+                case when fef.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.metasugerida AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') 
+                when fef.id_formato = 3 then format(fef.metasugerida, 'P') else CAST(ROUND(fef.metasugerida, 2) AS NVARCHAR(MAX)) end as metasugerida, 
+                case when fef.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.resultado AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') 
+                when fef.id_formato = 3 then format(fef.resultado, 'P') else CAST(ROUND(fef.resultado, 2) AS NVARCHAR(MAX)) end as resultado, 
+                format(fef.atingimento, 'P') as atingimento, mg.meta, moedas, tipo_indicador, 
+                acumulado, esquema_acumulado, tipo_matriz, data_inicio, data_fim, periodo, escala, tipo_de_faturamento, descricao, ativo, 
+                chamado, criterio, area, responsavel, gerente, possui_dmm, dmm, submetido_por, data_submetido_por, qualidade, da_qualidade, 
+                data_da_qualidade, planejamento, da_planejamento, data_da_planejamento, exop, da_exop, data_da_exop
+                from Robbyson.dbo.Matriz_Geral mg (nolock)
+                left join #fef fef on fef.id = LTRIM(RTRIM(LEFT(id_nome_indicador, CHARINDEX('-', id_nome_indicador) - 1)))
+                and fef.atributo = ?
+                WHERE mg.atributo = ?
+                and tipo_matriz like 'ADMINISTRA%'
+                AND periodo = dateadd(d,1,eomonth(GETDATE(),?))
+                AND ativo in (0, 1)
+
+                drop table #formatos
+                drop table #fef
+                """,(tipo_pesquisa, atributo, atributo, tipo_pesquisa))
+            resultados = cur.fetchall()
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    # registros = [{
+    #     "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
+    #     "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
+    #     "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
+    #     "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
+    #     "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
+    # } for row in resultados]
+    registros = [{
+        "atributo": row[0], "id_nome_indicador": row[1], "meta_sugerida": row[2], "resultado": row[3], "atingimento": row[4], "meta": row[5], "moedas": row[6], "tipo_indicador": row[7], "acumulado": row[8], "esquema_acumulado": row[9],
+        "tipo_matriz": row[10], "data_inicio": row[11], "data_fim": row[12], "periodo": row[13], "escala": row[14], "tipo_de_faturamento": row[15], "descricao": row[16], "ativo": row[17], "chamado": row[18],
+        "criterio": row[19], "area": row[20], "responsavel": row[21], "gerente": row[22], "possui_dmm": row[23], "dmm": row[24],
+        "submetido_por": row[25], "data_submetido_por": row[26], "qualidade": row[27], "da_qualidade": row[28], "data_da_qualidade": row[29],
+        "planejamento": row[30], "da_planejamento": row[31], "data_da_planejamento": row[32], "exop": row[33], "da_exop": row[34], "data_da_exop": row[35], "id": str(uuid.uuid4())
+    } for row in resultados]
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, registros, CACHE_TTL)
+    return registros
+
 async def query_m0(atributo, username, page, area):
     cache_key = f"pesquisa_m0:{atributo}:{page}"
     cached = get_from_cache(cache_key)
@@ -372,30 +482,83 @@ async def query_m0(atributo, username, page, area):
                 #     AND ativo in (0, 1)
                 #     """,(atributo,area,))
                 cur.execute(f"""
-                select * from Robbyson.dbo.Matriz_Geral (nolock)
-                WHERE Atributo = ?
+                set nocount on
+                select id_indicador, id_formato into #formatos from rby_indicador
+
+                select fef.atributo, fef.id, fef.metasugerida, fef.resultado, fef.atingimento, f.id_formato 
+                into #fef
+                from Robbyson.dbo.factibilidadeEfaixas fef (nolock)
+                left join #formatos f on f.id_indicador = fef.id
+                where fef.data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, -1, GETDATE())))
+
+                select mg.atributo, id_nome_indicador, 
+                case when fef.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.metasugerida AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') 
+                when fef.id_formato = 3 then format(fef.metasugerida, 'P') else CAST(ROUND(fef.metasugerida, 2) AS NVARCHAR(MAX)) end as metasugerida, 
+                case when fef.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.resultado AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') 
+                when fef.id_formato = 3 then format(fef.resultado, 'P') else CAST(ROUND(fef.resultado, 2) AS NVARCHAR(MAX)) end as resultado, 
+                format(fef.atingimento, 'P') as atingimento, mg.meta, moedas, tipo_indicador, 
+                acumulado, esquema_acumulado, tipo_matriz, data_inicio, data_fim, periodo, escala, tipo_de_faturamento, descricao, ativo, 
+                chamado, criterio, area, responsavel, gerente, possui_dmm, dmm, submetido_por, data_submetido_por, qualidade, da_qualidade, 
+                data_da_qualidade, planejamento, da_planejamento, data_da_planejamento, exop, da_exop, data_da_exop
+                from Robbyson.dbo.Matriz_Geral mg (nolock)
+                left join #fef fef on fef.id = LTRIM(RTRIM(LEFT(id_nome_indicador, CHARINDEX('-', id_nome_indicador) - 1)))
+                and fef.atributo = ?
+                WHERE mg.atributo = ?
                 and tipo_matriz like 'OPERA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
                 AND ativo in (0, 1)
-                """,(atributo,))
+
+                drop table #formatos
+                drop table #fef
+                """,(atributo, atributo))
             elif page == "cadastro":
                 cur.execute(f"""
-                select * from Robbyson.dbo.Matriz_Geral (nolock)
-                WHERE Atributo = ?
+                set nocount on
+                select id_indicador, id_formato into #formatos from rby_indicador
+
+                select fef.atributo, fef.id, fef.metasugerida, fef.resultado, fef.atingimento, f.id_formato 
+                into #fef
+                from Robbyson.dbo.factibilidadeEfaixas fef (nolock)
+                left join #formatos f on f.id_indicador = fef.id
+                where fef.data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, -1, GETDATE())))
+
+                select mg.atributo, id_nome_indicador, 
+                case when fef.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.metasugerida AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') 
+                when fef.id_formato = 3 then format(fef.metasugerida, 'P') else CAST(ROUND(fef.metasugerida, 2) AS NVARCHAR(MAX)) end as metasugerida, 
+                case when fef.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.resultado AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') 
+                when fef.id_formato = 3 then format(fef.resultado, 'P') else CAST(ROUND(fef.resultado, 2) AS NVARCHAR(MAX)) end as resultado, 
+                format(fef.atingimento, 'P') as atingimento, mg.meta, moedas, tipo_indicador, 
+                acumulado, esquema_acumulado, tipo_matriz, data_inicio, data_fim, periodo, escala, tipo_de_faturamento, descricao, ativo, 
+                chamado, criterio, area, responsavel, gerente, possui_dmm, dmm, submetido_por, data_submetido_por, qualidade, da_qualidade, 
+                data_da_qualidade, planejamento, da_planejamento, data_da_planejamento, exop, da_exop, data_da_exop
+                from Robbyson.dbo.Matriz_Geral mg (nolock)
+                left join #fef fef on fef.id = LTRIM(RTRIM(LEFT(id_nome_indicador, CHARINDEX('-', id_nome_indicador) - 1)))
+                and fef.atributo = ?
+                WHERE mg.atributo = ?
                 and tipo_matriz like 'ADMINISTRA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),-1))
                 AND ativo in (0, 1)
-                """,(atributo,))
+
+                drop table #formatos
+                drop table #fef
+                """,(atributo, atributo))
             resultados = cur.fetchall()
             cur.close()
             return resultados
     resultados = await loop.run_in_executor(None, _sync_db_call)
+    # registros = [{
+    #     "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
+    #     "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
+    #     "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
+    #     "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
+    #     "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
+    # } for row in resultados]
     registros = [{
-        "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
-        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
-        "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
-        "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
-        "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
+        "atributo": row[0], "id_nome_indicador": row[1], "meta_sugerida": row[2], "resultado": row[3], "atingimento": row[4], "meta": row[5], "moedas": row[6], "tipo_indicador": row[7], "acumulado": row[8], "esquema_acumulado": row[9],
+        "tipo_matriz": row[10], "data_inicio": row[11], "data_fim": row[12], "periodo": row[13], "escala": row[14], "tipo_de_faturamento": row[15], "descricao": row[16], "ativo": row[17], "chamado": row[18],
+        "criterio": row[19], "area": row[20], "responsavel": row[21], "gerente": row[22], "possui_dmm": row[23], "dmm": row[24],
+        "submetido_por": row[25], "data_submetido_por": row[26], "qualidade": row[27], "da_qualidade": row[28], "data_da_qualidade": row[29],
+        "planejamento": row[30], "da_planejamento": row[31], "data_da_planejamento": row[32], "exop": row[33], "da_exop": row[34], "data_da_exop": row[35], "id": str(uuid.uuid4())
     } for row in resultados]
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros, CACHE_TTL)

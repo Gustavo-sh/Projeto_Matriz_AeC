@@ -9,6 +9,9 @@
     </td>
     <td>{{ row.atributo or "" }}</td>
     <td>{{ row.id_nome_indicador or "" }}</td>
+    <td>{{ row.meta_sugerida or "" }}</td>
+    <td>{{ row.resultado or "" }}</td>
+    <td>{{ row.atingimento or "" }}</td>
     <td hx-trigger="dblclick"
         hx-get="/edit_campo/{{ row.id }}/meta"  hx-target="this"
         hx-swap="outerHTML">
