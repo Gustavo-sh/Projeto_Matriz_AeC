@@ -180,10 +180,12 @@ async def validation_import_from_excel(registros, request):
 
 async def validation_meta_moedas(registros, meta, moedas):
     tipo = registros["tipo_indicador"]
+    if registros["id_nome_indicador"] == r"901 - % disponibilidade" and int(meta) != 94:
+        return f"xPesquisax: Não é permitido alterar a meta do indicador 901 - % disponibilidade!"
     if tipo == "Hora":
         try:
             if len(meta.split(":")) != 3:
-                return f"xPesquisax: Erro de meta para indicador tipo hora! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
+                return f"xPesquisax: Erro de meta para indicador tipo hora! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}. O modelo correto é HH:MM:SS"
         except ValueError:
             return f"xPesquisax: Erro de valor meta! indicador:{registros["id_nome_indicador"]}, meta:{meta}"
     elif tipo == "Inteiro":

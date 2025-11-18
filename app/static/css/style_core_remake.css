@@ -935,6 +935,18 @@ body.register-page {
   background-position: center;
 }
 
+.aecx_div {
+  position: absolute;
+  top: 20px;
+  right: 150px;
+  width: 100px;                 /* ajuste conforme tamanho da logo */
+  height: 80px;
+  background-image: url("/static/images/aecx.png");
+  background-repeat: no-repeat;
+  background-size: contain;     /* mantém proporção da logo */
+  background-position: center;
+}
+
 .button-submit-form {
   width: 200px !important;
   margin: 0 auto !important;

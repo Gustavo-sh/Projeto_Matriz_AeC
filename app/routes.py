@@ -21,7 +21,7 @@ from app.connections_db import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_matriculas_cadastro_adm, get_atributos_cadastro_apoio,
     query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1, #update_da_adm_10,
     get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_matrizes_administrativas, update_meta_moedas_bd, get_matrizes_ativo_10, get_nao_acordos_exop,
-    get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm, get_matrizes_nao_cadastradas, get_matrizes_alteradas_apoio, update_dmm_bd, query_mes
+    get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm, get_matrizes_nao_cadastradas, get_matrizes_alteradas_apoio, update_dmm_bd, query_mes, get_fact_m0, insert_log_meta_moedas
 )
 from app.validations import validation_submit_table, validation_import_from_excel, validation_meta_moedas, validation_dmm
 
@@ -187,7 +187,7 @@ async def index_apoio(request: Request):
     _check_role_or_forbid(user, ["apoio qualidade", "apoio planejamento"])
     username = request.cookies.get("username")
     indicadores = await get_indicadores()
-    atributos = await get_atributos_apoio()
+    
     registros = load_registros(request)
     area = None
     funcao = await get_funcao(username)
@@ -195,6 +195,7 @@ async def index_apoio(request: Request):
         area = "Qualidade"
     elif "planejamento" in funcao.lower():
         area = "Planejamento"
+    atributos = await get_atributos_apoio(area)
     return templates.TemplateResponse("indexApoio.html", {
         "request": request,
         "registros": registros,
@@ -313,7 +314,7 @@ async def index_adm(request: Request):
     })
 
 @router.post("/add", response_class=HTMLResponse)
-def add_registro(
+async def add_registro(
     request: Request,
     nome: str = Form(...),
     meta: str = Form(...),
@@ -328,8 +329,6 @@ def add_registro(
     descricao: Optional[str] = Form(None),
     ativo: Optional[str] = Form(None),
     chamado: Optional[str] = Form(None),
-    possuiDmm: str = Form(...),
-    dmm: str = Form(...),
     atributo: str = Form(...),
     tipo_indicador: str = Form(...),
     data_inicio: str = Form(...),
@@ -340,23 +339,20 @@ def add_registro(
     ):
     registros = load_registros(request)
     novo_id = str(uuid.uuid4())
+    fact = await get_fact_m0(atributo, nome.split(" - ")[0])
     novo = {
         "id": novo_id,
-        "atributo": atributo, "id_nome_indicador": nome, "meta": meta, "moedas": moeda,"tipo_indicador": tipo_indicador,"acumulado": acumulado,"esquema_acumulado": esquema_acumulado,
+        "atributo": atributo, "id_nome_indicador": nome, "meta_sugerida": fact[0]["metasugerida"] if fact else '', "resultado": fact[0]["resultado"] if fact else '', "atingimento": fact[0]["atingimento"] if fact else '',
+        "meta": meta, "moedas": moeda,"tipo_indicador": tipo_indicador,"acumulado": acumulado,"esquema_acumulado": esquema_acumulado,
         "tipo_matriz": tipo_matriz,"data_inicio": data_inicio,"data_fim": data_fim,"periodo": periodo,"escala": escala,"tipo_de_faturamento": tipo_faturamento,
         "descricao": descricao or '',"ativo": ativo or "","chamado" or '': chamado,"criterio": criterio_final,"area": area,"responsavel": responsavel,"gerente": gerente,
-        "possui_dmm": possuiDmm,"dmm": dmm
+        "possui_dmm": 'Não',"dmm": ''
     }
-    if not atributo or not nome or not meta or not moeda or not data_inicio or not data_fim or not escala or not tipo_faturamento or not criterio_final or not responsavel or not possuiDmm:  
+    if not atributo or not nome or not meta or not moeda or not data_inicio or not data_fim or not escala or not tipo_faturamento or not criterio_final or not responsavel:  
         raise HTTPException(
             status_code=422,
             detail="xIndicadorx: Preencha todos os campos obrigatórios!"
     )
-    if len(dmm.split(",")) < 5 and len(dmm.split(",")) > 1:
-        raise HTTPException(
-            status_code=422,
-            detail="xIndicadorx: Selecione exatamente 5 DMM!"
-        )
     registros.append(novo)
     save_registros(request, registros)
     html_content = templates.TemplateResponse(
@@ -386,6 +382,9 @@ async def pesquisar_m0(request: Request, atributo: str = Form(...)):
     page = None
     path = urlparse(current_page).path.lower()
     show_das = None
+    show_checkbox = True
+    # if "/matriz/apoio" in path:
+    #     show_checkbox = False
     if "cadastro" in path:
         page = "cadastro"
         show_das = None
@@ -398,9 +397,9 @@ async def pesquisar_m0(request: Request, atributo: str = Form(...)):
             registros.remove(dic)
     html_content = None
     if "operacao" in funcao.lower():
-        html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
+        html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das})
     else:
-        html_content = templates.TemplateResponse("_pesquisa.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
+        html_content = templates.TemplateResponse("_pesquisa.html", {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das})
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
@@ -427,6 +426,9 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
     page = None
     path = urlparse(current_page).path.lower()
     show_das = None
+    show_checkbox = True
+    # if "/matriz/apoio" in path:
+    #     show_checkbox = False
     if "cadastro" in path:
         page = "cadastro"
         show_das = None
@@ -439,9 +441,9 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
             registros.remove(dic)
     html_content = None
     if "operacao" in funcao.lower():
-        html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
+        html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das})
     else:
-        html_content = templates.TemplateResponse("_pesquisa.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
+        html_content = templates.TemplateResponse("_pesquisa.html", {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das})
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
@@ -792,20 +794,12 @@ def duplicate_search_results(
     data_inicio: str = Form(...), 
     data_fim: str = Form(...), 
     periodo: str = Form(...),
-    registro_ids: List[str] = Form([], alias="registro_ids"),
-    dmm: str = Form(None, alias="dmm"),
-    possuiDmm: str = Form(None, alias="possuiDmmDuplicar")
+    registro_ids: List[str] = Form([], alias="registro_ids")
     ):
     if not data_inicio or not data_fim or not periodo:
           raise HTTPException(
               status_code=422,
               detail="xPesquisax: Selecione as datas de início e fim antes de duplicar!"
-          )
-    if dmm:
-        if len(dmm.split(",")) < 5:
-            raise HTTPException(
-              status_code=422,
-              detail="xPesquisax: Selecione exatamente 5 DMMS!"
           )
     if not registro_ids:
         raise HTTPException(
@@ -843,7 +837,6 @@ def duplicate_search_results(
             detail="xPesquisax: Tipo de pesquisa inválido (deve ser 'm0' ou 'm1')."
         )
     registros_da_pesquisa = get_from_cache(cache_key)
-    print(registros_da_pesquisa)
     if not registros_da_pesquisa:
         raise HTTPException(
             status_code=422,
@@ -860,11 +853,6 @@ def duplicate_search_results(
             detail="xPesquisax: Os registros selecionados não foram encontrados no cache da pesquisa."
         )
     registros_atuais = load_registros(request)
-    if possuiDmm == "Sim" and (not dmm):
-         raise HTTPException(
-              status_code=422,
-              detail="xPesquisax: Se 'Sim' for selecionado, selecione os 5 Dmms!"
-          )
     for novo_registro in registros_a_duplicar:
         if novo_registro.get("id_nome_indicador") == "48 - Presença":
             continue
@@ -873,8 +861,8 @@ def duplicate_search_results(
         registro_copia["data_inicio"] = data_inicio
         registro_copia["data_fim"] = data_fim
         registro_copia["periodo"] = periodo 
-        registro_copia["dmm"] = dmm
-        registro_copia["possui_dmm"] = possuiDmm
+        registro_copia["dmm"] = ''
+        registro_copia["possui_dmm"] = 'Não'
         registro_copia["ativo"] = 0
         registros_atuais.append(registro_copia)
     save_registros(request, registros_atuais)
@@ -1102,11 +1090,17 @@ async def update_meta_moedas(
             detail="xPesquisax: Preencha pelo menos o campo meta para efetuar a alteração."
         )
     registros_pesquisa = get_from_cache(cache_key)
+    if len(registro_ids) > 1:
+        raise HTTPException(
+            status_code=422,
+            detail="xPesquisax: Selecione apenas um campo para alterar."
+        )
     if not registros_pesquisa:
         raise HTTPException(status_code=422, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
     ids_selecionados = set(registro_ids)
     registros_apos_acao = []
     updates_a_executar = []
+    registros_selecionados = []
     current_page = request.headers.get("hx-current-url", "desconhecido").lower()
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -1125,8 +1119,10 @@ async def update_meta_moedas(
             id_nome_indicador = r.get("id_nome_indicador") 
             periodo = r.get("periodo")
             updates_a_executar.append((atributo, periodo, id_nome_indicador)) 
+            registros_selecionados.append(r)
     if updates_a_executar:
         await update_meta_moedas_bd(updates_a_executar, meta, moedas, role, username) 
+        await insert_log_meta_moedas(registros_selecionados, meta, username)
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros_apos_acao, CACHE_TTL)
     return templates.TemplateResponse(

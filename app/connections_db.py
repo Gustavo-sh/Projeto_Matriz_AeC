@@ -356,13 +356,17 @@ async def query_mes(atributo, username, page, area, mes):
     cached = get_from_cache(cache_key)
     if cached:
         return cached
-    tipo_pesquisa = None
+    tipo_pesquisa_mg = None
+    tipo_pesquisa_fef = None
     if mes == 'm0':
-        tipo_pesquisa = -1
+        tipo_pesquisa_mg = -1
+        tipo_pesquisa_fef = -1
     elif mes == 'm+1':
-        tipo_pesquisa = 0
+        tipo_pesquisa_mg = 0
+        tipo_pesquisa_fef = -1
     elif mes == 'm1':
-        tipo_pesquisa = -2
+        tipo_pesquisa_mg = -2
+        tipo_pesquisa_fef = -2
     resultados = None
     loop = asyncio.get_event_loop()
     def _sync_db_call():
@@ -404,10 +408,11 @@ async def query_mes(atributo, username, page, area, mes):
                 and tipo_matriz like 'OPERA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),?))
                 AND ativo in (0, 1)
+                order by moedas desc
 
                 drop table #formatos
                 drop table #fef
-                """,(tipo_pesquisa, atributo, atributo, tipo_pesquisa))
+                """,(tipo_pesquisa_fef, atributo, atributo, tipo_pesquisa_mg))
             elif page == "cadastro":
                 cur.execute(f"""
                 set nocount on
@@ -435,10 +440,11 @@ async def query_mes(atributo, username, page, area, mes):
                 and tipo_matriz like 'ADMINISTRA%'
                 AND periodo = dateadd(d,1,eomonth(GETDATE(),?))
                 AND ativo in (0, 1)
+                order by moedas desc
 
                 drop table #formatos
                 drop table #fef
-                """,(tipo_pesquisa, atributo, atributo, tipo_pesquisa))
+                """,(tipo_pesquisa_fef, atributo, atributo, tipo_pesquisa_mg))
             resultados = cur.fetchall()
             cur.close()
             return resultados
@@ -782,6 +788,20 @@ async def update_dmm_bd(atributo, periodo, dmm):
 #                 cur.close()
 #     await loop.run_in_executor(None, _sync_db_call)
 
+async def insert_log_meta_moedas(registros_selecionados, meta, username):
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            for registro in registros_selecionados:
+                cur.execute(f"""
+                INSERT INTO dbo.log_alt_apoio_matriz_geral (atributo, id_nome_indicador, meta_antiga, nova_meta, alterado_por, resultado_m0, gerente, periodo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (registro["atributo"], registro["id_nome_indicador"], registro["meta"], meta, username, registro.get("resultado_m0"), registro.get("submetido_por"), registro["periodo"]))
+            conn.commit() 
+            cur.close()
+    await loop.run_in_executor(None, _sync_db_call)
+
 async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, role, username): 
     agora = datetime.now()
     role_defined = None
@@ -879,9 +899,11 @@ async def get_matrizes_alteradas_apoio(username):
                        meta_antiga,
                        nova_meta,
                        alterado_por,
-                       resultado_m0
+                       resultado_m0,
+                       periodo
                 FROM robbyson.dbo.log_alt_apoio_matriz_geral (NOLOCK)
                 WHERE gerente = ?
+                and periodo >= dateadd(d,1,eomonth(GETDATE(),-1))
             """, (username,))
 
             rows = cur.fetchall()
@@ -895,12 +917,14 @@ async def get_matrizes_alteradas_apoio(username):
                     "meta_nova": r[3],
                     "alterado_por": r[4],
                     "resultado_m0": r[5],
+                    "periodo": r[6],
                 }
                 for r in rows
             ]
 
     resultados = await loop.run_in_executor(None, _sync_db_call)
-    set_cache(cache_key, resultados)
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, resultados, ttl=CACHE_TTL)
 
     return resultados
 
@@ -950,6 +974,40 @@ async def get_matriculas_cadastro_adm():
     set_cache(cache_key, resultados, ttl=CACHE_TTL_24H)
     return resultados
 
+async def get_fact_m0(atributo, id):
+    cache_key = f"fact_m0:{atributo}:{id}"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                set nocount on
+                select id_indicador, id_formato into #formatos from rby_indicador
+
+                select concat(fef.id, ' - ', fef.nome_indicador) as id_nome_indicador, 
+                case when f.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.metasugerida AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss')
+                when f.id_formato = 3 then format(fef.metasugerida, 'P') else CAST(ROUND(fef.metasugerida, 2) AS NVARCHAR(MAX)) end as metasugerida, 
+                case when f.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.resultado AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss')
+                when f.id_formato = 3 then format(fef.resultado, 'P') else CAST(ROUND(fef.resultado, 2) AS NVARCHAR(MAX)) end as resultado, 
+                format(fef.atingimento, 'P') as atingimento
+                from Robbyson.dbo.factibilidadeEfaixas fef (nolock)
+                left join #formatos f on fef.id = f.id_indicador
+                where atributo = ?
+                and id = ?
+                and data = dateadd(d,1,eomonth(GETDATE(),-1))
+
+                drop table #formatos
+            """, (atributo,id,))
+            resultados = [{"id_nome_indicador": i[0], "metasugerida": i[1], "resultado": i[2], "atingimento": i[3] } for i in cur.fetchall()]
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    set_cache(cache_key, resultados)
+    return resultados
+
 async def get_indicadores():
     cache_key = "indicadores"
     cached = get_from_cache(cache_key)
@@ -993,7 +1051,32 @@ async def get_atributos_adm():
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(f"""
-            select distinct atributo, gerente, tipo_matriz from Robbyson.dbo.Matriz_Geral (nolock) where (gerente <> '' and tipo_matriz <> '')
+            set nocount on
+            select distinct atributo, count(matricula) as atendentes
+            into #base_hmn
+            from rlt.hmn (nolock) 
+            where data = convert(date, getdate()-1)
+            and atributo is not null
+            and ((TipoHierarquia = 'OPERAÇÃO' and NivelHierarquico = 'OPERACIONAL') or (tipohierarquia = 'ADMINISTRAÇÃO' and nivelhierarquico = 'OPERACIONAL'))
+            group by atributo, TipoHierarquia
+
+            select distinct atributo, 
+            case when GERENTE is not null then GERENTE
+            when GERENTEPLENO is not null then GERENTEPLENO
+            when GERENTESENIOR is not null then GERENTESENIOR
+            else GERENTE_EXECUTIVO end as Gerente,
+            TipoHierarquia
+            into #hmn_geral
+            from rlt.hmn (nolock) 
+            where data = convert(date, getdate()-1)
+            and atributo in (select atributo from #base_hmn)
+
+            select atributo, Gerente, TipoHierarquia
+            from #hmn_geral hmn
+            where gerente is not null
+
+            drop table #base_hmn
+            drop table #hmn_geral
             """)
             resultados = [{"atributo": i[0], "gerente": i[1], "tipo": i[2]} for i in cur.fetchall()]
             cur.close()
@@ -1003,7 +1086,7 @@ async def get_atributos_adm():
     set_cache(cache_key, resultados, CACHE_TTL)
     return resultados
 
-async def get_atributos_apoio():
+async def get_atributos_apoio(area):
     cache_key = "atributos_apoio"
     cached = get_from_cache(cache_key)
     if cached:
@@ -1013,9 +1096,14 @@ async def get_atributos_apoio():
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute(f"""
-            select distinct atributo, gerente, tipo_matriz from Robbyson.dbo.Matriz_Geral (nolock) where (gerente <> '' and tipo_matriz like 'OPERA%')
-            """)
+            if area == "Qualidade":
+                cur.execute(f"""
+                select distinct atributo, gerente, tipo_matriz from Robbyson.dbo.Matriz_Geral (nolock) where (gerente <> '' and tipo_matriz like 'OPERA%') and da_qualidade = 0 and periodo >= dateadd(d,1,eomonth(GETDATE(),-1))
+                """)
+            elif area == "Planejamento":
+                cur.execute(f"""
+                select distinct atributo, gerente, tipo_matriz from Robbyson.dbo.Matriz_Geral (nolock) where (gerente <> '' and tipo_matriz like 'OPERA%') and da_planejamento = 0 and periodo >= dateadd(d,1,eomonth(GETDATE(),-1))
+                """)
             resultados = [{"atributo": i[0], "gerente": i[1], "tipo": i[2]} for i in cur.fetchall()]
             cur.close()
             return resultados
