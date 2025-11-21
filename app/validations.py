@@ -1,19 +1,27 @@
+from datetime import datetime
 import uuid
 from fastapi.templating import Jinja2Templates
 from fastapi import APIRouter, Request, Form, Query, HTTPException, Response, status
-from app.connections_db import get_resultados_indicadores_m3, get_all_atributos
+from app.connections_db import get_resultados_indicadores_m3, get_all_atributos, get_excecoes_disponibilidade
 
 templates = Jinja2Templates(directory="app/templates")
 
-async def validation_submit_table(registros):
+async def validation_submit_table(registros, username):
+    exceptions = await get_excecoes_disponibilidade()
+    agora = datetime.now().strftime("%Y-%m-%d")
     moedas = 0
     validation_conditions = []
     disp_in = False
+    disp_mon = False
+    nr_mon = False
+    tl_mon = False
+    is_exception_atribute = False
     erro_dmm = validate_dmm_consistency(registros)
     if erro_dmm:
         return erro_dmm
     for dic in registros:
-        moeda_val = dic.get("moedas", "")
+        is_exception_atribute = True if dic["atributo"] in exceptions else False
+        moeda_val = int(dic.get("moedas", "0"))
         meta_val = dic.get("meta", "")
         nome_val = dic.get("id_nome_indicador", "").lower()
         resultados_indicadores_m3 = await get_resultados_indicadores_m3()
@@ -25,12 +33,12 @@ async def validation_submit_table(registros):
             dic["moedas"] = 0
         else:
             try:
-                if int(moeda_val) < 0: 
+                if moeda_val < 0: 
                     moeda_val = 0
                     dic["moedas"] = 0
-                elif int(moeda_val) > 0 and int(moeda_val) < 3:
+                elif moeda_val > 0 and moeda_val < 3:
                     return "<p>A monetização mínima é de 3 moedas. O indicador " + dic["id_nome_indicador"] + " possui menos de 3 moedas.</p>"
-                moedas += int(moeda_val)
+                moedas += moeda_val
                 
             except ValueError:
                 return "<p>Erro: Moeda deve ser um valor inteiro, valor informado: " + moeda_val + ", para o indicador: " + dic["id_nome_indicador"] + ".</p>"
@@ -54,10 +62,18 @@ async def validation_submit_table(registros):
         if nome_val == r"6 - % absenteísmo" and (moeda_val != 0 or meta_val == "" or meta_val == 0):
             return "<p>Absenteísmo não pode ter moedas e deve ter uma meta diferente de zero.</p>"
         if nome_val == r"901 - % disponibilidade":
-            disp_in = True
-            if (int(moeda_val) < 8 or int(meta_val) != 94):
+            if (moeda_val < 8 or int(meta_val) != 94) and not is_exception_atribute:
                 return "<p>Disponibilidade não pode ter menos que 8 moedas e deve ter 94 de meta.</p>"
-        if (nome_val == "25 - pausa nr17" or nome_val == "15 - tempo logado") and (moeda_val != 0 or meta_val != "00:00:00"):
+            disp_in = True
+            if moeda_val > 0:
+                disp_mon = True
+        if nome_val == "25 - pausa nr17":
+            if moeda_val > 0:
+                nr_mon = True
+        if nome_val == "15 - tempo logado":
+            if moeda_val > 0:
+                tl_mon = True
+        if (nome_val == "25 - pausa nr17" or nome_val == "15 - tempo logado") and (moeda_val != 0 or meta_val != "00:00:00") and not is_exception_atribute:
             return "<p>O valor de moeda deve ser 0 e o valor de meta para Pausa NR17 e Tempo Logado deve ser 00:00:00.</p>"
         if dic["tipo_indicador"] == "Hora":
             try:
@@ -79,21 +95,23 @@ async def validation_submit_table(registros):
         })
     # if not disp_in:
     #     return "<p>Disponibilidade é um indicador obrigatório, por favor adicione-o com 8 ou mais moedas e 94 de meta.</p>"
+    if disp_in and disp_mon and (nr_mon or tl_mon):
+        return "<p>Não é permitido monetizar Pausa NR17 ou Tempo Logado quando Disponibilidade está monetizada.</p>"
     if moedas != 30 and moedas != 35:
         return "<p>A soma de moedas deve ser igual a 30 ou 35.</p>"
-    elif moedas == 30 and registros[0]["tipo_matriz"] != "ADMINISTRAÇÃO":
+    elif moedas == 30 and registros[0]["tipo_matriz"].lower() != "administração":
         try:
             registros.append({'atributo': f'{registros[0]["atributo"]}', 'id_nome_indicador': '48 - Presença', 'meta': '2', 'moedas': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
                             'tipo_matriz': 'OPERAÇÃO', 'data_inicio': f'{registros[0]["data_inicio"]}', 'data_fim': f'{registros[0]["data_fim"]}', 'periodo': f'{registros[0]["periodo"]}', 'escala': f'{registros[0]["escala"]}',
                             'tipo_de_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': '', 'criterio': 'Meta AeC', 'area': 'Planejamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
-                            'possui_dmm': f'{registros[0]["possui_dmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': f'{registros[0]["submetido_por"]}', 'data_submetido_por': f'{registros[0]["data_submetido_por"]}', 'qualidade': f'{registros[0]["qualidade"]}', 'da_qualidade': f'{registros[0]["da_qualidade"]}', 'data_da_qualidade': f'{registros[0]["data_da_qualidade"]}', 
-                            'planejamento': f'{registros[0]["planejamento"]}', 'da_planejamento': f'{registros[0]["da_planejamento"]}', 'data_da_planejamento': f'{registros[0]["data_da_planejamento"]}', 'exop': f'{registros[0]["exop"]}', 'da_exop': f'{registros[0]["da_exop"]}', 'data_da_exop': f'{registros[0]["data_da_exop"]}', 'justificativa': '', 'da_superintendente': '', 'id': uuid.uuid4()})
+                            'possui_dmm': f'{registros[0]["possui_dmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': f'{registros[0]["submetido_por"]}', 'data_submetido_por': f'{registros[0]["data_submetido_por"]}', 'qualidade': '', 'da_qualidade': 3, 'data_da_qualidade': '', 
+                            'planejamento': '', 'da_planejamento': 3, 'data_da_planejamento': '', 'exop': '', 'da_exop': 0, 'data_da_exop': '', 'justificativa': '', 'da_superintendente': '', 'id': uuid.uuid4()})
         except KeyError:
             registros.append({'atributo': f'{registros[0]["atributo"]}', 'id_nome_indicador': '48 - Presença', 'meta': '2', 'moedas': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
                         'tipo_matriz': 'OPERAÇÃO', 'data_inicio': f'{registros[0]["data_inicio"]}', 'data_fim': f'{registros[0]["data_fim"]}', 'periodo': f'{registros[0]["periodo"]}', 'escala': f'{registros[0]["escala"]}',
                         'tipo_de_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': '', 'criterio': 'Meta AeC', 'area': 'Planejamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
-                        'possui_dmm': f'{registros[0]["possui_dmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': '', 'data_submetido_por': '', 'qualidade': '', 'da_qualidade': '', 'data_da_qualidade': '', 
-                        'planejamento': '', 'da_planejamento': '', 'data_da_planejamento': '', 'exop': '', 'da_exop': '', 'data_da_exop': '', 'justificativa': '', 'da_superintendente': '', 'id': uuid.uuid4()})
+                        'possui_dmm': f'{registros[0]["possui_dmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': f'{username}', 'data_submetido_por': f'{agora}', 'qualidade': '', 'da_qualidade': 3, 'data_da_qualidade': '', 
+                        'planejamento': '', 'da_planejamento': 3, 'data_da_planejamento': '', 'exop': '', 'da_exop': 0, 'data_da_exop': '', 'justificativa': '', 'da_superintendente': '', 'id': uuid.uuid4()})
 
     return validation_conditions, registros
 
@@ -180,7 +198,7 @@ async def validation_import_from_excel(registros, request):
 
 async def validation_meta_moedas(registros, meta, moedas):
     tipo = registros["tipo_indicador"]
-    if registros["id_nome_indicador"] == r"901 - % disponibilidade" and int(meta) != 94:
+    if registros["id_nome_indicador"].lower() == r"901 - % disponibilidade" and int(meta) != 94:
         return f"xPesquisax: Não é permitido alterar a meta do indicador 901 - % disponibilidade!"
     if tipo == "Hora":
         try:

@@ -94,6 +94,7 @@ async def save_registros_bd(registros, username, justificativa, ativo):
         for i in registros:
             # Forçar apenas o campo 'meta' como string
             meta_val = str(i.get('meta')) if i.get('meta') is not None else ''
+            is_presence = True if i.get('id_nome_indicador').lower() == r"48 - presença" else False
 
             row_data = [
                 i.get('atributo'),
@@ -120,7 +121,7 @@ async def save_registros_bd(registros, username, justificativa, ativo):
                 i.get('dmm'),
                 username_val,
                 data_val,
-                '', '', '', '', '', '', '', '', '', justificativa if justificativa is not None else '', ''
+                '', 3 if is_presence else '', '', '', 3 if is_presence else '', '', '', '', '', justificativa if justificativa is not None else '', ''
             ]
             all_rows.append(tuple(row_data))
 
@@ -953,26 +954,26 @@ async def get_resultados_indicadores_m3():
     set_cache(cache_key, resultados, ttl=CACHE_TTL)
     return resultados
 
-async def get_matriculas_cadastro_adm():
-    cache_key = "matriculas_cadastro_adm"
-    cached = get_from_cache(cache_key)
-    if cached:
-        return cached
-    resultados = None
-    loop = asyncio.get_event_loop()
-    def _sync_db_call():
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("""
-               select * from dbo.listagem_matriz_administrativa
-            """)
-            resultados = {f'{i[0]}': i[1] for i in cur.fetchall()}
-            cur.close()
-            return resultados
-    resultados = await loop.run_in_executor(None, _sync_db_call)
-    CACHE_TTL_24H = timedelta(hours=24)
-    set_cache(cache_key, resultados, ttl=CACHE_TTL_24H)
-    return resultados
+# async def get_matriculas_cadastro_adm():
+#     cache_key = "matriculas_cadastro_adm"
+#     cached = get_from_cache(cache_key)
+#     if cached:
+#         return cached
+#     resultados = None
+#     loop = asyncio.get_event_loop()
+#     def _sync_db_call():
+#         with get_db_connection() as conn:
+#             cur = conn.cursor()
+#             cur.execute("""
+#                select * from dbo.listagem_matriz_administrativa
+#             """)
+#             resultados = {f'{i[0]}': i[1] for i in cur.fetchall()}
+#             cur.close()
+#             return resultados
+#     resultados = await loop.run_in_executor(None, _sync_db_call)
+#     CACHE_TTL_24H = timedelta(hours=24)
+#     set_cache(cache_key, resultados, ttl=CACHE_TTL_24H)
+#     return resultados
 
 async def get_fact_m0(atributo, id):
     cache_key = f"fact_m0:{atributo}:{id}"
@@ -1060,23 +1061,41 @@ async def get_atributos_adm():
             and ((TipoHierarquia = 'OPERAÇÃO' and NivelHierarquico = 'OPERACIONAL') or (tipohierarquia = 'ADMINISTRAÇÃO' and nivelhierarquico = 'OPERACIONAL'))
             group by atributo, TipoHierarquia
 
-            select distinct atributo, 
-            case when GERENTE is not null then GERENTE
-            when GERENTEPLENO is not null then GERENTEPLENO
-            when GERENTESENIOR is not null then GERENTESENIOR
-            else GERENTE_EXECUTIVO end as Gerente,
-            TipoHierarquia
-            into #hmn_geral
-            from rlt.hmn (nolock) 
-            where data = convert(date, getdate()-1)
-            and atributo in (select atributo from #base_hmn)
+            ;WITH gerentes_rank AS (
+                SELECT 
+                    atributo, 
+                    CASE 
+                        WHEN GERENTESENIOR IS NOT NULL THEN GERENTESENIOR
+                        WHEN GERENTEPLENO IS NOT NULL THEN GERENTEPLENO
+                        WHEN GERENTE IS NOT NULL THEN GERENTE
+                        ELSE GERENTE_EXECUTIVO 
+                    END AS Gerente,
+                    TipoHierarquia,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY atributo
+                        ORDER BY 
+                            CASE 
+                                WHEN GERENTESENIOR IS NOT NULL THEN 1
+                                WHEN GERENTEPLENO IS NOT NULL THEN 2
+                                WHEN GERENTE IS NOT NULL THEN 3
+                                ELSE 4
+                            END
+                    ) AS rn
+                FROM rlt.hmn (NOLOCK)
+                WHERE data = CONVERT(date, GETDATE()-1)
+                AND atributo IN (SELECT atributo FROM #base_hmn)
+            )
 
-            select atributo, Gerente, TipoHierarquia
-            from #hmn_geral hmn
-            where gerente is not null
+            SELECT atributo, Gerente, TipoHierarquia
+            into #temph
+            FROM gerentes_rank
+            WHERE rn = 1
+            AND Gerente IS NOT NULL;
+
+            select atributo, gerente from #temph
 
             drop table #base_hmn
-            drop table #hmn_geral
+            drop table #temph
             """)
             resultados = [{"atributo": i[0], "gerente": i[1], "tipo": i[2]} for i in cur.fetchall()]
             cur.close()
@@ -1098,11 +1117,15 @@ async def get_atributos_apoio(area):
             cur = conn.cursor()
             if area == "Qualidade":
                 cur.execute(f"""
-                select distinct atributo, gerente, tipo_matriz from Robbyson.dbo.Matriz_Geral (nolock) where (gerente <> '' and tipo_matriz like 'OPERA%') and da_qualidade = 0 and periodo >= dateadd(d,1,eomonth(GETDATE(),-1))
+                select distinct atributo, gerente, tipo_matriz from Robbyson.dbo.Matriz_Geral (nolock) 
+                where (gerente <> '' and tipo_matriz like 'OPERA%') 
+                and da_qualidade = 0 and periodo >= dateadd(d,1,eomonth(GETDATE(),-1))
                 """)
             elif area == "Planejamento":
                 cur.execute(f"""
-                select distinct atributo, gerente, tipo_matriz from Robbyson.dbo.Matriz_Geral (nolock) where (gerente <> '' and tipo_matriz like 'OPERA%') and da_planejamento = 0 and periodo >= dateadd(d,1,eomonth(GETDATE(),-1))
+                select distinct atributo, gerente, tipo_matriz from Robbyson.dbo.Matriz_Geral (nolock) 
+                where (gerente <> '' and tipo_matriz like 'OPERA%') 
+                and da_planejamento = 0 and periodo >= dateadd(d,1,eomonth(GETDATE(),-1))
                 """)
             resultados = [{"atributo": i[0], "gerente": i[1], "tipo": i[2]} for i in cur.fetchall()]
             cur.close()
@@ -1359,7 +1382,7 @@ async def get_atributos_matricula(matricula):
                         when GERENTESENIOR is not null then GERENTESENIOR
                         else null end as Gerente, TipoHierarquia from [robbyson].[rlt].[hmn] hmn (nolock) 
                         where (data = convert(date, getdate()-1)) and (hmn.atributo is not null) 
-                        and (MatrGERENTE = {matricula} or MatrGERENTEPLENO = {matricula} or MatrGERENTESENIOR = {matricula} or MatrCOORDENADOR = {matricula})
+                        and (MatrGERENTE = {matricula} or MatrGERENTEPLENO = {matricula} or MatrGERENTESENIOR = {matricula} or MatrGERENTE_EXECUTIVO = {matricula})
                         and hmn.atributo in (select atributo from #qtd)
 
             drop table #qtd
@@ -1370,6 +1393,28 @@ async def get_atributos_matricula(matricula):
     resultados = await loop.run_in_executor(None, _sync_db_call)
     set_cache(cache_key, resultados)
     return resultados
+
+async def get_excecoes_disponibilidade():
+    cache_key = f"excecoes_disponibilidade"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+    resultados = None
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+                select distinct atributo from robbyson.dbo.excecoes_disponibilidade_matriz (nolock)
+            """)
+            resultados = cur.fetchall()
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    registros = [row[0] for row in resultados]
+    CACHE_TTL = timedelta(hours=24)
+    set_cache(cache_key, registros, CACHE_TTL)
+    return registros
 
 async def get_funcao(matricula):
     cache_key = f"funcao:{matricula}"

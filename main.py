@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from datetime import datetime
 from app.routes import router
 from app.database import init_db_pool
-from app.connections_db import get_resultados_indicadores_m3, get_matriculas_cadastro_adm
+from app.connections_db import get_resultados_indicadores_m3, get_excecoes_disponibilidade
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -19,11 +19,11 @@ async def startup_event():
 
     # 2. 🔑 PRÉ-CARREGA OS DADOS CRÍTICOS NO CACHE
     print("Iniciando pré-carregamento dos resultados dos indicadores M3 no cache...")
-    print("Iniciando pré-carregamento das matriculas que cadastram matrizes administrativas no cache...")
+    print("Iniciando pré-carregamento dos atributos que são exceções em disponibilidade no cache...")
     try:
         # A função é assíncrona, então usamos await
         await get_resultados_indicadores_m3() 
-        await get_matriculas_cadastro_adm()
+        await get_excecoes_disponibilidade()
         print("Pré-carregamento de dados concluído.")
     except Exception as e:
         # É importante tratar exceções para não travar a inicialização do app

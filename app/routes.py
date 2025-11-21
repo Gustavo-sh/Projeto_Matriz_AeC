@@ -18,7 +18,7 @@ from app.cache import (
     set_session, get_current_user
 )
 from app.connections_db import (
-    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_matriculas_cadastro_adm, get_atributos_cadastro_apoio,
+    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_atributos_cadastro_apoio,
     query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1, #update_da_adm_10,
     get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_matrizes_administrativas, update_meta_moedas_bd, get_matrizes_ativo_10, get_nao_acordos_exop,
     get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm, get_matrizes_nao_cadastradas, get_matrizes_alteradas_apoio, update_dmm_bd, query_mes, get_fact_m0, insert_log_meta_moedas
@@ -135,6 +135,8 @@ async def register_user(request: Request, username: str = Form(...), password: s
         elif "COORDENADOR DE PLANEJAMENTO" in funcao_upper or "GERENTE DE PLANEJAMENTO" in funcao_upper:
             role = "apoio planejamento"
         elif "GERENTE DE OPERACAO" in funcao_upper:
+            role = "operacao"
+        elif "SUPERINTENDENTE DE OPERACAO" in funcao_upper:
             role = "operacao"
         elif "DESENVOLVIMENTO OPERACIONAL" in funcao_upper:
             role = "adm"
@@ -395,6 +397,8 @@ async def pesquisar_m0(request: Request, atributo: str = Form(...)):
     for dic in registros:
         if dic.get("id_nome_indicador") == "48 - Presença":
             registros.remove(dic)
+        if dic.get("id_nome_indicador").lower() == r"901 - % disponibilidade":
+            dic["meta_sugerida"] = 94.0
     html_content = None
     if "operacao" in funcao.lower():
         html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das})
@@ -439,6 +443,8 @@ async def pesquisar_m1(request: Request, atributo: str = Form(...)):
     for dic in registros:
         if dic.get("id_nome_indicador") == "48 - Presença":
             registros.remove(dic)
+        if dic.get("id_nome_indicador").lower() == r"901 - % disponibilidade":
+            dic["meta_sugerida"] = 94.0
     html_content = None
     if "operacao" in funcao.lower():
         html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das})
@@ -483,6 +489,8 @@ async def pesquisar_mmais1(request: Request, atributo: str = Form(...)):
     for dic in registros:
         if dic.get("id_nome_indicador") == "48 - Presença":
             registros.remove(dic)
+        if dic.get("id_nome_indicador").lower() == r"901 - % disponibilidade":
+            dic["meta_sugerida"] = 94.0
     html_content = None
     if "operacao" in funcao.lower():
         html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
@@ -636,33 +644,33 @@ async def all_atributes_operacao(request: Request, tipo_pesquisa: str = Form(...
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
     return response
 
-@router.post("/allatributesapoio", response_class=HTMLResponse)
-async def all_atributes_apoio(request: Request, tipo_pesquisa: str = Form(...)):
-    registros = []
-    current_page = request.headers.get("hx-current-url", "desconhecido")
-    username = request.cookies.get("username", "anon")
-    matriculas = await get_matriculas_cadastro_adm()
-    atributos = await get_atributos_cadastro_apoio(matriculas[f"{username}"])
-    atributos_format = " ,".join(f"'{a["atributo"]}'" for a in atributos)
+# @router.post("/allatributesapoio", response_class=HTMLResponse)
+# async def all_atributes_apoio(request: Request, tipo_pesquisa: str = Form(...)):
+#     registros = []
+#     current_page = request.headers.get("hx-current-url", "desconhecido")
+#     username = request.cookies.get("username", "anon")
+#     matriculas = await get_matriculas_cadastro_adm()
+#     atributos = await get_atributos_cadastro_apoio(matriculas[f"{username}"])
+#     atributos_format = " ,".join(f"'{a["atributo"]}'" for a in atributos)
     
-    registros = await get_matrizes_administrativas(tipo_pesquisa, atributos_format, username)
+#     registros = await get_matrizes_administrativas(tipo_pesquisa, atributos_format, username)
     
-    path = urlparse(current_page).path.lower()
-    show_das = None
-    if "cadastro" in path:
-        show_das = None
-    else:
-        show_das = True
-    html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": False, "show_das": show_das}
-    )
-    response = Response(content=html_content.body, media_type="text/html")
-    if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
-    else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
-    return response
+#     path = urlparse(current_page).path.lower()
+#     show_das = None
+#     if "cadastro" in path:
+#         show_das = None
+#     else:
+#         show_das = True
+#     html_content = templates.TemplateResponse(
+#     "_pesquisa.html", 
+#     {"request": request, "registros": registros, "show_checkbox": False, "show_das": show_das}
+#     )
+#     response = Response(content=html_content.body, media_type="text/html")
+#     if len(registros) > 0:
+#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+#     else:
+#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+#     return response
 
 @router.post("/submit_table", response_class=HTMLResponse)
 async def submit_table(request: Request):
@@ -670,13 +678,13 @@ async def submit_table(request: Request):
     username = request.cookies.get("username", "anon")
     if not registros:
         return "<p>Nenhum registro para submeter.</p>"
-    num_atendentes = await get_num_atendentes(registros[0]["atributo"]) if registros[0]["tipo_matriz"] == "OPERAÇÃO" else None
-    if registros[0]["tipo_matriz"] == "OPERAÇÃO":
+    num_atendentes = await get_num_atendentes(registros[0]["atributo"]) if registros[0]["tipo_matriz"].lower() == "operacional" else None
+    if registros[0]["tipo_matriz"].lower() == "operacional":
         if num_atendentes == 0 or num_atendentes == '0':
             return "<p>Não é possível submeter a matriz, pois o atributo selecionado não possui nenhum atendente de nível 1.</p>"
     results = None
     try:
-        results = await validation_submit_table(registros)
+        results = await validation_submit_table(registros, username)
     except Exception as e:
         return f"<p>Erro Inesperado: {e}.</p>" 
     if isinstance(results, str):
@@ -991,6 +999,8 @@ async def processar_acordo(
             periodo = r.get("periodo")
             updates_a_executar.append((atributo, periodo, id_nome_indicador)) 
             trava_da_exop.append(r)
+    if role == 'adm':
+        updates_a_executar.append((atributo, periodo, '48 - Presença'))
     if updates_a_executar:
         role = user.get("role", "default")
         username = user.get("usuario")
