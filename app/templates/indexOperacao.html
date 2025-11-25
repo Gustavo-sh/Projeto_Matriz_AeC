@@ -111,35 +111,41 @@
 
             <button
                 type="button"
-                hx-post="/pesquisarm0" 
+                id="btn-m0"
+                hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']">
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m0"}'>
                 Pesquisar Mes Atual
             </button>
 
             <button
                 type="button"
-                hx-post="/pesquisarm1" 
+                id="btn-m1"
+                hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']">
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m1"}'>
                 Pesquisar Mes Anterior
             </button>
 
             <button
                 type="button"
-                hx-post="/pesquisarmmais1" 
+                id="btn-mmais1"
+                hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']">
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m+1"}'>
                 Pesquisar Mes Seguinte
             </button>
 
             <button
                 id="all_m0"
                 type="button"
-                hx-post="/allatributesoperacao" 
+                hx-post="/all_atributes_operacao" 
                 hx-target="#tabela-pesquisa"
                 hx-swap="innerHTML"
                 hx-vals='{"tipo_pesquisa": "m0_all"}'>
@@ -149,7 +155,7 @@
             <button
                 id="all_m1"
                 type="button"
-                hx-post="/allatributesoperacao" 
+                hx-post="/all_atributes_operacao" 
                 hx-target="#tabela-pesquisa"
                 hx-swap="innerHTML"
                 hx-vals='{"tipo_pesquisa": "m1_all"}'>
@@ -159,7 +165,7 @@
             <button
                 id="all_m+1"
                 type="button"
-                hx-post="/allatributesoperacao" 
+                hx-post="/all_atributes_operacao" 
                 hx-target="#tabela-pesquisa"
                 hx-swap="innerHTML"
                 hx-vals='{"tipo_pesquisa": "m+1_all"}'>
@@ -206,11 +212,7 @@
                     <label>Tipo Matriz:</label>
                     <input type="text" name="tipo_matriz" id="tipomatriz_select" value="" readonly>
 
-                    <label>Data Início: *</label>
-                    <input type="text" id="data_inicio" name="data_inicio" value="">
-
-                    <label>Data Fim: *</label>
-                    <input type="text" id="data_fim" name="data_fim" value="">
+                    
 
                     <label>Periodo:</label>
                     <input type="text" name="periodo" id="periodo_input" value="" readonly>
@@ -253,57 +255,19 @@
                     <label>Responsavel: *</label>
                     <input type="text" name="responsavel">
 
-                    
+                    <label>Gerente:</label>
+                    <input type="text" name="gerente" id="gerente_input" value="" readonly>
+
+                    <label>Data Início: *</label>
+                    <input type="text" id="data_inicio" name="data_inicio" value="">
+
+                    <label>Data Fim: *</label>
+                    <input type="text" id="data_fim" name="data_fim" value="">
 
                     <input type="hidden" id="atributo_hidden" name="atributo" value="">
                 </div>
 
-                <div >
-                        <div id="bloco-metas">
-                    
-                        <label>Meta Sugerida:</label>
-                        <input type="text" name="meta_sugerida" id="meta_sugerida_input" value="" readonly>
-
-                        <label>Meta Escolhida:</label>
-                        <input type="text" name="meta_escolhida" id="meta_escolhida_input" value="" readonly>
-
-                        <label>Atingimento Projetado:</label>
-                        <input type="text" name="atingimento_projetado" id="atingimento_projetado_input" value="" readonly>
-
-                        <label>Resultado M0:</label>
-                        <input type="text" name="resultadom0" id="resultadom0_input" value="" readonly>
-
-                        <label>Atingimento M0:</label>
-                        <input type="text" name="atingimentom0" id="atingimentom0_input" value="" readonly>
-
-                        <label>Resultado M1:</label>
-                        <input type="text" name="resultadom1" id="resultadom1_input" value="" readonly>
-
-                        <label>Atingimento M1:</label>
-                        <input type="text" name="atingimentom1" id="atingimentom1_input" value="" readonly>
-
-                        <label>Max Data:</label>
-                        <input type="text" name="max_data" id="max_data_input" value="" readonly>
-                    
-                        </div>
-
-                    <label>Gerente:</label>
-                    <input type="text" name="gerente" id="gerente_input" value="" readonly>
-
-                    <button
-                        type="button"
-                        class="tr_button"
-                        hx-post="/trazer_resultados"
-                        hx-include="closest form"
-                        hx-target="#bloco-metas"
-                        hx-swap="innerHTML"
-                        hx-include="#atributo, #indicadores"
-                        hx-on::htmx:responseError="document.getElementById('mensagens-indicador').innerText = JSON.parse(event.detail.xhr.response).detail">
-                        Trazer Resultados
-                    </button>
-                    
-                    <div class="mensagens-indicador" id="mensagens-indicador"></div>
-                </div>
+                <div class="mensagens-indicador" id="mensagens-indicador"></div>
 
                 <div class="form-submit">
                     <button type="submit" class="button-submit-form">Enviar</button>

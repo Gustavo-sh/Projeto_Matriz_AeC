@@ -725,3 +725,55 @@
     backdrop.classList.remove("active");
   });
 })();
+
+/* =============================
+ * SINCRONIZA DUPLICAÇÃO DE PESQUISA
+ * - Mes (m0, m1, m+1) -> #duplicar_tipo_pesquisa
+ * - Atributo -> #duplicar_atributo
+ * ============================= */
+(function () {
+
+  function sincronizarDuplicacao(event) {
+    const botao = event.target.closest("button");
+    if (!botao) return;
+
+    const campoTipo = document.getElementById("duplicar_tipo_pesquisa");
+    const campoAtributoDuplicar = document.getElementById("duplicar_atributo");
+    const selectAtributo = document.getElementById("atributo_select");
+
+    if (!campoTipo || !campoAtributoDuplicar || !selectAtributo) return;
+
+    // --- captura mês pelo hx-vals ---
+    const hxVals = botao.getAttribute("hx-vals");
+
+    if (hxVals) {
+      try {
+        const valores = JSON.parse(hxVals);
+
+        if (valores.mes) {
+          campoTipo.value = valores.mes;
+          console.log("Tipo de pesquisa setado:", valores.mes);
+        }
+
+      } catch (error) {
+        console.error("Erro ao interpretar hx-vals:", error);
+      }
+    }
+
+    // --- sincroniza atributo atual ---
+    campoAtributoDuplicar.value = selectAtributo.value;
+    console.log("Atributo sincronizado:", selectAtributo.value);
+  }
+
+  // Delegação global segura
+  document.body.addEventListener("click", function (event) {
+    if (
+      event.target.closest("#btn-m0") ||
+      event.target.closest("#btn-m1") ||
+      event.target.closest("#btn-mmais1")
+    ) {
+      sincronizarDuplicacao(event);
+    }
+  });
+
+})();

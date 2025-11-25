@@ -14,16 +14,16 @@ from fastapi.responses import StreamingResponse
 import json
 from fastapi import UploadFile, File
 from app.cache import (
-    get_from_cache, set_cache, load_registros, save_registros,
-    set_session, get_current_user
+    get_from_cache, set_cache, load_registros, save_registros, set_session, get_current_user
 )
 from app.connections_db import (
-    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_atributos_cadastro_apoio,
-    query_m0, query_m1, get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, validar_datas, get_num_atendentes, import_from_excel, query_m_mais1, #update_da_adm_10,
-    get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, get_matrizes_administrativas, update_meta_moedas_bd, get_matrizes_ativo_10, get_nao_acordos_exop,
-    get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm, get_matrizes_nao_cadastradas, get_matrizes_alteradas_apoio, update_dmm_bd, query_mes, get_fact_m0, insert_log_meta_moedas
+    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd,
+    get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, get_num_atendentes, import_from_excel, 
+    get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, update_meta_moedas_bd, get_nao_acordos_exop,
+    get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm, get_matrizes_nao_cadastradas, get_matrizes_alteradas_apoio, update_dmm_bd, query_mes, 
+    get_factibilidade, insert_log_meta_moedas,
 )
-from app.validations import validation_submit_table, validation_import_from_excel, validation_meta_moedas, validation_dmm
+from app.validations import validation_submit_table, validation_import_from_excel, validation_meta_moedas, validation_dmm, validation_datas
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -217,19 +217,8 @@ async def index_apoio(request: Request):
     if not user:
         return RedirectResponse("/login", status_code=303)
     _check_role_or_forbid(user, ["apoio qualidade", "apoio planejamento", "adm"])
-    #matriculas = await get_matriculas_cadastro_adm()
     username = request.cookies.get("username")
-    # if str(username) not in matriculas.keys():
-    #     session_token = str(uuid.uuid4())
-    #     resp = RedirectResponse("/redirect_by_role", status_code=303)
-    #     resp.set_cookie("session_token", session_token, httponly=True)
-    #     resp.set_cookie("logged_in", "true", httponly=True)
-    #     resp.set_cookie("last_active", datetime.utcnow().isoformat(), httponly=True)
-    #     resp.set_cookie("username", username, httponly=True)
-    #     resp.set_cookie("role", user.get("role"), httponly=True)
-    #     return resp
     indicadores = await get_indicadores()
-    #atributos = await get_atributos_cadastro_apoio(matriculas[f"{username}"])
     area = None
     funcao = await get_funcao(username)
     if "qualidade" in funcao.lower():
@@ -294,15 +283,6 @@ async def index_adm(request: Request):
         return RedirectResponse("/login", status_code=303)
     _check_role_or_forbid(user, ["adm"])
     username = request.cookies.get("username")
-    # if str(username) not in adm_acordo:
-    #     session_token = str(uuid.uuid4())
-    #     resp = RedirectResponse("/redirect_by_role", status_code=303)
-    #     resp.set_cookie("session_token", session_token, httponly=True)
-    #     resp.set_cookie("logged_in", "true", httponly=True)
-    #     resp.set_cookie("last_active", datetime.utcnow().isoformat(), httponly=True)
-    #     resp.set_cookie("username", username, httponly=True)
-    #     resp.set_cookie("role", user.get("role"), httponly=True)
-    #     return resp
     indicadores = await get_indicadores()
     atributos = await get_atributos_adm()
     registros = load_registros(request)
@@ -341,7 +321,7 @@ async def add_registro(
     ):
     registros = load_registros(request)
     novo_id = str(uuid.uuid4())
-    fact = await get_fact_m0(atributo, nome.split(" - ")[0])
+    fact = await get_factibilidade(atributo, nome.split(" - ")[0])
     novo = {
         "id": novo_id,
         "atributo": atributo, "id_nome_indicador": nome, "meta_sugerida": fact[0]["metasugerida"] if fact else '', "resultado": fact[0]["resultado"] if fact else '', "atingimento": fact[0]["atingimento"] if fact else '',
@@ -365,145 +345,95 @@ async def add_registro(
     response.headers["HX-Trigger"] = '{"mostrarSucesso": "xIndicadorx: Novo registro adicionado com sucesso!"}'
     return response
 
-@router.post("/pesquisarm0", response_class=HTMLResponse)
-async def pesquisar_m0(request: Request, atributo: str = Form(...)):
-    registros = []
-    current_page = request.headers.get("hx-current-url", "desconhecido").lower()
-    if not atributo:
-        raise HTTPException(
-            status_code=422,
-            detail="xFiltrox : Selecione um atributo primeiro!"
-        )
-    username = request.cookies.get("username", "anon")
-    area = None
-    funcao = await get_funcao(username)
-    if "qualidade" in funcao.lower():
-        area = "Qualidade"
-    elif "planejamento" in funcao.lower():
-        area = "Planejamento"
-    page = None
-    path = urlparse(current_page).path.lower()
-    show_das = None
-    show_checkbox = True
-    # if "/matriz/apoio" in path:
-    #     show_checkbox = False
-    if "cadastro" in path:
-        page = "cadastro"
-        show_das = None
-    else:
-        page = "demais"
-        show_das = True
-    registros = await query_mes(atributo, username, page, area, 'm0')
-    for dic in registros:
-        if dic.get("id_nome_indicador") == "48 - Presença":
-            registros.remove(dic)
-        if dic.get("id_nome_indicador").lower() == r"901 - % disponibilidade":
-            dic["meta_sugerida"] = 94.0
-    html_content = None
-    if "operacao" in funcao.lower():
-        html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das})
-    else:
-        html_content = templates.TemplateResponse("_pesquisa.html", {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das})
-    response = Response(content=html_content.body, media_type="text/html")
-    if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
-    else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
-    return response
+@router.post("/pesquisar_mes", response_class=HTMLResponse)
+async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = Form(...)):
+    try:
+        registros = []
 
-@router.post("/pesquisarm1", response_class=HTMLResponse)
-async def pesquisar_m1(request: Request, atributo: str = Form(...)):
-    registros = []
-    current_page = request.headers.get("hx-current-url", "desconhecido")
-    if not atributo:
-        raise HTTPException(
-            status_code=422,
-            detail="xFiltrox: Selecione um atributo primeiro!"
-        )
-    username = request.cookies.get("username", "anon")
-    area = None
-    funcao = await get_funcao(username)
-    if "qualidade" in funcao.lower():
-        area = "Qualidade"
-    elif "planejamento" in funcao.lower():
-        area = "Planejamento"
-    page = None
-    path = urlparse(current_page).path.lower()
-    show_das = None
-    show_checkbox = True
-    # if "/matriz/apoio" in path:
-    #     show_checkbox = False
-    if "cadastro" in path:
-        page = "cadastro"
-        show_das = None
-    else:
-        page = "demais"
-        show_das = True
-    registros = await query_mes(atributo, username, page, area, 'm1')
-    for dic in registros:
-        if dic.get("id_nome_indicador") == "48 - Presença":
-            registros.remove(dic)
-        if dic.get("id_nome_indicador").lower() == r"901 - % disponibilidade":
-            dic["meta_sugerida"] = 94.0
-    html_content = None
-    if "operacao" in funcao.lower():
-        html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das})
-    else:
-        html_content = templates.TemplateResponse("_pesquisa.html", {"request": request, "registros": registros, "show_checkbox": show_checkbox, "show_das": show_das})
-    response = Response(content=html_content.body, media_type="text/html")
-    if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
-    else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
-    return response
+        current_page = request.headers.get("hx-current-url", "desconhecido")
+        path = urlparse(current_page).path.lower()
 
-@router.post("/pesquisarmmais1", response_class=HTMLResponse)
-async def pesquisar_mmais1(request: Request, atributo: str = Form(...)):
-    registros = []
-    current_page = request.headers.get("hx-current-url", "desconhecido")
-    if not atributo:
-        raise HTTPException(
-            status_code=422,
-            detail="xFiltrox: Selecione um atributo primeiro!"
-        )
-    username = request.cookies.get("username", "anon")
-    area = None
-    funcao = await get_funcao(username)
-    if "qualidade" in funcao.lower():
-        area = "Qualidade"
-    elif "planejamento" in funcao.lower():
-        area = "Planejamento"
-    page = None
-    path = urlparse(current_page).path.lower()
-    show_das = None
-    if "cadastro" in path:
-        page = "cadastro"
-        show_das = None
-    else:
-        page = "demais"
-        show_das = True
-    show_checkbox = False
-    if "/matriz/apoio" in path or '/matriz/adm' in path:
+        if not atributo:
+            raise HTTPException(
+                status_code=422,
+                detail="xFiltrox: Selecione um atributo primeiro!"
+            )
+
+        username = request.cookies.get("username", "anon")
+
+        funcao = await get_funcao(username)
+        area = None
+
+        if funcao:
+            if "qualidade" in funcao.lower():
+                area = "Qualidade"
+            elif "planejamento" in funcao.lower():
+                area = "Planejamento"
+
+        # ---- definição de página ----
+        if "cadastro" in path:
+            page = "cadastro"
+            show_das = None
+        else:
+            page = "demais"
+            show_das = True
+
+        # if "/matriz/apoio" in path:
+        #   show_checkbox = False
+
+        # ---- regra do checkbox ----
         show_checkbox = True
-    registros = await query_mes(atributo, username, page, area, 'm+1')
-    for dic in registros:
-        if dic.get("id_nome_indicador") == "48 - Presença":
-            registros.remove(dic)
-        if dic.get("id_nome_indicador").lower() == r"901 - % disponibilidade":
-            dic["meta_sugerida"] = 94.0
-    html_content = None
-    if "operacao" in funcao.lower():
-        html_content = templates.TemplateResponse("_pesquisaOperacao.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
-    else:
-        html_content = templates.TemplateResponse("_pesquisa.html", {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das})
-    response = Response(content=html_content.body, media_type="text/html")
-    if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
-    else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
-    return response
+        if mes == "m+1":
+            show_checkbox = False
+            if "/matriz/apoio" in path or "/matriz/adm" in path:
+                show_checkbox = True
 
-@router.post("/pesquisaracordos", response_class=HTMLResponse)
+        registros = await query_mes(atributo, username, page, area, mes)
+
+        # ✅ filtro correto sem erro estrutural
+        registros = [
+            dic for dic in registros
+            if dic.get("id_nome_indicador").lower() != "48 - presença"
+        ]
+
+        # ajuste do indicador 901
+        for dic in registros:
+            if isinstance(dic.get("id_nome_indicador"), str) and \
+               dic.get("id_nome_indicador").lower() == "901 - % disponibilidade":
+                dic["meta_sugerida"] = 94.0
+
+        if "operacao" in funcao.lower():
+            html_content = templates.TemplateResponse("_pesquisaOperacao.html", {
+                "request": request,
+                "registros": registros,
+                "show_checkbox": show_checkbox,
+                "show_das": show_das
+            })
+        else:
+            html_content = templates.TemplateResponse("_pesquisa.html", {
+                "request": request,
+                "registros": registros,
+                "show_checkbox": show_checkbox,
+                "show_das": show_das
+            })
+
+        response = Response(content=html_content.body, media_type="text/html")
+
+        if registros:
+            response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+        else:
+            response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+
+        return response
+
+    except Exception as e:
+        return Response(
+            content=f"Erro inesperado: {str(e)}",
+            status_code=500
+        )
+
+
+@router.post("/pesquisar_acordos", response_class=HTMLResponse)
 async def pesquisar_acordos(request: Request):
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
@@ -525,7 +455,7 @@ async def pesquisar_acordos(request: Request):
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
     return response
 
-@router.post("/pesquisarnaoacordos", response_class=HTMLResponse)
+@router.post("/pesquisar_nao_acordos", response_class=HTMLResponse)
 async def pesquisar_nao_acordos(request: Request):
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
@@ -547,7 +477,7 @@ async def pesquisar_nao_acordos(request: Request):
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
     return response
 
-@router.post("/pesquisarnaoacordosexop", response_class=HTMLResponse)
+@router.post("/pesquisar_nao_acordos_exop", response_class=HTMLResponse)
 async def pesquisar_nao_acordos_exop(request: Request):
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
@@ -569,28 +499,7 @@ async def pesquisar_nao_acordos_exop(request: Request):
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
     return response
 
-@router.post("/pesquisar/atributos_ativo_10", response_class=HTMLResponse)
-async def atributos_ativo_10(request: Request):
-    current_page = request.headers.get("hx-current-url", "desconhecido")
-    registros = await get_matrizes_ativo_10()
-    path = urlparse(current_page).path.lower()
-    show_das = None
-    if "cadastro" in path:
-        show_das = None
-    else:
-        show_das = True
-    html_content = templates.TemplateResponse(
-    "_pesquisa.html", 
-    {"request": request, "registros": registros, "show_checkbox": True, "show_das": show_das, "show_just": True}
-    )
-    response = Response(content=html_content.body, media_type="text/html")
-    if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
-    else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
-    return response
-
-@router.post("/pesquisar/matrizes_administrativas", response_class=HTMLResponse)
+@router.post("/pesquisar_matrizes_administrativas", response_class=HTMLResponse)
 async def matrizes_administrativas_pg_adm(request: Request, tipo: str = Form(...)):
     current_page = request.headers.get("hx-current-url", "desconhecido")
     registros = await get_matrizes_administrativas_pg_adm(tipo)
@@ -612,7 +521,7 @@ async def matrizes_administrativas_pg_adm(request: Request, tipo: str = Form(...
     return response
 
 
-@router.post("/allatributesoperacao", response_class=HTMLResponse)
+@router.post("/all_atributes_operacao", response_class=HTMLResponse)
 async def all_atributes_operacao(request: Request, tipo_pesquisa: str = Form(...)):
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
@@ -644,34 +553,6 @@ async def all_atributes_operacao(request: Request, tipo_pesquisa: str = Form(...
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
     return response
 
-# @router.post("/allatributesapoio", response_class=HTMLResponse)
-# async def all_atributes_apoio(request: Request, tipo_pesquisa: str = Form(...)):
-#     registros = []
-#     current_page = request.headers.get("hx-current-url", "desconhecido")
-#     username = request.cookies.get("username", "anon")
-#     matriculas = await get_matriculas_cadastro_adm()
-#     atributos = await get_atributos_cadastro_apoio(matriculas[f"{username}"])
-#     atributos_format = " ,".join(f"'{a["atributo"]}'" for a in atributos)
-    
-#     registros = await get_matrizes_administrativas(tipo_pesquisa, atributos_format, username)
-    
-#     path = urlparse(current_page).path.lower()
-#     show_das = None
-#     if "cadastro" in path:
-#         show_das = None
-#     else:
-#         show_das = True
-#     html_content = templates.TemplateResponse(
-#     "_pesquisa.html", 
-#     {"request": request, "registros": registros, "show_checkbox": False, "show_das": show_das}
-#     )
-#     response = Response(content=html_content.body, media_type="text/html")
-#     if len(registros) > 0:
-#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
-#     else:
-#         response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
-#     return response
-
 @router.post("/submit_table", response_class=HTMLResponse)
 async def submit_table(request: Request):
     registros = load_registros(request)
@@ -697,25 +578,10 @@ async def submit_table(request: Request):
             if (cond['atributo'] == atributo_bd and 
                 cond['periodo'] == periodo_bd and 
                 cond['id_nome_indicador'] == id_nome_indicador_bd):
-                if validar_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
-                    # hoje = datetime.now().day
-                    # dia_um = datetime.now().replace(day=1).date()
-                    # if hoje > 10 and periodo_bd == dia_um.strftime("%Y-%m-%d"):
-                        
-                    #     # Retorna o HTML parcial pedindo justificativa
-                    #     return templates.TemplateResponse(
-                    #         "_justificativa.html",
-                    #         {
-                    #             "request": request,
-                    #             "indicador": cond["id_nome_indicador"],
-                    #             "atributo": cond["atributo"],
-                    #             "periodo": cond["periodo"],
-                    #         },
-                    #     )
-                    # else:
-                        return (
-                            f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.\nSe deseja alterar essa matriz, gentileza acessar link de alteração de matriz no botão links importantes.</p>"  
-                        )
+                if validation_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
+                    return (
+                        f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.\nSe deseja alterar essa matriz, gentileza acessar link de alteração de matriz no botão links importantes.</p>"  
+                    )
                     
     await save_registros_bd(registros, username, None, None)
     response = Response(
@@ -726,161 +592,104 @@ async def submit_table(request: Request):
     response.headers["HX-Trigger"] = '{"mostrarSucesso": "Tabela submetida com sucesso"}' 
     return response
 
-@router.post("/justificar_alteracao", response_class=HTMLResponse)
-async def justificar_alteracao(
-    request: Request,
-    justificativa: str = Form(...),
-):
-    """
-    Insere todos os registros atualmente carregados em cache,
-    marcando-os com ativo = 10 e adicionando a justificativa informada.
-    """
-    username = request.cookies.get("username", "anon")
-
-    # Carrega todos os registros salvos temporariamente no cache
-    registros = load_registros(request)
-    results = None
-    try:
-        results = await validation_submit_table(registros)
-    except Exception as e:
-        return f"<p>Erro Inesperado: {e}.</p>" 
-    if isinstance(results, str):
-        return results
-    _, registros = results
-    if not registros:
-        return "<p>Erro: Nenhum registro encontrado para justificativa.</p>"
-
-    # Aplica justificativa e campo ativo = 10 a todos os registros
-    for r in registros:
-        r["ativo"] = 10
-        r["justificativa"] = justificativa
-
-    # Salva todos os registros no banco de dados
-    await save_registros_bd(registros, username, justificativa, 10)
-
-    return (
-        "<p>Solicitação enviada com sucesso! "
-        "A alteração será avaliada pelo superintendente.</p>"
-    )
-    
-@router.post("/trazer_resultados", response_class=HTMLResponse)
-async def trazer_resultados(request: Request, atributo: str = Form(...), nome: str = Form(...)):
-    if len(nome.split(" - ")) == 1:
-        raise HTTPException(
-            status_code=422,
-            detail="xIndicadorx: Selecione um atributo e um indicador primeiro!"
-        )
-    id_indicador = nome.split(" - ")[0]
-    query = await get_resultados(atributo, id_indicador)
-    if not query:
-        raise HTTPException(
-            status_code=422,
-            detail="xIndicadorx: Nenhum resultado encontrado para o indicador e atributo selecionados."
-        )
-    m1 = query[0] if len(query) > 1 else None
-    m0 = query[1] if len(query) > 1 else query[0]
-    return templates.TemplateResponse(
-        "_resultados.html", 
-        {
-            "request": request,
-            "meta_sugerida": m0[6] if m0[6] else "",
-            "meta_escolhida": m0[7] if m0[7] else "",
-            "atingimento_projetado": m0[8] if m0[8] else "",
-            "resultado_m0": m0[4] if m1 else "",
-            "atingimento_m0": m0[5] if m1 else "",
-            "resultado_m1": m1[4] if m1 else m0[4],
-            "atingimento_m1": m1[5] if m1 else m0[5],
-            "max_data": m0[10] if m0 else m1[10]
-        }
-    )
-
 @router.post("/duplicate_search_results", response_class=HTMLResponse)
-def duplicate_search_results(
-    request: Request, 
-    atributo: str = Form(...), 
+async def duplicate_search_results(
+    request: Request,
+    atributo: str = Form(...),
     tipo_pesquisa: str = Form(...),
-    data_inicio: str = Form(...), 
-    data_fim: str = Form(...), 
+    data_inicio: str = Form(...),
+    data_fim: str = Form(...),
     periodo: str = Form(...),
     registro_ids: List[str] = Form([], alias="registro_ids")
-    ):
-    if not data_inicio or not data_fim or not periodo:
-          raise HTTPException(
-              status_code=422,
-              detail="xPesquisax: Selecione as datas de início e fim antes de duplicar!"
-          )
-    if not registro_ids:
-        raise HTTPException(
-            status_code=422,
-            detail="xPesquisax: Selecione pelo menos um registro para duplicar."
+):
+    try:
+        if not data_inicio or not data_fim or not periodo:
+            raise HTTPException(
+                status_code=422,
+                detail="xPesquisax: Selecione as datas de início e fim antes de duplicar!"
+            )
+
+        if not registro_ids:
+            raise HTTPException(
+                status_code=422,
+                detail="xPesquisax: Selecione pelo menos um registro para duplicar."
+            )
+        
+        if not atributo:
+            raise HTTPException(
+                status_code=422,
+                detail="xPesquisax: Selecione o atributo antes de duplicar."
+            )
+
+        current_page = request.headers.get("hx-current-url", "desconhecido").lower()
+        path = urlparse(current_page).path.lower()
+
+        page = "cadastro" if "cadastro" in path else "demais"
+
+        user = get_current_user(request)
+        role = user.get("role")
+
+        # ✅ Nova estrutura de cache unificada
+        cache_key = f"pesquisa_{tipo_pesquisa}:{atributo}:{page}"
+
+        registros_da_pesquisa = get_from_cache(cache_key)
+
+        if not registros_da_pesquisa:
+            raise HTTPException(
+                status_code=422,
+                detail="xPesquisax: Nenhum resultado de pesquisa encontrado. Refaça a pesquisa antes de duplicar."
+            )
+
+        ids_selecionados = set(registro_ids)
+
+        registros_a_duplicar = [
+            r for r in registros_da_pesquisa
+            if str(r.get("id")) in ids_selecionados
+        ]
+
+        if not registros_a_duplicar:
+            raise HTTPException(
+                status_code=422,
+                detail="xPesquisax: Os registros selecionados não foram encontrados."
+            )
+
+        registros_atuais = load_registros(request)
+
+        for registro in registros_a_duplicar:
+            if registro.get("id_nome_indicador") == "48 - Presença":
+                continue
+
+            copia = registro.copy()
+            copia["id"] = str(uuid.uuid4())
+            copia["data_inicio"] = data_inicio
+            copia["data_fim"] = data_fim
+            copia["periodo"] = periodo
+            copia["dmm"] = ''
+            copia["possui_dmm"] = 'Não'
+            copia["ativo"] = 0
+
+            registros_atuais.append(copia)
+
+        save_registros(request, registros_atuais)
+
+        html_content = templates.TemplateResponse(
+            "_registro.html",
+            {"request": request, "registros": registros_atuais}
         )
-    cache_key = ""
-    user = get_current_user(request)
-    username = request.cookies.get("username")
-    role = user.get("role")    
-    page = None
-    current_page = request.headers.get("hx-current-url", "desconhecido").lower()
-    path = urlparse(current_page).path.lower()
-    if "cadastro" in path:
-        page = "cadastro"
-    else:
-        page = "demais"
-    if tipo_pesquisa == "m0":
-        if role == 'operacao':
-            cache_key = f"pesquisa_m0:{atributo}:{page}"
-        elif role == 'adm' or role == 'apoio qualidade' or role == 'apoio planejamento':
-            cache_key = f"pesquisa_m0:{atributo}:{page}"
-        else:
-            raise HTTPException(status_code=422, detail="xPesquisax: Role invalida!")
-    elif tipo_pesquisa == "m1":
-        if role == 'operacao':
-            cache_key = f"pesquisa_m1:{atributo}:{page}"
-        elif role == 'adm' or role == 'apoio qualidade' or role == 'apoio planejamento':
-            cache_key = f"pesquisa_m1:{atributo}:{page}"
-        else:
-            raise HTTPException(status_code=422, detail="xPesquisax: Role invalida!")
-    else:
-        raise HTTPException(
-            status_code=422,
-            detail="xPesquisax: Tipo de pesquisa inválido (deve ser 'm0' ou 'm1')."
+
+        response = Response(content=html_content.body, media_type="text/html")
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xPesquisax: Registros duplicados com sucesso!"}'
+        return response
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        return Response(
+            content=f"xPesquisax: Erro inesperado ao duplicar registros. ({str(e)})",
+            status_code=500
         )
-    registros_da_pesquisa = get_from_cache(cache_key)
-    if not registros_da_pesquisa:
-        raise HTTPException(
-            status_code=422,
-            detail="xPesquisax: Nenhum resultado de pesquisa encontrado no cache para duplicar. Execute a pesquisa primeiro!"
-        )
-    ids_selecionados = set(registro_ids)
-    registros_a_duplicar = [
-        r for r in registros_da_pesquisa 
-        if str(r.get("id")) in ids_selecionados
-    ]
-    if not registros_a_duplicar:
-        raise HTTPException(
-            status_code=422,
-            detail="xPesquisax: Os registros selecionados não foram encontrados no cache da pesquisa."
-        )
-    registros_atuais = load_registros(request)
-    for novo_registro in registros_a_duplicar:
-        if novo_registro.get("id_nome_indicador") == "48 - Presença":
-            continue
-        registro_copia = novo_registro.copy()
-        registro_copia["id"] = str(uuid.uuid4())
-        registro_copia["data_inicio"] = data_inicio
-        registro_copia["data_fim"] = data_fim
-        registro_copia["periodo"] = periodo 
-        registro_copia["dmm"] = ''
-        registro_copia["possui_dmm"] = 'Não'
-        registro_copia["ativo"] = 0
-        registros_atuais.append(registro_copia)
-    save_registros(request, registros_atuais)
-    html_content = templates.TemplateResponse(
-        "_registro.html", 
-        {"request": request, "registros": registros_atuais} 
-    ) 
-    response = Response(content=html_content.body, media_type="text/html")
-    response.headers["HX-Trigger"] = '{"mostrarSucesso": "xPesquisax: Registros da pesquisa duplicados e adicionados com sucesso!"}'
-    return response
+
 
 @router.post("/update_registro/{registro_id}/{campo}", response_class=HTMLResponse)
 def update_registro(request: Request, registro_id: str, campo: str, novo_valor: str = Form(..., alias="value")):
@@ -966,91 +775,195 @@ async def processar_acordo(
     request: Request, 
     registro_ids: List[str] = Form([], alias="registro_ids"),
     status_acao: str = Form(..., alias="status_acao"),
-    cache_key: str = Form(..., alias="cache_key") 
+    cache_key: str = Form(..., alias="cache_key")
 ):
+    # -----------------------------
+    # 1) Validação inicial de sessão e autorização
+    # -----------------------------
     user = get_current_user(request)
     _check_role_or_forbid(user, ["adm", "apoio qualidade", "apoio planejamento"])
-    role = user.get("role", "default")
+    role = user.get("role", "default").lower().strip()
+    print(cache_key)
+
+    # -----------------------------
+    # 2) Validação: precisa ter registros selecionados
+    # -----------------------------
     if not registro_ids:
         raise HTTPException(
             status_code=422,
             detail="xPesquisax: Selecione pelo menos um registro para dar Acordo ou Não Acordo."
         )
-    registros_pesquisa = get_from_cache(cache_key)
+
+    # Normalização dos IDs
+    registro_ids = [str(x).strip() for x in registro_ids]
+    status_acao = status_acao.lower().strip()
+    cache_key = cache_key.strip()
+
+    # -----------------------------
+    # 3) Recuperar cache — mesma lógica da função duplicate
+    # -----------------------------
+    try:
+        registros_pesquisa = get_from_cache(cache_key)
+    except Exception:
+        raise HTTPException(
+            status_code=422,
+            detail="xPesquisax: Erro ao acessar o cache da pesquisa."
+        )
+
     if not registros_pesquisa:
-         raise HTTPException(status_code=422, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
-    ids_selecionados = set(registro_ids)
+        raise HTTPException(
+            status_code=422,
+            detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa."
+        )
+
+    # -----------------------------
+    # 4) Verificar contexto da página para exibir DAS ou não
+    # -----------------------------
+    current_page = request.headers.get("hx-current-url", "desconhecido")
+    try:
+        path = urlparse(current_page).path.lower()
+    except Exception:
+        path = "desconhecido"
+
+    show_das = None if "cadastro" in path else True
+
+    # -----------------------------
+    # 5) Processar itens selecionados
+    # -----------------------------
+    ids_set = set(registro_ids)
+
     registros_apos_acao = []
     updates_a_executar = []
     trava_da_exop = []
-    current_page = request.headers.get("hx-current-url", "desconhecido").lower()
-    path = urlparse(current_page).path.lower()
-    show_das = None
-    if "cadastro" in path:
-        show_das = None
-    else:
-        show_das = True
+
     for r in registros_pesquisa:
-        if str(r.get("id")) not in ids_selecionados:
-            registros_apos_acao.append(r)
-        else:
-            atributo = r.get("atributo")
-            id_nome_indicador = r.get("id_nome_indicador") 
-            periodo = r.get("periodo")
-            updates_a_executar.append((atributo, periodo, id_nome_indicador)) 
-            trava_da_exop.append(r)
-    if role == 'adm':
-        updates_a_executar.append((atributo, periodo, '48 - Presença'))
+        try:
+            rid = str(r.get("id"))
+        except Exception:
+            continue  # registro quebrado, ignora silenciosamente
+
+        if rid not in ids_set:
+            if r.get("id_nome_indicador").lower() != "48 - presença":
+                registros_apos_acao.append(r)
+            continue
+
+        atributo = str(r.get("atributo", "")).strip()
+        id_nome_indicador = str(r.get("id_nome_indicador", "")).strip()
+        periodo = str(r.get("periodo", "")).strip()
+
+        updates_a_executar.append((atributo, periodo, id_nome_indicador))
+        trava_da_exop.append(r)
+
+    # -----------------------------
+    # 6) Regra especial: ADM inclui '48 - Presença'
+    # -----------------------------
+    if role == "adm":
+        # ⚠️ Atenção: mantém exatamente o mesmo comportamento original
+        try:
+            updates_a_executar.append((atributo, periodo, "48 - Presença"))
+        except Exception:
+            pass  # evita crash caso variável não exista (mantém comportamento original)
+
+    # -----------------------------
+    # 7) Validação interna do ADM (Qualidade / Planejamento)
+    # -----------------------------
     if updates_a_executar:
-        role = user.get("role", "default")
         username = user.get("usuario")
+
         if role == "adm":
             for dic in trava_da_exop:
-                if dic["area"] == "Qualidade":
+                try:
+                    area = dic.get("area", "").lower().strip()
+                    indicador = dic.get("id_nome_indicador", "")
+                except Exception:
+                    raise HTTPException(
+                        status_code=422,
+                        detail="xPesquisax: Não foi possível validar os dados selecionados."
+                    )
+
+                if area == "qualidade":
                     try:
-                        if int(dic["da_qualidade"]) == 0:
-                            raise HTTPException(status_code=422, detail="xPesquisax: O indicar " + dic["id_nome_indicador"] + " não tem de acordo da qualidade.")
+                        if int(dic.get("da_qualidade", 0)) == 0:
+                            raise HTTPException(
+                                status_code=422,
+                                detail=f"xPesquisax: O indicador {indicador} não tem De Acordo da Qualidade."
+                            )
                     except Exception:
-                        raise HTTPException(status_code=422, detail="xPesquisax: Não foi possível verificar o de acordo da qualidade do indicador " + dic["id_nome_indicador"])
-                elif dic["area"] == "Planejamento":
+                        raise HTTPException(
+                            status_code=422,
+                            detail=f"xPesquisax: Não foi possível verificar o De Acordo da Qualidade do indicador {indicador}."
+                        )
+
+                elif area == "planejamento":
                     try:
-                        if int(dic["da_planejamento"]) == 0:
-                            raise HTTPException(status_code=422, detail="xPesquisax: O indicar " + dic["id_nome_indicador"] + " não tem de acordo da planejamento.")
+                        if int(dic.get("da_planejamento", 0)) == 0:
+                            raise HTTPException(
+                                status_code=422,
+                                detail=f"xPesquisax: O indicador {indicador} não tem De Acordo do Planejamento."
+                            )
                     except Exception:
-                        raise HTTPException(status_code=422, detail="xPesquisax: Não foi possível verificar o de acordo da planejamento do indicador " + dic["id_nome_indicador"])
-        await update_da_adm_apoio(updates_a_executar, role, status_acao, username) 
-    CACHE_TTL = timedelta(minutes=1)
-    set_cache(cache_key, registros_apos_acao, CACHE_TTL)
+                        raise HTTPException(
+                            status_code=422,
+                            detail=f"xPesquisax: Não foi possível verificar o De Acordo do Planejamento do indicador {indicador}."
+                        )
+
+        # -----------------------------
+        # 8) Chamada blindada do update
+        # -----------------------------
+        try:
+            await update_da_adm_apoio(updates_a_executar, role, status_acao, username)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"xPesquisax: Erro ao atualizar os registros ({e})."
+            )
+
+    # -----------------------------
+    # 9) Regravar cache com os registros restantes
+    # -----------------------------
+    try:
+        set_cache(cache_key, registros_apos_acao, timedelta(minutes=1))
+    except Exception:
+        pass  # não quebra fluxo — mesma filosofia usada na duplicate
+
+    # -----------------------------
+    # 10) Retornar template atualizado
+    # -----------------------------
     return templates.TemplateResponse(
-        "_pesquisa.html", 
+        "_pesquisa.html",
         {
-            "request": request, 
+            "request": request,
             "registros": registros_apos_acao,
             "show_checkbox": True,
-            "show_das": show_das
+            "show_das": show_das,
         }
     )
 
-# @router.post("/processar_acordo_adm_10", response_class=HTMLResponse)
-# async def processar_acordo_adm_10(
+
+
+# @router.post("/processar_acordo", response_class=HTMLResponse)
+# async def processar_acordo(
 #     request: Request, 
 #     registro_ids: List[str] = Form([], alias="registro_ids"),
-#     status_acao: str = Form(..., alias="status_acao")
+#     status_acao: str = Form(..., alias="status_acao"),
+#     cache_key: str = Form(..., alias="cache_key") 
 # ):
 #     user = get_current_user(request)
-#     _check_role_or_forbid(user, ["adm"])
+#     _check_role_or_forbid(user, ["adm", "apoio qualidade", "apoio planejamento"])
+#     role = user.get("role", "default")
 #     if not registro_ids:
 #         raise HTTPException(
 #             status_code=422,
 #             detail="xPesquisax: Selecione pelo menos um registro para dar Acordo ou Não Acordo."
 #         )
-#     registros_pesquisa = get_from_cache("matrizes_ativo_10")
+#     registros_pesquisa = get_from_cache(cache_key)
+#     print(cache_key)
 #     if not registros_pesquisa:
 #          raise HTTPException(status_code=422, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
 #     ids_selecionados = set(registro_ids)
 #     registros_apos_acao = []
 #     updates_a_executar = []
-#     username = user.get("usuario")
+#     trava_da_exop = []
 #     current_page = request.headers.get("hx-current-url", "desconhecido").lower()
 #     path = urlparse(current_page).path.lower()
 #     show_das = None
@@ -1062,19 +975,40 @@ async def processar_acordo(
 #         if str(r.get("id")) not in ids_selecionados:
 #             registros_apos_acao.append(r)
 #         else:
-#             updates_a_executar.append(r)
+#             atributo = r.get("atributo")
+#             id_nome_indicador = r.get("id_nome_indicador") 
+#             periodo = r.get("periodo")
+#             updates_a_executar.append((atributo, periodo, id_nome_indicador)) 
+#             trava_da_exop.append(r)
+#     if role == 'adm':
+#         updates_a_executar.append((atributo, periodo, '48 - Presença'))
 #     if updates_a_executar:
-#         await update_da_adm_10(updates_a_executar, status_acao, username) 
+#         role = user.get("role", "default")
+#         username = user.get("usuario")
+#         if role == "adm":
+#             for dic in trava_da_exop:
+#                 if dic["area"] == "Qualidade":
+#                     try:
+#                         if int(dic["da_qualidade"]) == 0:
+#                             raise HTTPException(status_code=422, detail="xPesquisax: O indicar " + dic["id_nome_indicador"] + " não tem de acordo da qualidade.")
+#                     except Exception:
+#                         raise HTTPException(status_code=422, detail="xPesquisax: Não foi possível verificar o de acordo da qualidade do indicador " + dic["id_nome_indicador"])
+#                 elif dic["area"] == "Planejamento":
+#                     try:
+#                         if int(dic["da_planejamento"]) == 0:
+#                             raise HTTPException(status_code=422, detail="xPesquisax: O indicar " + dic["id_nome_indicador"] + " não tem de acordo da planejamento.")
+#                     except Exception:
+#                         raise HTTPException(status_code=422, detail="xPesquisax: Não foi possível verificar o de acordo da planejamento do indicador " + dic["id_nome_indicador"])
+#         await update_da_adm_apoio(updates_a_executar, role, status_acao, username) 
 #     CACHE_TTL = timedelta(minutes=1)
-#     set_cache("matrizes_ativo_10", registros_apos_acao, CACHE_TTL)
+#     set_cache(cache_key, registros_apos_acao, CACHE_TTL)
 #     return templates.TemplateResponse(
 #         "_pesquisa.html", 
 #         {
 #             "request": request, 
 #             "registros": registros_apos_acao,
 #             "show_checkbox": True,
-#             "show_das": show_das,
-#             "show_just": True
+#             "show_das": show_das
 #         }
 #     )
 
@@ -1153,17 +1087,16 @@ async def update_dmm(
     dmm = (form.get("dmm_apoio") or "").strip()
     cache_key = (form.get("cache_key_pesquisa_dmm") or form.get("cache_key_pesquisa") or form.get("cache_key") or "").strip()
     erro = await validation_dmm(dmm)
-    print(cache_key)
     if erro:
         raise HTTPException(status_code=422, detail=erro)
     if not dmm:
         raise HTTPException(
             status_code=422,
-            detail="xPesquisax: Coloquei exatamente 5 dmms para efetuar a alteração."
+            detail="xFiltrox: Coloquei exatamente 5 dmms para efetuar a alteração."
         )
     registros_pesquisa = get_from_cache(cache_key)
     if not registros_pesquisa:
-        raise HTTPException(status_code=422, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
+        raise HTTPException(status_code=422, detail="xFiltrox: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
     current_page = request.headers.get("hx-current-url", "desconhecido").lower()
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -1270,7 +1203,6 @@ async def export_atributos_sem_matriz(request: Request):
 
     registros_pesquisa = await get_matrizes_nao_cadastradas()
 
-    # Cria o DataFrame corretamente
     df = pd.DataFrame(registros_pesquisa, columns=['atributos'])
 
     output = BytesIO()
@@ -1409,7 +1341,7 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
             if "id" in novo:
                 novo["id"] = ""
             novos_registros.append(novo)
-    results = await validation_submit_table(novos_registros)
+    results = await validation_submit_table(novos_registros, matricula)
     if isinstance(results, str):
         return results
     validation_conditions, registros = results
@@ -1420,7 +1352,7 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
             if (cond['atributo'] == atributo_bd and 
                 cond['periodo'] == periodo_bd and 
                 cond['id_nome_indicador'] == id_nome_indicador_bd):
-                if validar_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
+                if validation_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
                     return f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.</p>" 
                 
     if not novos_registros:

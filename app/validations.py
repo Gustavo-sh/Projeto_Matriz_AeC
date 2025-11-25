@@ -2,6 +2,8 @@ from datetime import datetime
 import uuid
 from fastapi.templating import Jinja2Templates
 from fastapi import APIRouter, Request, Form, Query, HTTPException, Response, status
+from datetime import datetime, date
+import calendar
 from app.connections_db import get_resultados_indicadores_m3, get_all_atributos, get_excecoes_disponibilidade
 
 templates = Jinja2Templates(directory="app/templates")
@@ -16,7 +18,7 @@ async def validation_submit_table(registros, username):
     nr_mon = False
     tl_mon = False
     is_exception_atribute = False
-    erro_dmm = validate_dmm_consistency(registros)
+    erro_dmm = validation_dmm_consistency(registros)
     if erro_dmm:
         return erro_dmm
     for dic in registros:
@@ -115,7 +117,7 @@ async def validation_submit_table(registros, username):
 
     return validation_conditions, registros
 
-def validate_dmm_consistency(registros: list) -> str | None:
+def validation_dmm_consistency(registros: list) -> str | None:
     if not registros:
         return None 
     referencia = registros[0]
@@ -232,7 +234,22 @@ async def validation_dmm(dmm):
     try:
         qtd_dmm = len(dmm.split(","))
         if qtd_dmm != 5:
-            return f"xPesquisax: Selecione extamente 5 dmms! Dmms selecionados: {qtd_dmm}"
+            return f"xFiltrox: Selecione extamente 5 dmms! Dmms selecionados: {qtd_dmm}"
     except Exception as e:
-        return f"xPesquisax: Erro na validação de dmm: {e}"
+        return f"xFiltrox: Erro na validação de dmm: {e}"
     return None
+
+def validation_datas(data_inicio_bd, data_fim_bd, data_inicio_sbmit, data_fim_submit):
+    data_original = datetime.strptime(data_inicio_sbmit, '%Y-%m-%d').date()
+    ano = data_original.year
+    mes = data_original.month
+    _, ultimo_dia_do_mes = calendar.monthrange(ano, mes) 
+    ultimo_dia_data = date(ano, mes, ultimo_dia_do_mes)
+    ultimo_dia_str = ultimo_dia_data.strftime('%Y-%m-%d')
+    if data_inicio_sbmit > data_inicio_bd and data_inicio_sbmit > data_fim_bd and data_inicio_sbmit <= data_fim_submit and data_inicio_sbmit <= ultimo_dia_str:
+        if data_fim_submit > data_inicio_bd and data_fim_submit > data_fim_bd and data_fim_submit <= ultimo_dia_str:
+            pass
+        else:
+            return True
+    else:
+        return True

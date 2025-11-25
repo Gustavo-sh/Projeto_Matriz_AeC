@@ -63,28 +63,34 @@
 
             <button
                 type="button"
-                hx-post="/pesquisarm0" 
+                id="btn-m0"
+                hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']">
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m0"}'>
                 Pesquisar Mes Atual
             </button>
 
             <button
                 type="button"
-                hx-post="/pesquisarm1" 
+                id="btn-m1"
+                hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']">
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m1"}'>
                 Pesquisar Mes Anterior
             </button>
 
             <button
                 type="button"
-                hx-post="/pesquisarmmais1" 
+                id="btn-mmais1"
+                hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']">
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m+1"}'>
                 Pesquisar Mes Seguinte
             </button>
 
@@ -158,11 +164,7 @@
                     <label>Tipo Matriz:</label>
                     <input type="text" name="tipo_matriz" id="tipomatriz_select" value="" readonly>
 
-                    <label>Data Início: *</label>
-                    <input type="text" id="data_inicio" name="data_inicio" value="">
-
-                    <label>Data Fim: *</label>
-                    <input type="text" id="data_fim" name="data_fim" value="">
+                    
 
                     <label>Periodo:</label>
                     <input type="text" name="periodo" id="periodo_input" value="" readonly>
@@ -205,70 +207,28 @@
                     <label>Responsavel: *</label>
                     <input type="text" name="responsavel">
 
-                    <label>Possui DMM: *</label>
-                    <div class="radio-group">
-                        <label><input type="radio" name="possuiDmm" value="Sim"> Sim</label>
-                        <label><input type="radio" name="possuiDmm" value="Não" checked> Não</label>
-                    </div>
-
-                    <label>DMM:</label>
-                    <input type="text" id="dmm" name="dmm" placeholder="Selecione as datas, caso haja">
-
-                    <input type="hidden" id="atributo_hidden" name="atributo" value="">
-                </div>
-
-                <div >
-                        <div id="bloco-metas">
-                    
-                        <label>Meta Sugerida:</label>
-                        <input type="text" name="meta_sugerida" id="meta_sugerida_input" value="" readonly>
-
-                        <label>Meta Escolhida:</label>
-                        <input type="text" name="meta_escolhida" id="meta_escolhida_input" value="" readonly>
-
-                        <label>Atingimento Projetado:</label>
-                        <input type="text" name="atingimento_projetado" id="atingimento_projetado_input" value="" readonly>
-
-                        <label>Resultado M0:</label>
-                        <input type="text" name="resultadom0" id="resultadom0_input" value="" readonly>
-
-                        <label>Atingimento M0:</label>
-                        <input type="text" name="atingimentom0" id="atingimentom0_input" value="" readonly>
-
-                        <label>Resultado M1:</label>
-                        <input type="text" name="resultadom1" id="resultadom1_input" value="" readonly>
-
-                        <label>Atingimento M1:</label>
-                        <input type="text" name="atingimentom1" id="atingimentom1_input" value="" readonly>
-
-                        <label>Max Data:</label>
-                        <input type="text" name="max_data" id="max_data_input" value="" readonly>
-                    
-                        </div>
-
                     <label>Gerente:</label>
                     <input type="text" name="gerente" id="gerente_input" value="" readonly>
 
-                    <button
-                        type="button"
-                        class="tr_button"
-                        hx-post="/trazer_resultados"
-                        hx-include="closest form"
-                        hx-target="#bloco-metas"
-                        hx-swap="innerHTML"
-                        hx-include="#atributo, #indicadores"
-                        hx-on::htmx:responseError="document.getElementById('mensagens-indicador').innerText = JSON.parse(event.detail.xhr.response).detail">
-                        Trazer Resultados
-                    </button>
-                    
-                    <div class="mensagens-indicador" id="mensagens-indicador"></div>
+                    <input type="hidden" id="atributo_hidden" name="atributo" value="">
+
+                    <label>Data Início: *</label>
+                    <input type="text" id="data_inicio" name="data_inicio" value="">
+
+                    <label>Data Fim: *</label>
+                    <input type="text" id="data_fim" name="data_fim" value="">
                 </div>
 
+                <div class="mensagens-indicador" id="mensagens-indicador"></div>
+                
                 <div class="form-submit">
                     <button type="submit" class="button-submit-form">Enviar</button>
                 </div>
+                
             </form>
+            
         </div>
+        
     </div>
 
     <div class="registros">
@@ -309,7 +269,6 @@
                             <th>Responsavel</th>
                             <th>Gerente</th>
                             <th>Possui DMM</th>
-                            <th>DMM</th>
                             <th>Submetido Por</th>
                             <th>Data Sub Por</th>
                             <th>Exop</th>
@@ -365,23 +324,13 @@
                     <input type="text" name="periodo" id="periodo_duplicar" class="flatpickr-input-data" placeholder="Selecione data-inicio" value="" readonly>
                 </label>
 
-                <label>Possui DMM: *
-                    <div class="radio-group" id="possuiDmmRadio">
-                        <label><input type="radio" name="possuiDmmDuplicar" id="sim_duplicar" value="Sim"> Sim</label>
-                        <label><input type="radio" name="possuiDmmDuplicar" value="Não" checked> Não</label>
-                    </div>
-                </label>
-
-                <label>DMM:
-                    <input type="text" id="dmm_duplicar" name="dmm" class="flatpickr-input-data" placeholder="Selecione as datas, caso haja">
-                </label>
             </div>
 
             <form hx-post="/duplicate_search_results" 
                 hx-target="#registros" 
                 hx-swap="innerHTML"
                 hx-trigger="submit" 
-                hx-include="#pesquisa-form-data, #data_inicio_duplicar, #data_fim_duplicar, #periodo_duplicar, #tabela-pesquisa input[name='registro_ids']:checked, #dmm_duplicar, #possuiDmmRadio">
+                hx-include="#pesquisa-form-data, #data_inicio_duplicar, #data_fim_duplicar, #periodo_duplicar, #tabela-pesquisa input[name='registro_ids']:checked">
                 
                 <div id="pesquisa-form-data" style="display:none;">
                     <input type="hidden" name="atributo" id="duplicar_atributo" value="">
@@ -430,7 +379,6 @@
                         <th>Responsavel</th>
                         <th>Gerente</th>
                         <th>Possui DMM</th>
-                        <th>DMM</th>
                     </tr>
                 </thead>
                 <tbody id="registros">

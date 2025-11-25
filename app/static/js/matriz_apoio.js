@@ -25,28 +25,12 @@
     const atributoInput = document.getElementById("duplicar_atributo");
     const tipoPesquisaHidden = document.getElementById("duplicar_tipo_pesquisa");
     const cacheKey = document.getElementById("cache_key_pesquisa");
-    const atributoAtual = document.getElementById("atributo_select")?.value || "";
 
-    let tipoValor = null;
-
-    if (url.includes("/pesquisarm0")) {
-      tipoValor = "m0";
-    } else if (url.includes("/pesquisarm1")) {
-      tipoValor = "m1";
-    } else if (url.includes("/pesquisarmmais1")) {
-      tipoValor = "m+1";
-    } else if (url.includes("/pesquisarnaoacordos")) {
-      if (cacheKey) cacheKey.value = "nao_acordos_apoio";
-    }
-
-    if (tipoValor) {
-      if (tipoPesquisaHidden) tipoPesquisaHidden.value = tipoValor;
-      if (atributoInput) atributoInput.value = atributoAtual;
-
+    if (tipoPesquisaHidden && atributoInput) {
       // Dispara construção da cache key
       document.body.dispatchEvent(
         new CustomEvent("buildCacheKey", {
-          detail: { tipo: tipoValor, atributo: atributoAtual },
+          detail: { tipo: tipoPesquisaHidden.value, atributo: atributoInput.value },
         })
       );
     }

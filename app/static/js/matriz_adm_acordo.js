@@ -38,19 +38,19 @@
       tipoValor = "m1";
     }
     // Rotas padrão (mantidas para compatibilidade)
-    else if (url.includes("/pesquisarm0")) {
+    else if (url.includes("/pesquisar_m0")) {
       tipoValor = "m0";
-    } else if (url.includes("/pesquisarm1")) {
+    } else if (url.includes("/pesquisar_m1")) {
       tipoValor = "m1";
-    } else if (url.includes("/pesquisarmmais1")) { a
+    } else if (url.includes("/pesquisar_m_mais1")) { a
       tipoValor = "m+1";
-    } else if (url.includes("/pesquisarnaoacordos")) {
+    } else if (url.includes("/pesquisar_nao_acordos")) {
       if (cacheKey) cacheKey.value = "nao_acordos_apoio";
-    } else if (url.includes("/pesquisaracordos")) {
+    } else if (url.includes("/pesquisar_acordos")) {
       if (cacheKey) cacheKey.value = "acordos_apoio";
     }
     // Pesquisas especiais desta página
-    else if (url.includes("/pesquisarnaoacordos")) {
+    else if (url.includes("/pesquisar_nao_acordos")) {
       if (cacheKey) cacheKey.value = "nao_acordos_apoio";
     }
 

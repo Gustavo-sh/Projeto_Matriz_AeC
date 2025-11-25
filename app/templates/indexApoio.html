@@ -64,28 +64,34 @@
 
             <button
                 type="button"
-                hx-post="/pesquisarm0" 
+                id="btn-m0"
+                hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']">
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m0"}'>
                 Pesquisar Mes Atual
             </button>
 
             <button
                 type="button"
-                hx-post="/pesquisarm1" 
+                id="btn-m1"
+                hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']">
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m1"}'>
                 Pesquisar Mes Anterior
             </button>
 
             <button
                 type="button"
-                hx-post="/pesquisarmmais1" 
+                id="btn-mmais1"
+                hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']">
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m+1"}'>
                 Pesquisar Mes Seguinte
             </button>
 
@@ -114,6 +120,11 @@
         {% endif %}
     </div>
 
+    <div id="pesquisa-form-data" style="display:none;">
+        <input type="hidden" name="atributo" id="duplicar_atributo" value="">
+        <input type="hidden" name="tipo_pesquisa" id="duplicar_tipo_pesquisa" value="">
+    </div>
+
     <div class="registros">
         <h4>Resultado por Atributo</h4>
         <button type="button" id="export-btn" class="export-btn">Export para Excel</button>
@@ -121,7 +132,7 @@
             hx-post="/processar_acordo" 
             hx-target="#tabela-pesquisa" 
             hx-swap="innerHTML"
-            hx-include="#tabela-pesquisa input[name='registro_ids']:checked">
+            hx-include="#tabela-pesquisa input[name='registro_ids']:checked, #pesquisa-form-data">
 
             <div class="table-container">
                 <table class="tabela-pesquisa">
