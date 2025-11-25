@@ -198,8 +198,13 @@ async def validation_import_from_excel(registros, request):
         return response
     return None
 
-async def validation_meta_moedas(registros, meta, moedas):
+async def validation_meta_moedas(registros, meta, moedas, role):
     tipo = registros["tipo_indicador"]
+    area = registros.get("area", "").lower()
+    if "qualidade" in role.lower() and (area != "qualidade" and area != ""):
+        return f"xPesquisax: Usuário com perfil de Qualidade não pode alterar registros de outras áreas! indicador:{registros["id_nome_indicador"]}"
+    elif "planejamento" in role.lower() and (area != "planejamento" and area != ""):
+        return f"xPesquisax: Usuário com perfil de Planejamento não pode alterar registros de outras áreas! indicador:{registros["id_nome_indicador"]}"
     if registros["id_nome_indicador"].lower() == r"901 - % disponibilidade" and int(meta) != 94:
         return f"xPesquisax: Não é permitido alterar a meta do indicador 901 - % disponibilidade!"
     if tipo == "Hora":

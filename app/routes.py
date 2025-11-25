@@ -370,7 +370,6 @@ async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = 
             elif "planejamento" in funcao.lower():
                 area = "Planejamento"
 
-        # ---- definição de página ----
         if "cadastro" in path:
             page = "cadastro"
             show_das = None
@@ -381,7 +380,6 @@ async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = 
         # if "/matriz/apoio" in path:
         #   show_checkbox = False
 
-        # ---- regra do checkbox ----
         show_checkbox = True
         if mes == "m+1":
             show_checkbox = False
@@ -390,13 +388,12 @@ async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = 
 
         registros = await query_mes(atributo, username, page, area, mes)
 
-        # ✅ filtro correto sem erro estrutural
         registros = [
             dic for dic in registros
             if dic.get("id_nome_indicador").lower() != "48 - presença"
         ]
 
-        # ajuste do indicador 901
+
         for dic in registros:
             if isinstance(dic.get("id_nome_indicador"), str) and \
                dic.get("id_nome_indicador").lower() == "901 - % disponibilidade":
@@ -533,7 +530,7 @@ async def all_atributes_operacao(request: Request, tipo_pesquisa: str = Form(...
     registros = await get_atributos_gerente(tipo_pesquisa, atributos_format, username)
 
     for dic in registros:
-        if dic.get("id_nome_indicador") == "48 - Presença":
+        if dic.get("id_nome_indicador").lower() == "48 - presença":
             registros.remove(dic)
 
     path = urlparse(current_page).path.lower()
@@ -559,8 +556,8 @@ async def submit_table(request: Request):
     username = request.cookies.get("username", "anon")
     if not registros:
         return "<p>Nenhum registro para submeter.</p>"
-    num_atendentes = await get_num_atendentes(registros[0]["atributo"]) if registros[0]["tipo_matriz"].lower() == "operacional" else None
-    if registros[0]["tipo_matriz"].lower() == "operacional":
+    num_atendentes = await get_num_atendentes(registros[0]["atributo"]) if "opera" in registros[0]["tipo_matriz"].lower() else None
+    if "opera" in registros[0]["tipo_matriz"].lower():
         if num_atendentes == 0 or num_atendentes == '0':
             return "<p>Não é possível submeter a matriz, pois o atributo selecionado não possui nenhum atendente de nível 1.</p>"
     results = None
@@ -656,7 +653,7 @@ async def duplicate_search_results(
         registros_atuais = load_registros(request)
 
         for registro in registros_a_duplicar:
-            if registro.get("id_nome_indicador") == "48 - Presença":
+            if registro.get("id_nome_indicador").lower() == "48 - presença":
                 continue
 
             copia = registro.copy()
@@ -777,31 +774,21 @@ async def processar_acordo(
     status_acao: str = Form(..., alias="status_acao"),
     cache_key: str = Form(..., alias="cache_key")
 ):
-    # -----------------------------
-    # 1) Validação inicial de sessão e autorização
-    # -----------------------------
     user = get_current_user(request)
     _check_role_or_forbid(user, ["adm", "apoio qualidade", "apoio planejamento"])
     role = user.get("role", "default").lower().strip()
     print(cache_key)
 
-    # -----------------------------
-    # 2) Validação: precisa ter registros selecionados
-    # -----------------------------
     if not registro_ids:
         raise HTTPException(
             status_code=422,
             detail="xPesquisax: Selecione pelo menos um registro para dar Acordo ou Não Acordo."
         )
 
-    # Normalização dos IDs
     registro_ids = [str(x).strip() for x in registro_ids]
     status_acao = status_acao.lower().strip()
     cache_key = cache_key.strip()
 
-    # -----------------------------
-    # 3) Recuperar cache — mesma lógica da função duplicate
-    # -----------------------------
     try:
         registros_pesquisa = get_from_cache(cache_key)
     except Exception:
@@ -816,9 +803,6 @@ async def processar_acordo(
             detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa."
         )
 
-    # -----------------------------
-    # 4) Verificar contexto da página para exibir DAS ou não
-    # -----------------------------
     current_page = request.headers.get("hx-current-url", "desconhecido")
     try:
         path = urlparse(current_page).path.lower()
@@ -826,10 +810,6 @@ async def processar_acordo(
         path = "desconhecido"
 
     show_das = None if "cadastro" in path else True
-
-    # -----------------------------
-    # 5) Processar itens selecionados
-    # -----------------------------
     ids_set = set(registro_ids)
 
     registros_apos_acao = []
@@ -840,7 +820,7 @@ async def processar_acordo(
         try:
             rid = str(r.get("id"))
         except Exception:
-            continue  # registro quebrado, ignora silenciosamente
+            continue  
 
         if rid not in ids_set:
             if r.get("id_nome_indicador").lower() != "48 - presença":
@@ -854,19 +834,12 @@ async def processar_acordo(
         updates_a_executar.append((atributo, periodo, id_nome_indicador))
         trava_da_exop.append(r)
 
-    # -----------------------------
-    # 6) Regra especial: ADM inclui '48 - Presença'
-    # -----------------------------
     if role == "adm":
-        # ⚠️ Atenção: mantém exatamente o mesmo comportamento original
         try:
             updates_a_executar.append((atributo, periodo, "48 - Presença"))
         except Exception:
-            pass  # evita crash caso variável não exista (mantém comportamento original)
+            pass  
 
-    # -----------------------------
-    # 7) Validação interna do ADM (Qualidade / Planejamento)
-    # -----------------------------
     if updates_a_executar:
         username = user.get("usuario")
 
@@ -883,7 +856,7 @@ async def processar_acordo(
 
                 if area == "qualidade":
                     try:
-                        if int(dic.get("da_qualidade", 0)) == 0:
+                        if int(dic.get("da_qualidade", 0)) == 0 and "opera" in dic.get("tipo_matriz", "").lower():
                             raise HTTPException(
                                 status_code=422,
                                 detail=f"xPesquisax: O indicador {indicador} não tem De Acordo da Qualidade."
@@ -896,7 +869,7 @@ async def processar_acordo(
 
                 elif area == "planejamento":
                     try:
-                        if int(dic.get("da_planejamento", 0)) == 0:
+                        if int(dic.get("da_planejamento", 0)) == 0 and "opera" in dic.get("tipo_matriz", "").lower():
                             raise HTTPException(
                                 status_code=422,
                                 detail=f"xPesquisax: O indicador {indicador} não tem De Acordo do Planejamento."
@@ -907,9 +880,6 @@ async def processar_acordo(
                             detail=f"xPesquisax: Não foi possível verificar o De Acordo do Planejamento do indicador {indicador}."
                         )
 
-        # -----------------------------
-        # 8) Chamada blindada do update
-        # -----------------------------
         try:
             await update_da_adm_apoio(updates_a_executar, role, status_acao, username)
         except Exception as e:
@@ -918,17 +888,11 @@ async def processar_acordo(
                 detail=f"xPesquisax: Erro ao atualizar os registros ({e})."
             )
 
-    # -----------------------------
-    # 9) Regravar cache com os registros restantes
-    # -----------------------------
     try:
         set_cache(cache_key, registros_apos_acao, timedelta(minutes=1))
     except Exception:
-        pass  # não quebra fluxo — mesma filosofia usada na duplicate
+        pass 
 
-    # -----------------------------
-    # 10) Retornar template atualizado
-    # -----------------------------
     return templates.TemplateResponse(
         "_pesquisa.html",
         {
@@ -1056,7 +1020,7 @@ async def update_meta_moedas(
         if str(r.get("id")) not in ids_selecionados:
             registros_apos_acao.append(r)
         else:
-            erro = await validation_meta_moedas(r, meta, moedas)
+            erro = await validation_meta_moedas(r, meta, moedas, role)
             if erro:
                 raise HTTPException(status_code=422, detail=erro)
             atributo = r.get("atributo")
@@ -1108,13 +1072,14 @@ async def update_dmm(
     for r in registros_pesquisa:
         r["possui_dmm"] = "Sim"
         r["dmm"] = dmm
+    registros_apos_acao = [dic for dic in registros_pesquisa if dic["id_nome_indicador"].lower() != "48 - presença"]
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros_pesquisa, CACHE_TTL)
     return templates.TemplateResponse(
         "_pesquisa.html", 
         {
             "request": request, 
-            "registros": registros_pesquisa,
+            "registros": registros_apos_acao,
             "show_checkbox": True,
             "show_das": show_das
         }

@@ -270,7 +270,7 @@ async def query_mes(atributo, username, page, area, mes):
             if page == "demais":
                 cur.execute(f"""
                 set nocount on
-                select id_indicador, id_formato into #formatos from rby_indicador
+                select id_indicador, id_formato into #formatos from rby_indicador (nolock)
 
                 select fef.atributo, fef.id, fef.metasugerida, fef.resultado, fef.atingimento, f.id_formato 
                 into #fef
@@ -302,7 +302,7 @@ async def query_mes(atributo, username, page, area, mes):
             elif page == "cadastro":
                 cur.execute(f"""
                 set nocount on
-                select id_indicador, id_formato into #formatos from rby_indicador
+                select id_indicador, id_formato into #formatos from rby_indicador (nolock)
 
                 select fef.atributo, fef.id, fef.metasugerida, fef.resultado, fef.atingimento, f.id_formato 
                 into #fef
@@ -336,9 +336,9 @@ async def query_mes(atributo, username, page, area, mes):
             return resultados
     resultados = await loop.run_in_executor(None, _sync_db_call)
     registros = [{
-        "atributo": row[0], "id_nome_indicador": row[1], "meta_sugerida": row[2], "resultado": row[3], "atingimento": row[4], "meta": row[5], "moedas": row[6], "tipo_indicador": row[7], "acumulado": row[8], "esquema_acumulado": row[9],
-        "tipo_matriz": row[10], "data_inicio": row[11], "data_fim": row[12], "periodo": row[13], "escala": row[14], "tipo_de_faturamento": row[15], "descricao": row[16], "ativo": row[17], "chamado": row[18],
-        "criterio": row[19], "area": row[20], "responsavel": row[21], "gerente": row[22], "possui_dmm": row[23], "dmm": row[24],
+        "atributo": row[0], "id_nome_indicador": row[1], "meta_sugerida": row[2] or '', "resultado": row[3] or '', "atingimento": row[4] or '', "meta": row[5], "moedas": row[6], "tipo_indicador": row[7] or '', "acumulado": row[8] or '', "esquema_acumulado": row[9] or '',
+        "tipo_matriz": row[10] or '', "data_inicio": row[11], "data_fim": row[12], "periodo": row[13], "escala": row[14] or '', "tipo_de_faturamento": row[15] or '', "descricao": row[16] or '', "ativo": row[17] or '', "chamado": row[18] or '',
+        "criterio": row[19] or '', "area": row[20] or '', "responsavel": row[21] or '', "gerente": row[22] or '', "possui_dmm": row[23] or '', "dmm": row[24] or '',
         "submetido_por": row[25], "data_submetido_por": row[26], "qualidade": row[27], "da_qualidade": row[28], "data_da_qualidade": row[29],
         "planejamento": row[30], "da_planejamento": row[31], "data_da_planejamento": row[32], "exop": row[33], "da_exop": row[34], "data_da_exop": row[35], "id": str(uuid.uuid4())
     } for row in resultados]
@@ -348,7 +348,7 @@ async def query_mes(atributo, username, page, area, mes):
 
 async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username): 
     role_defined = None
-    tipo_defined = 1 if tipo == 'Acordo' else 2
+    tipo_defined = 1 if tipo == 'acordo' else 2
     if role == "apoio qualidade":
         role_defined = "qualidade"
     elif role == "apoio planejamento":
@@ -367,7 +367,7 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
             cur = conn.cursor()
             for update_item in lista_de_updates:
                 atributo, periodo, id_nome_indicador = update_item
-                if role_defined == "exop":
+                if role_defined == "exop" and tipo_defined == 1:
                     cur.execute(f"""
                     UPDATE dbo.Matriz_Geral
                     SET 
@@ -552,7 +552,7 @@ async def get_resultados_indicadores_m3():
             cur = conn.cursor()
             cur.execute("""
                 SELECT DISTINCT [IDINDICADOR]
-                FROM [Robbyson].[ext].[indicadoresgeral]
+                FROM [Robbyson].[ext].[indicadoresgeral] (nolock)
                 where data >= dateadd(d,1,eomonth(GETDATE(),-3))
                 and resultado > 0
             """)
@@ -575,7 +575,7 @@ async def get_factibilidade(atributo, id):
             cur = conn.cursor()
             cur.execute("""
                 set nocount on
-                select id_indicador, id_formato into #formatos from rby_indicador
+                select id_indicador, id_formato into #formatos from rby_indicador (nolock)
 
                 select concat(fef.id, ' - ', fef.nome_indicador) as id_nome_indicador, 
                 case when f.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.metasugerida AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss')
@@ -851,9 +851,9 @@ async def get_acordos_apoio():
             return resultados
     resultados = await loop.run_in_executor(None, _sync_db_call)
     registros = [{
-        "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
-        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
-        "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
+        "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4] or '', "acumulado": row[5] or '', "esquema_acumulado": row[6] or '',
+        "tipo_matriz": row[7] or '', "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11] or '', "tipo_de_faturamento": row[12] or '', "descricao": row[13] or '', "ativo": row[14] or '', "chamado": row[15] or '',
+        "criterio": row[16] or '', "area": row[17] or '', "responsavel": row[18] or '', "gerente": row[19] or '', "possui_dmm": row[20] or '', "dmm": row[21] or '',
         "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
         "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
     } for row in resultados]
@@ -1109,7 +1109,7 @@ async def get_resultados(atributo, id_indicador):
             cur.execute(f"""
             SET NOCOUNT ON
 
-            select id_indicador, id_formato into #formatos from rby_indicador
+            select id_indicador, id_formato into #formatos from rby_indicador (nolock)
 
             select data, atributo, id, nome_indicador, 
             case when #formatos.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(resultado AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss')else CAST(resultado AS NVARCHAR(MAX)) end as resultados,
@@ -1122,7 +1122,7 @@ async def get_resultados(atributo, id_indicador):
             END AS Meta_Escolhida, 
             format(atingimento_projetado, 'P') as atingimento_projetado, 
             case when #formatos.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(meta AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') else CAST(meta AS NVARCHAR(MAX)) end as meta,
-            data_atualizacao as MaxData, #formatos.id_formato from [Robbyson].[dbo].[factibilidadeEfaixas] fef
+            data_atualizacao as MaxData, #formatos.id_formato from [Robbyson].[dbo].[factibilidadeEfaixas] fef (nolock)
             left join #formatos on #formatos.id_indicador = fef.id
             where data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, -2, GETDATE())))
             and id = {id_indicador} and atributo like '%{atributo}%'
@@ -1140,7 +1140,7 @@ async def get_resultados(atributo, id_indicador):
             END AS Meta_Escolhida, 
             format(atingimento_projetado, 'P') as atingimento_projetado, 
             case when #formatos.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(meta AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') else CAST(meta AS NVARCHAR(MAX)) end as meta,
-            data_atualizacao as MaxData, #formatos.id_formato from [Robbyson].[dbo].[factibilidadeEfaixas] fef
+            data_atualizacao as MaxData, #formatos.id_formato from [Robbyson].[dbo].[factibilidadeEfaixas] fef (nolock)
             left join #formatos on #formatos.id_indicador = fef.id
             where data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, -1, GETDATE())))
             and id = {id_indicador} and atributo like '%{atributo}%'
