@@ -1045,3 +1045,14 @@ body.register-page {
   display: flex;
   justify-content: center;
 }
+
+.adm-acordo-link {
+  margin-bottom: 20px;
+}
+
+.adm-acordo-link a {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: bold;
+  padding-top: 100px;
+}

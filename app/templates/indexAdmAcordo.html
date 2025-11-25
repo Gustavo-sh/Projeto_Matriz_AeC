@@ -120,6 +120,55 @@
 
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
         </div>
+
+        <div class="user-info">
+            <div id="atributos-container">
+                <label>Atributo: *</label>
+                <select name="atributo" id="atributo_select" onchange="handleAtributoChange(this)">
+                    <option value="">Selecione ou pesquise...</option>
+                    {% for at in atributos %}
+                        <option value="{{ at['atributo'] }}"
+                        data-gerente="{{ at['gerente'] }}"
+                        data-tipo="{{ at['tipo'] }}">{{ at['atributo'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="mensagens-filtro" class="mensagens-filtro"></div>
+
+            <button
+                type="button"
+                id="btn-m0"
+                hx-post="/pesquisar_mes" 
+                hx-target="#tabela-pesquisa" 
+                hx-swap="innerHTML"
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m0"}'>
+                Pesquisar Mes Atual
+            </button>
+
+            <button
+                type="button"
+                id="btn-m1"
+                hx-post="/pesquisar_mes" 
+                hx-target="#tabela-pesquisa" 
+                hx-swap="innerHTML"
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m1"}'>
+                Pesquisar Mes Anterior
+            </button>
+
+            <button
+                type="button"
+                id="btn-mmais1"
+                hx-post="/pesquisar_mes" 
+                hx-target="#tabela-pesquisa" 
+                hx-swap="innerHTML"
+                hx-include="[id='atributo_select']"
+                hx-vals='{"mes": "m+1"}'>
+                Pesquisar Mes Seguinte
+            </button>
+        </div>
     </div>
 
     <div class="registros">
