@@ -1018,7 +1018,8 @@ async def update_meta_moedas(
         show_das = True
     for r in registros_pesquisa:
         if str(r.get("id")) not in ids_selecionados:
-            registros_apos_acao.append(r)
+            if r.get("id_nome_indicador").lower() != "48 - presença":
+                registros_apos_acao.append(r)
         else:
             erro = await validation_meta_moedas(r, meta, moedas, role)
             if erro:
