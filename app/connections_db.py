@@ -939,13 +939,14 @@ async def get_atributos_matricula(matricula):
                         group by atributo
                         order by count(matricula) DESC
 
-            select distinct hmn.atributo, case when GERENTE is not null then GERENTE
+            select distinct hmn.atributo, case when GERENTESENIOR is not null then GERENTESENIOR
                         when GERENTEPLENO is not null then GERENTEPLENO
-                        when GERENTESENIOR is not null then GERENTESENIOR
-                        else null end as Gerente, TipoHierarquia from [robbyson].[rlt].[hmn] hmn (nolock) 
+                        when GERENTE is not null then GERENTE
+                        else GERENTE_EXECUTIVO end as Gerente, TipoHierarquia from [robbyson].[rlt].[hmn] hmn (nolock) 
                         where (data = convert(date, getdate()-1)) and (hmn.atributo is not null) 
                         and (MatrGERENTE = {matricula} or MatrGERENTEPLENO = {matricula} or MatrGERENTESENIOR = {matricula} or MatrGERENTE_EXECUTIVO = {matricula})
                         and hmn.atributo in (select atributo from #qtd)
+                        and tipohierarquia = 'OPERAÇÃO'
 
             drop table #qtd
             """)

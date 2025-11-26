@@ -1287,6 +1287,8 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
     atributo_atual = registros[0].get("atributo")
     if not atributo_atual:
         return HTMLResponse("<p>Erro: não foi possível identificar o atributo atual nos registros.</p>")
+    
+    print(registros)
 
     novos_registros = []
     for destino in atributos_destino:
