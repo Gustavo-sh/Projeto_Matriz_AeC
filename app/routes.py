@@ -32,7 +32,7 @@ SESSION_COOKIE = "logged_in"
 adms = ["277561", "117699", "154658", "160031", "086939"]
 adm_acordo = ["277561"]
 EXPECTED_COLUMNS = [
-    'atributo', 'id_nome_indicador', 'meta', 'moedas', 'tipo_indicador', 
+    'atributo', 'id_nome_indicador', 'meta_sugerida', 'resultado', 'atingimento', 'meta', 'moedas', 'tipo_indicador', 
         'acumulado', 'esquema_acumulado', 'tipo_matriz', 'data_inicio', 
         'data_fim', 'periodo', 'escala', 'tipo_de_faturamento', 
         'descricao', 'ativo', 'chamado', 'criterio', 'area', 
@@ -526,6 +526,7 @@ async def all_atributes_operacao(request: Request, tipo_pesquisa: str = Form(...
     atributos = await get_atributos_matricula(username)
 
     atributos_format = " ,".join(f"'{a["atributo"]}'" for a in atributos)
+    print(atributos_format)
     
     registros = await get_atributos_gerente(tipo_pesquisa, atributos_format, username)
 

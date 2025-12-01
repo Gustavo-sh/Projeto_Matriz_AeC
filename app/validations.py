@@ -13,13 +13,17 @@ async def validation_submit_table(registros, username):
     agora = datetime.now().strftime("%Y-%m-%d")
     moedas = 0
     validation_conditions = []
+    presenca = []
     disp_in = False
     disp_mon = False
     nr_mon = False
     tl_mon = False
     is_exception_atribute = False
     erro_dmm = validation_dmm_consistency(registros)
-    print(registros)
+    atributo_inicial = registros[0]["atributo"]
+    atributo_trade = False
+    resultados_indicadores_m3 = await get_resultados_indicadores_m3()
+    indicadores_processados = set()
     if erro_dmm:
         return erro_dmm
     for dic in registros:
@@ -27,24 +31,44 @@ async def validation_submit_table(registros, username):
         moeda_val = int(dic.get("moedas", "0"))
         meta_val = dic.get("meta", "")
         nome_val = dic.get("id_nome_indicador", "").lower()
-        resultados_indicadores_m3 = await get_resultados_indicadores_m3()
         id_indicador = dic["id_nome_indicador"].split(" - ")[0]
         if int(dic["moedas"]) > 0 and int(id_indicador) not in resultados_indicadores_m3:
             return f"<p>Não é possível cadastrar o indicador {dic['id_nome_indicador']}, pois ele não tem resultados para os ultimos dois meses+mes atual.</p>"
-        if moeda_val == "":
-            moeda_val = 0
-            dic["moedas"] = 0
-        else:
-            try:
-                if moeda_val < 0: 
-                    moeda_val = 0
-                    dic["moedas"] = 0
-                elif moeda_val > 0 and moeda_val < 3:
-                    return "<p>A monetização mínima é de 3 moedas. O indicador " + dic["id_nome_indicador"] + " possui menos de 3 moedas.</p>"
-                moedas += moeda_val
-                
-            except ValueError:
-                return "<p>Erro: Moeda deve ser um valor inteiro, valor informado: " + moeda_val + ", para o indicador: " + dic["id_nome_indicador"] + ".</p>"
+        try:
+            if moeda_val < 0: 
+                moeda_val = 0
+                dic["moedas"] = 0
+            elif moeda_val > 0 and moeda_val < 3:
+                return "<p>A monetização mínima é de 3 moedas. O indicador " + dic["id_nome_indicador"] + " possui menos de 3 moedas.</p>"
+            chave_indicador = (dic["atributo"], dic["id_nome_indicador"], moeda_val)
+            if chave_indicador in indicadores_processados:
+                moeda_val = 0  # força a não entrar no cálculo
+            else:
+                indicadores_processados.add(chave_indicador)
+            if dic["atributo"] == atributo_inicial:
+                if not atributo_trade:
+                    moedas += moeda_val
+            else:
+                if moedas != 30 and moedas != 35:
+                    return "<p>A soma das moedas do atributo " + dic["atributo"] + " deve ser 30 ou 35, soma atual: " + str(moedas) + ".</p>"
+                if moedas == 30 and dic["tipo_matriz"].lower() != "administração":
+                    try:
+                        presenca.append({'atributo': f'{dic["atributo"]}', 'id_nome_indicador': '48 - Presença', 'meta': '2', 'moedas': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
+                                        'tipo_matriz': 'Operacional', 'data_inicio': f'{registros[0]["data_inicio"]}', 'data_fim': f'{registros[0]["data_fim"]}', 'periodo': f'{registros[0]["periodo"]}', 'escala': f'{registros[0]["escala"]}',
+                                        'tipo_de_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': f'{registros[0]["chamado"]}', 'criterio': 'Meta AeC', 'area': 'Planejamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
+                                        'possui_dmm': f'{registros[0]["possui_dmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': f'{registros[0]["submetido_por"]}', 'data_submetido_por': f'{registros[0]["data_submetido_por"]}', 'qualidade': '', 'da_qualidade': 3, 'data_da_qualidade': '', 
+                                        'planejamento': '', 'da_planejamento': 3, 'data_da_planejamento': '', 'exop': '', 'da_exop': 0, 'data_da_exop': '', 'justificativa': '', 'da_superintendente': '', 'id': uuid.uuid4()})
+                    except KeyError:
+                        presenca.append({'atributo': f'{dic["atributo"]}', 'id_nome_indicador': '48 - Presença', 'meta': '2', 'moedas': 5, 'tipo_indicador': 'Decimal', 'acumulado': 'Não', 'esquema_acumulado': 'Diário',
+                                    'tipo_matriz': 'Operacional', 'data_inicio': f'{registros[0]["data_inicio"]}', 'data_fim': f'{registros[0]["data_fim"]}', 'periodo': f'{registros[0]["periodo"]}', 'escala': f'{registros[0]["escala"]}',
+                                    'tipo_de_faturamento': 'Controle', 'descricao': f'{registros[0]["descricao"]}', 'ativo': 0, 'chamado': '', 'criterio': 'Meta AeC', 'area': 'Planejamento', 'responsavel': '', 'gerente': f'{registros[0]["gerente"]}', 
+                                    'possui_dmm': f'{registros[0]["possui_dmm"]}', 'dmm': f'{registros[0]["dmm"]}', 'submetido_por': f'{username}', 'data_submetido_por': f'{agora}', 'qualidade': '', 'da_qualidade': 3, 'data_da_qualidade': '', 
+                                    'planejamento': '', 'da_planejamento': 3, 'data_da_planejamento': '', 'exop': '', 'da_exop': 0, 'data_da_exop': '', 'justificativa': '', 'da_superintendente': '', 'id': uuid.uuid4()})
+                atributo_inicial = dic["atributo"]
+                atributo_trade = True
+                moedas = 30
+        except ValueError:
+            return "<p>Erro: Moeda deve ser um valor inteiro, valor informado: " + moeda_val + ", para o indicador: " + dic["id_nome_indicador"] + ".</p>"
         try:
             if dic["tipo_indicador"] != "Hora":
                 if dic["tipo_indicador"] == "Inteiro":
@@ -100,8 +124,9 @@ async def validation_submit_table(registros, username):
     #     return "<p>Disponibilidade é um indicador obrigatório, por favor adicione-o com 8 ou mais moedas e 94 de meta.</p>"
     if disp_in and disp_mon and (nr_mon or tl_mon):
         return "<p>Não é permitido monetizar Pausa NR17 ou Tempo Logado quando Disponibilidade está monetizada.</p>"
+    for dic in presenca:
+        registros.append(dic)
     if moedas != 30 and moedas != 35:
-        print(moedas)
         return "<p>A soma de moedas deve ser igual a 30 ou 35.</p>"
     elif moedas == 30 and registros[0]["tipo_matriz"].lower() != "administração":
         try:

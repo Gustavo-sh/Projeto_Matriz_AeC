@@ -1008,34 +1008,74 @@ async def get_atributos_gerente(tipo, atributos, username):
     cache_key = f"all_atributos:{tipo}:{username}"
     cached = get_from_cache(cache_key)
     resultados = None
+    tipo_pesquisa_mg = None
+    tipo_pesquisa_fef = None
+    if tipo == 'm0_all':
+        tipo_pesquisa_mg = -1
+        tipo_pesquisa_fef = -1
+    elif tipo == 'm+1_all':
+        tipo_pesquisa_mg = 0
+        tipo_pesquisa_fef = -1
+    elif tipo == 'm1_all':
+        tipo_pesquisa_mg = -2
+        tipo_pesquisa_fef = -2
     if cached:
         return cached
     loop = asyncio.get_event_loop()
     def _sync_db_call():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            if tipo == "m0_all":
-                cur.execute(f"""
-                    select * from matriz_geral (nolock) where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-1)) and tipo_matriz like 'OPERA%' order by atributo
-                """)
-            elif tipo == "m+1_all":
-                cur.execute(f"""
-                    select * from matriz_geral (nolock) where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE())) and tipo_matriz like 'OPERA%' order by atributo
-                """)
-            else:
-                cur.execute(f"""
-                    select * from matriz_geral (nolock) where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-2)) and tipo_matriz like 'OPERA%' order by atributo
-                """)
+            # if tipo == "m0_all":
+            cur.execute(f"""
+                set nocount on
+                select id_indicador, id_formato into #formatos from rby_indicador
+
+                select fef.atributo, fef.id, fef.metasugerida, fef.resultado, fef.atingimento, f.id_formato 
+                into #fef
+                from Robbyson.dbo.factibilidadeEfaixas fef (nolock)
+                left join #formatos f on f.id_indicador = fef.id
+                where fef.data = DATEADD(DD, 1, EOMONTH(DATEADD(MM, ?, GETDATE())))
+
+                select mg.atributo, id_nome_indicador, 
+                case when fef.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.metasugerida AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') 
+                when fef.id_formato = 3 then format(fef.metasugerida, 'P') else CAST(ROUND(fef.metasugerida, 2) AS NVARCHAR(MAX)) end as metasugerida, 
+                case when fef.id_formato = 4 then FORMAT(DATEADD(second, CAST(COALESCE(TRY_CAST(fef.resultado AS FLOAT), 0.0) AS BIGINT), '00:00:00'), 'HH:mm:ss') 
+                when fef.id_formato = 3 then format(fef.resultado, 'P') else CAST(ROUND(fef.resultado, 2) AS NVARCHAR(MAX)) end as resultado, 
+                format(fef.atingimento, 'P') as atingimento, mg.meta, moedas, tipo_indicador, 
+                acumulado, esquema_acumulado, tipo_matriz, data_inicio, data_fim, periodo, escala, tipo_de_faturamento, descricao, ativo, 
+                chamado, criterio, area, responsavel, gerente, possui_dmm, dmm, submetido_por, data_submetido_por, qualidade, da_qualidade, 
+                data_da_qualidade, planejamento, da_planejamento, data_da_planejamento, exop, da_exop, data_da_exop
+                from Robbyson.dbo.Matriz_Geral mg (nolock)
+                left join #fef fef on fef.id = LTRIM(RTRIM(LEFT(id_nome_indicador, CHARINDEX('-', id_nome_indicador) - 1)))
+                and fef.atributo = mg.atributo
+                WHERE mg.atributo IN ({atributos})
+                and tipo_matriz like 'OPERA%'
+                AND periodo = dateadd(d,1,eomonth(GETDATE(),?))
+                AND ativo in (0, 1)
+                order by atributo
+
+                drop table #formatos
+                drop table #fef
+
+            """,(tipo_pesquisa_fef, tipo_pesquisa_mg))
+            # elif tipo == "m+1_all":
+            #     cur.execute(f"""
+            #         select * from matriz_geral (nolock) where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE())) and tipo_matriz like 'OPERA%' order by atributo
+            #     """)
+            # else:
+            #     cur.execute(f"""
+            #         select * from matriz_geral (nolock) where atributo in ({atributos}) and periodo = dateadd(d,1,eomonth(GETDATE(),-2)) and tipo_matriz like 'OPERA%' order by atributo
+            #     """)
             resultados = cur.fetchall()
             cur.close()
             return resultados
     resultados = await loop.run_in_executor(None, _sync_db_call)
     registros = [{
-        "atributo": row[0], "id_nome_indicador": row[1], "meta": row[2], "moedas": row[3], "tipo_indicador": row[4], "acumulado": row[5], "esquema_acumulado": row[6],
-        "tipo_matriz": row[7], "data_inicio": row[8], "data_fim": row[9], "periodo": row[10], "escala": row[11], "tipo_de_faturamento": row[12], "descricao": row[13], "ativo": row[14], "chamado": row[15],
-        "criterio": row[16], "area": row[17], "responsavel": row[18], "gerente": row[19], "possui_dmm": row[20], "dmm": row[21],
-        "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
-        "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
+        "atributo": row[0], "id_nome_indicador": row[1], "meta_sugerida": row[2] or '', "resultado": row[3] or '', "atingimento": row[4] or '', "meta": row[5], "moedas": row[6], "tipo_indicador": row[7] or '', "acumulado": row[8] or '', "esquema_acumulado": row[9] or '',
+        "tipo_matriz": row[10] or '', "data_inicio": row[11], "data_fim": row[12], "periodo": row[13], "escala": row[14] or '', "tipo_de_faturamento": row[15] or '', "descricao": row[16] or '', "ativo": row[17] or '', "chamado": row[18] or '',
+        "criterio": row[19] or '', "area": row[20] or '', "responsavel": row[21] or '', "gerente": row[22] or '', "possui_dmm": row[23] or '', "dmm": row[24] or '',
+        "submetido_por": row[25], "data_submetido_por": row[26], "qualidade": row[27], "da_qualidade": row[28], "data_da_qualidade": row[29],
+        "planejamento": row[30], "da_planejamento": row[31], "data_da_planejamento": row[32], "exop": row[33], "da_exop": row[34], "data_da_exop": row[35], "id": str(uuid.uuid4())
     } for row in resultados]
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros, CACHE_TTL)
