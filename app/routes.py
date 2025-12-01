@@ -824,7 +824,7 @@ async def processar_acordo(
 
     registros_apos_acao = []
     updates_a_executar = []
-    # trava_da_exop = []
+    trava_da_exop = []
 
     for r in registros_pesquisa:
         try:
@@ -842,7 +842,7 @@ async def processar_acordo(
         periodo = str(r.get("periodo", "")).strip()
 
         updates_a_executar.append((atributo, periodo, id_nome_indicador))
-        # trava_da_exop.append(r)
+        trava_da_exop.append(r)
 
     if role == "adm":
         try:
@@ -853,6 +853,20 @@ async def processar_acordo(
     if updates_a_executar:
         username = user.get("usuario")
 
+        try:
+            if role == "adm":
+                for dic in trava_da_exop:
+                    if int(dic.get("da_qualidade", 0)) == 0 or int(dic.get("da_planejamento", 0)) == 0:
+                        raise HTTPException(
+                            status_code=422,
+                            detail="xPesquisax: Validação da qualidade ou do planejamento está ausente para o atributo selecionado."
+                        )
+        except Exception as e:
+            raise HTTPException(
+                status_code=422,
+                detail=f"xPesquisax: Não foi possível validar os DA's das areas de apoio. ({e})"
+            )
+                    
         # if role == "adm":
         #     for dic in trava_da_exop:
         #         try:
