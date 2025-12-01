@@ -56,6 +56,8 @@ async def save_registros_bd(registros, username, justificativa, ativo):
         for i in registros:
             meta_val = str(i.get('meta')) if i.get('meta') is not None else ''
             is_presence = True if i.get('id_nome_indicador').lower() == r"48 - presença" else False
+            area = i.get('area')
+            responsavel = i.get('responsavel')
 
             row_data = [
                 i.get('atributo'),
@@ -75,8 +77,8 @@ async def save_registros_bd(registros, username, justificativa, ativo):
                 ativo if ativo is not None else i.get('ativo'),
                 i.get('chamado'),
                 i.get('criterio'),
-                i.get('area'),
-                i.get('responsavel'),
+                area if area is not None else '',
+                responsavel if responsavel is not None else '',
                 i.get('gerente'),
                 i.get('possui_dmm'),
                 i.get('dmm'),
@@ -122,6 +124,8 @@ async def import_from_excel(registros, username):
 
         for i in registros:
             meta_val = str(i.get('meta')) if i.get('meta') is not None else ''
+            area = i.get('area')
+            responsavel = i.get('responsavel')
 
             row_data = [
                 i.get('atributo'),
@@ -141,8 +145,8 @@ async def import_from_excel(registros, username):
                 i.get('ativo'),
                 i.get('chamado'),
                 i.get('criterio'),
-                i.get('area'),
-                i.get('responsavel'),
+                area if area is not None else '',
+                responsavel if responsavel is not None else '',
                 i.get('gerente'),
                 i.get('possui_dmm'),
                 i.get('dmm'),

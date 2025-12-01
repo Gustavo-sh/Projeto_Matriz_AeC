@@ -35,11 +35,20 @@ EXPECTED_COLUMNS = [
     'atributo', 'id_nome_indicador', 'meta_sugerida', 'resultado', 'atingimento', 'meta', 'moedas', 'tipo_indicador', 
         'acumulado', 'esquema_acumulado', 'tipo_matriz', 'data_inicio', 
         'data_fim', 'periodo', 'escala', 'tipo_de_faturamento', 
-        'descricao', 'ativo', 'chamado', 'criterio', 'area', 
-        'responsavel', 'gerente', 'possui_dmm', 'dmm', 'submetido_por', 
+        'descricao', 'ativo', 'chamado', 'criterio', 'gerente', 'possui_dmm', 'dmm', 'submetido_por', 
         'data_submetido_por', 'qualidade', 'da_qualidade', 'data_da_qualidade', 
         'planejamento', 'da_planejamento', 'data_da_planejamento', 'exop', 'da_exop', 'data_da_exop'
 ]
+
+# EXPECTED_COLUMNS = [
+#     'atributo', 'id_nome_indicador', 'meta_sugerida', 'resultado', 'atingimento', 'meta', 'moedas', 'tipo_indicador', 
+#         'acumulado', 'esquema_acumulado', 'tipo_matriz', 'data_inicio', 
+#         'data_fim', 'periodo', 'escala', 'tipo_de_faturamento', 
+#         'descricao', 'ativo', 'chamado', 'criterio', 'area', 
+#         'responsavel', 'gerente', 'possui_dmm', 'dmm', 'submetido_por', 
+#         'data_submetido_por', 'qualidade', 'da_qualidade', 'data_da_qualidade', 
+#         'planejamento', 'da_planejamento', 'data_da_planejamento', 'exop', 'da_exop', 'data_da_exop'
+# ]
 
 def _check_role_or_forbid(user: dict, allowed_roles: list[str]):
     """
@@ -302,7 +311,7 @@ async def add_registro(
     meta: str = Form(...),
     moeda: str = Form(...),
     criterio_final: Optional[str] = Form(None),
-    area: str = Form(...),
+    #area: str = Form(...),
     tipo_faturamento: str = Form(...),
     escala: str = Form(...),
     acumulado: str = Form(...),
@@ -317,7 +326,7 @@ async def add_registro(
     data_fim: str = Form(...),
     periodo: str = Form(...),
     gerente: str = Form(...),
-    responsavel: str = Form(...)
+    #responsavel: str = Form(...)
     ):
     registros = load_registros(request)
     novo_id = str(uuid.uuid4())
@@ -327,10 +336,10 @@ async def add_registro(
         "atributo": atributo, "id_nome_indicador": nome, "meta_sugerida": fact[0]["metasugerida"] if fact else '', "resultado": fact[0]["resultado"] if fact else '', "atingimento": fact[0]["atingimento"] if fact else '',
         "meta": meta, "moedas": moeda,"tipo_indicador": tipo_indicador,"acumulado": acumulado,"esquema_acumulado": esquema_acumulado,
         "tipo_matriz": tipo_matriz,"data_inicio": data_inicio,"data_fim": data_fim,"periodo": periodo,"escala": escala,"tipo_de_faturamento": tipo_faturamento,
-        "descricao": descricao or '',"ativo": ativo or "","chamado" or '': chamado,"criterio": criterio_final,"area": area,"responsavel": responsavel,"gerente": gerente,
+        "descricao": descricao or '',"ativo": ativo or "","chamado" or '': chamado,"criterio": criterio_final, "gerente": gerente,
         "possui_dmm": 'Não',"dmm": ''
     }
-    if not atributo or not nome or not meta or not moeda or not data_inicio or not data_fim or not escala or not tipo_faturamento or not criterio_final or not responsavel:  
+    if not atributo or not nome or not meta or not moeda or not data_inicio or not data_fim or not escala or not tipo_faturamento or not criterio_final:  
         raise HTTPException(
             status_code=422,
             detail="xIndicadorx: Preencha todos os campos obrigatórios!"
@@ -815,7 +824,7 @@ async def processar_acordo(
 
     registros_apos_acao = []
     updates_a_executar = []
-    trava_da_exop = []
+    # trava_da_exop = []
 
     for r in registros_pesquisa:
         try:
@@ -833,7 +842,7 @@ async def processar_acordo(
         periodo = str(r.get("periodo", "")).strip()
 
         updates_a_executar.append((atributo, periodo, id_nome_indicador))
-        trava_da_exop.append(r)
+        # trava_da_exop.append(r)
 
     if role == "adm":
         try:
@@ -844,42 +853,42 @@ async def processar_acordo(
     if updates_a_executar:
         username = user.get("usuario")
 
-        if role == "adm":
-            for dic in trava_da_exop:
-                try:
-                    area = dic.get("area", "").lower().strip()
-                    indicador = dic.get("id_nome_indicador", "")
-                except Exception:
-                    raise HTTPException(
-                        status_code=422,
-                        detail="xPesquisax: Não foi possível validar os dados selecionados."
-                    )
+        # if role == "adm":
+        #     for dic in trava_da_exop:
+        #         try:
+        #             area = dic.get("area", "").lower().strip()
+        #             indicador = dic.get("id_nome_indicador", "")
+        #         except Exception:
+        #             raise HTTPException(
+        #                 status_code=422,
+        #                 detail="xPesquisax: Não foi possível validar os dados selecionados."
+        #             )
 
-                if area == "qualidade":
-                    try:
-                        if int(dic.get("da_qualidade", 0)) == 0 and "opera" in dic.get("tipo_matriz", "").lower():
-                            raise HTTPException(
-                                status_code=422,
-                                detail=f"xPesquisax: O indicador {indicador} não tem De Acordo da Qualidade."
-                            )
-                    except Exception:
-                        raise HTTPException(
-                            status_code=422,
-                            detail=f"xPesquisax: Não foi possível verificar o De Acordo da Qualidade do indicador {indicador}."
-                        )
+        #         if area == "qualidade":
+        #             try:
+        #                 if int(dic.get("da_qualidade", 0)) == 0 and "opera" in dic.get("tipo_matriz", "").lower():
+        #                     raise HTTPException(
+        #                         status_code=422,
+        #                         detail=f"xPesquisax: O indicador {indicador} não tem De Acordo da Qualidade."
+        #                     )
+        #             except Exception:
+        #                 raise HTTPException(
+        #                     status_code=422,
+        #                     detail=f"xPesquisax: Não foi possível verificar o De Acordo da Qualidade do indicador {indicador}."
+        #                 )
 
-                elif area == "planejamento":
-                    try:
-                        if int(dic.get("da_planejamento", 0)) == 0 and "opera" in dic.get("tipo_matriz", "").lower():
-                            raise HTTPException(
-                                status_code=422,
-                                detail=f"xPesquisax: O indicador {indicador} não tem De Acordo do Planejamento."
-                            )
-                    except Exception:
-                        raise HTTPException(
-                            status_code=422,
-                            detail=f"xPesquisax: Não foi possível verificar o De Acordo do Planejamento do indicador {indicador}."
-                        )
+        #         elif area == "planejamento":
+        #             try:
+        #                 if int(dic.get("da_planejamento", 0)) == 0 and "opera" in dic.get("tipo_matriz", "").lower():
+        #                     raise HTTPException(
+        #                         status_code=422,
+        #                         detail=f"xPesquisax: O indicador {indicador} não tem De Acordo do Planejamento."
+        #                     )
+        #             except Exception:
+        #                 raise HTTPException(
+        #                     status_code=422,
+        #                     detail=f"xPesquisax: Não foi possível verificar o De Acordo do Planejamento do indicador {indicador}."
+        #                 )
 
         try:
             await update_da_adm_apoio(updates_a_executar, role, status_acao, username)
