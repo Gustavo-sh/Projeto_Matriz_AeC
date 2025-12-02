@@ -780,22 +780,13 @@ def edit_campo_get(request: Request, registro_id: str, campo: str):
 @router.post("/processar_acordo", response_class=HTMLResponse)
 async def processar_acordo(
     request: Request, 
-    registro_ids: List[str] = Form([], alias="registro_ids"),
     status_acao: str = Form(..., alias="status_acao"),
     cache_key: str = Form(..., alias="cache_key")
 ):
     user = get_current_user(request)
     _check_role_or_forbid(user, ["adm", "apoio qualidade", "apoio planejamento"])
     role = user.get("role", "default").lower().strip()
-    print(cache_key)
 
-    if not registro_ids:
-        raise HTTPException(
-            status_code=422,
-            detail="xPesquisax: Selecione pelo menos um registro para dar Acordo ou Não Acordo."
-        )
-
-    registro_ids = [str(x).strip() for x in registro_ids]
     status_acao = status_acao.lower().strip()
     cache_key = cache_key.strip()
 
@@ -820,35 +811,17 @@ async def processar_acordo(
         path = "desconhecido"
 
     show_das = None if "cadastro" in path else True
-    ids_set = set(registro_ids)
 
     registros_apos_acao = []
     updates_a_executar = []
     trava_da_exop = []
 
     for r in registros_pesquisa:
-        try:
-            rid = str(r.get("id"))
-        except Exception:
-            continue  
-
-        if rid not in ids_set:
-            if r.get("id_nome_indicador").lower() != "48 - presença":
-                registros_apos_acao.append(r)
-            continue
-
         atributo = str(r.get("atributo", "")).strip()
-        id_nome_indicador = str(r.get("id_nome_indicador", "")).strip()
         periodo = str(r.get("periodo", "")).strip()
 
-        updates_a_executar.append((atributo, periodo, id_nome_indicador))
+        updates_a_executar.append((atributo, periodo))
         trava_da_exop.append(r)
-
-    if role == "adm":
-        try:
-            updates_a_executar.append((atributo, periodo, "48 - Presença"))
-        except Exception:
-            pass  
 
     if updates_a_executar:
         username = user.get("usuario")
@@ -912,20 +885,11 @@ async def processar_acordo(
                 detail=f"xPesquisax: Erro ao atualizar os registros ({e})."
             )
 
-    try:
-        set_cache(cache_key, registros_apos_acao, timedelta(minutes=1))
-    except Exception:
-        pass 
-
-    return templates.TemplateResponse(
-        "_pesquisa.html",
-        {
-            "request": request,
-            "registros": registros_apos_acao,
-            "show_checkbox": True,
-            "show_das": show_das,
-        }
-    )
+    response = Response(content="", media_type="text/html")
+    response.headers["HX-Trigger"] = json.dumps({
+        "mostrarSucesso": {"value": "xPesquisax: DA atualizado com sucesso! Irá refletir no sistema quando o tempo da cache expirar."}
+    })
+    return response
 
 
 

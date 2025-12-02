@@ -365,25 +365,17 @@
  * MENSAGENS: limpar não-justificativa / sucesso / erro
  * ============================= */
 (function () {
-  document.body.addEventListener("htmx:afterSwap", function (evt) {
-    if (evt.detail?.target?.id === "mensagens-registros") {
-      const contemJustificativa = evt.detail.target.querySelector(".form-justificativa");
-      if (!contemJustificativa) {
-        setTimeout(() => {
-          evt.detail.target.innerHTML = "";
-        }, 8000);
-      }
-    }
-  });
-
   document.body.addEventListener("mostrarSucesso", function (evt) {
     const mensagem = evt.detail?.value;
     const indicadorDiv = document.getElementById("mensagens-indicador");
     const filtroDiv = document.getElementById("mensagens-filtro");
+    const pesquisaDiv = document.getElementById("mensagens-pesquisa");
     if (!mensagem) return;
 
     const html = `<div>${mensagem}</div>`;
-    if (mensagem.toLocaleLowerCase().includes("pesquisa")) {
+    if (mensagem.toLocaleLowerCase().includes("xpesquisax")) {
+      if (pesquisaDiv) pesquisaDiv.innerHTML = html;
+    } else if (mensagem.toLocaleLowerCase().includes("pesquisa")) {
       if (filtroDiv) filtroDiv.innerHTML = html;
     } else {
       if (indicadorDiv) indicadorDiv.innerHTML = html;
@@ -391,6 +383,7 @@
     setTimeout(() => {
       if (indicadorDiv) indicadorDiv.innerHTML = "";
       if (filtroDiv) filtroDiv.innerHTML = "";
+      if (pesquisaDiv) pesquisaDiv.innerHTML = "";
     }, 8000);
   });
 

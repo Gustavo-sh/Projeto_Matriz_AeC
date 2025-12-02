@@ -17,6 +17,14 @@
     <link rel="icon" type="image/png" href="/static/images/fav.png">
 </head>
 <body data-area="{{ area }}">
+
+    <div id="mensagens-globais">
+        <div id="mensagens-indicador" class="mensagens-indicador"></div>
+        <div id="mensagens-filtro" class="mensagens-filtro"></div>
+        <div id="mensagens-pesquisa" class="mensagens-pesquisa"></div>
+        <div id="mensagens-registros" class="mensagens-registros"></div>
+    </div>
+
     <div id="internal-error" class="erro-fixo oculto" role="alert" aria-live="assertive">
     </div>
     <form action="/logout" method="post">
@@ -64,7 +72,7 @@
                 </select>
             </div>
 
-            <div id="mensagens-filtro" class="mensagens-filtro"></div>
+            <!-- <div id="mensagens-filtro" class="mensagens-filtro"></div> -->
 
             <button
                 type="button"
@@ -194,7 +202,7 @@
                 Selecionar Tudo
             </button>
 
-            <div class="mensagens-pesquisa" id="mensagens-pesquisa"></div>
+            
             
             <input type="hidden" name="cache_key" id="cache_key_pesquisa" value="">
             <input type="hidden" name="tipo_pesquisa_admapoio" id="tipo_pesquisa_admapoio" value="">
@@ -217,6 +225,8 @@
                 </button>
             </div>
         </form>
+
+        <!-- <div class="mensagens-pesquisa" id="mensagens-pesquisa"></div> -->
 
         <div class="container_mmd">
             <form hx-post="/update_meta_moedas" 

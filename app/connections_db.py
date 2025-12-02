@@ -370,7 +370,7 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
         with get_db_connection() as conn:
             cur = conn.cursor()
             for update_item in lista_de_updates:
-                atributo, periodo, id_nome_indicador = update_item
+                atributo, periodo = update_item
                 if role_defined == "exop" and tipo_defined == 1:
                     cur.execute(f"""
                     UPDATE dbo.Matriz_Geral
@@ -381,9 +381,8 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
                         {campo_data} = ?
                     WHERE 
                         Atributo = ? AND 
-                        periodo = ? AND 
-                        id_nome_indicador = ?
-                """, (username, tipo_defined, agora, atributo, periodo, id_nome_indicador))
+                        periodo = ?  
+                """, (username, tipo_defined, agora, atributo, periodo,))
                 else:
                     cur.execute(f"""
                     UPDATE dbo.Matriz_Geral
@@ -393,9 +392,8 @@ async def update_da_adm_apoio(lista_de_updates: list, role, tipo, username):
                         {campo_data} = ?
                     WHERE 
                         Atributo = ? AND 
-                        periodo = ? AND 
-                        id_nome_indicador = ?
-                """, (username, tipo_defined, agora, atributo, periodo, id_nome_indicador))
+                        periodo = ?  
+                """, (username, tipo_defined, agora, atributo, periodo,))
             conn.commit() 
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
