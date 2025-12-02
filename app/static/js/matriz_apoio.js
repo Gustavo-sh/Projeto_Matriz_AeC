@@ -2,71 +2,7 @@
  * Página: Apoio
  * Modo: Modular Parcial (usa matriz_core.js para blocos comuns)
  * Carregar DEPOIS de matriz_core.js
- *
- * Responsabilidades específicas:
- * 1) Pós-HTMX: mapear URL -> tipo de pesquisa e preencher duplicar_*
- * 2) Construir cache_key_pesquisa ("pesquisa_<tipo>:<atributo>")
- * 3) Select-all via BOTÃO ("Selecionar Tudo" / "Desmarcar Tudo")
- * 4) Exportação customizada
- * 5) Ajustes no DMM duplicar (caso existam inputs específicos)
- */
-
-/* =============================
- * 1) Pós-HTMX: mapear tipo pesquisa + atualizar campos ocultos
- * ============================= */
-(function () {
-  document.body.addEventListener("htmx:afterRequest", function (evt) {
-    const xhr = evt.detail?.xhr;
-    if (!xhr || !(xhr.status >= 200 && xhr.status < 300)) return;
-
-    const url = evt.detail?.elt?.getAttribute("hx-post") || xhr.responseURL || "";
-    if (!url) return;
-
-    const atributoInput = document.getElementById("duplicar_atributo");
-    const tipoPesquisaHidden = document.getElementById("duplicar_tipo_pesquisa");
-    const cacheKey = document.getElementById("cache_key_pesquisa");
-
-    if (tipoPesquisaHidden && atributoInput) {
-      // Dispara construção da cache key
-      document.body.dispatchEvent(
-        new CustomEvent("buildCacheKey", {
-          detail: { tipo: tipoPesquisaHidden.value, atributo: atributoInput.value },
-        })
-      );
-    }
-  });
-})();
-
-
-/* =============================
- * 2) Cache Key: construir e atualizar
- * ============================= */
-(function () {
-  document.addEventListener("DOMContentLoaded", function () {
-    document.body.addEventListener("buildCacheKey", function (evt) {
-      const cacheKeyInput = document.getElementById("cache_key_pesquisa");
-      const tipo = evt.detail?.tipo;
-      const atributo = evt.detail?.atributo;
-      let page = null;
-      const url = window.location.pathname.toLowerCase();
-      // let area = document.body.dataset.area;
-      // area = area ? area : "None";
-      if (url.includes("cadastro")) {
-        page = "cadastro";
-      } else {
-        page = "demais";
-      }
-      if (cacheKeyInput && tipo && atributo) {
-        const novaCacheKey = `pesquisa_${tipo}:${atributo}:${page}`;
-        cacheKeyInput.value = novaCacheKey;
-        console.log("[APOIO] cache_key atualizada:", novaCacheKey);
-      }
-    });
-  });
-})();
-
-
-
+ 
 
 
 /* =============================

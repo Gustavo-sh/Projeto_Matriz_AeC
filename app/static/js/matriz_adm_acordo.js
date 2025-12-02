@@ -24,48 +24,25 @@
     if (!url) return;
 
     const atributoInput = document.getElementById("duplicar_atributo");
-    const tipoPesquisaAdmApoio = document.getElementById("tipo_pesquisa_admapoio");
     const tipoPesquisaHidden = document.getElementById("duplicar_tipo_pesquisa");
     const cacheKey = document.getElementById("cache_key_pesquisa");
     const atributoAtual = document.getElementById("atributo_select")?.value || "";
 
-    let tipoValor = null;
-
-    // Rotas ADM/APOIO
-    if (url.includes("/pesquisarm0admapoio")) {
-      tipoValor = "m0";
-    } else if (url.includes("/pesquisarm1admapoio")) {
-      tipoValor = "m1";
-    }
-    // Rotas padrão (mantidas para compatibilidade)
-    else if (url.includes("/pesquisar_m0")) {
-      tipoValor = "m0";
-    } else if (url.includes("/pesquisar_m1")) {
-      tipoValor = "m1";
-    } else if (url.includes("/pesquisar_m_mais1")) { a
-      tipoValor = "m+1";
-    } else if (url.includes("/pesquisar_nao_acordos")) {
+    if (url.includes("/pesquisar_nao_acordos")) {
       if (cacheKey) cacheKey.value = "nao_acordos_apoio";
     } else if (url.includes("/pesquisar_acordos")) {
       if (cacheKey) cacheKey.value = "acordos_apoio";
     }
-    // Pesquisas especiais desta página
     else if (url.includes("/pesquisar_nao_acordos")) {
       if (cacheKey) cacheKey.value = "nao_acordos_apoio";
     }
 
-    if (tipoValor) {
-      if (tipoPesquisaAdmApoio) tipoPesquisaAdmApoio.value = tipoValor;
-      if (tipoPesquisaHidden) tipoPesquisaHidden.value = tipoValor;
-      if (atributoInput) atributoInput.value = atributoAtual;
-
-      // Dispara construção da cache key
-      document.body.dispatchEvent(
-        new CustomEvent("buildCacheKey", {
-          detail: { tipo: tipoValor, atributo: atributoAtual },
-        })
-      );
-    }
+    // Dispara construção da cache key
+    document.body.dispatchEvent(
+      new CustomEvent("buildCacheKey", {
+        detail: { tipo: tipoPesquisaHidden.value, atributo: atributoAtual },
+      })
+    );
   });
 })();
 
