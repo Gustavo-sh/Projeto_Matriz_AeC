@@ -1,32 +1,3 @@
-/* matriz_apoio.js
- * Página: Apoio
- * Modo: Modular Parcial (usa matriz_core.js para blocos comuns)
- * Carregar DEPOIS de matriz_core.js
- 
-
-
-/* =============================
- * 4) Exportação customizada
- * ============================= */
-(function () {
-  document.addEventListener("DOMContentLoaded", function () {
-    const exportBtn = document.getElementById("export-btn");
-    if (!exportBtn) return;
-    exportBtn.addEventListener("click", function () {
-      const atributo = document.getElementById("atributo_select")?.value || "";
-      const tipo = document.getElementById("duplicar_tipo_pesquisa")?.value || "";
-      const cache_key = document.getElementById("cache_key_pesquisa")?.value || "";
-      const params = new URLSearchParams();
-      params.append("atributo", atributo);
-      params.append("duplicar_tipo_pesquisa", tipo);
-      params.append("cache_key", cache_key);
-      const url = "/export_table?" + params.toString();
-      window.open(url, "_blank");
-    });
-  });
-})();
-
-
 /* =============================
  * 5) DMM duplicar: limite e bloqueio seguro
  * ============================= */

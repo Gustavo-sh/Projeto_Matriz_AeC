@@ -128,6 +128,8 @@
             <h5>Os resultados da pesquisa aparecerão na primeira tabela abaixo.</h5>
         </div>
 
+        
+
         <div class="user-info">
             <div id="atributos-container">
                 <label>Atributo: *</label>
@@ -176,6 +178,25 @@
                 Pesquisar Mes Seguinte
             </button>
         </div>
+
+        <form hx-post="/update_dmm"
+                hx-target="#tabela-pesquisa"
+                hx-swap="innerHTML"
+                hx-include="#cache_key_pesquisa"
+                hx-confirm="Confirma a alteração do DMM para os registros selecionados?">
+            <div class="dmm-container">
+                <h4>DMM</h4>  
+                <label>Possui DMM: *</label>
+                <div class="radio-group" id="possuiDmm_apoio">
+                    <label><input type="radio" name="possuiDmm_apoio" value="Sim"> Sim</label>
+                    <label><input type="radio" name="possuiDmm_apoio" value="Não" checked> Não</label>
+                </div>
+
+                <label>DMM:</label>
+                <input type="text" id="dmm_apoio" name="dmm_apoio" placeholder="Selecione as datas, caso haja">
+                <button type="submit">Alterar DMM</button>
+            </div>
+        </form>
     </div>
 
     <div class="registros">
@@ -328,6 +349,7 @@
     </div>
 
     <script src="{{ url_for('static', path='/js/matriz_core.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/matriz_adm_acordo.js') }}"></script>
 
 </body>
 </html>
