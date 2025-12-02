@@ -9,6 +9,42 @@
  */
 
 /* =============================
+ * MENSAGENS CLEANER
+ * ============================= */
+window.__mensagemTimeout = null;
+
+window.__mostrarToast = function (mensagem, tipo = "sucesso") {
+    const container = document.getElementById("toast-global");
+    if (!container) return;
+
+    // criar toast
+    const toast = document.createElement("div");
+    toast.classList.add("toast");
+
+    if (tipo === "erro") toast.classList.add("toast-erro");
+    else if (tipo === "aviso") toast.classList.add("toast-aviso");
+    else toast.classList.add("toast-sucesso");
+
+    toast.innerHTML = mensagem;
+    container.appendChild(toast);
+
+    // pequena espera para animação
+    setTimeout(() => toast.classList.add("show"), 20);
+
+    // reset global timeout
+    if (window.__mensagemTimeout) {
+        clearTimeout(window.__mensagemTimeout);
+    }
+
+    window.__mensagemTimeout = setTimeout(() => {
+        document.querySelectorAll("#toast-global .toast").forEach(t => {
+            t.classList.remove("show");
+            setTimeout(() => t.remove(), 350);
+        });
+    }, 8000);
+};
+
+/* =============================
  * HELPERS GERAIS
  * ============================= */
 (function () {
@@ -42,47 +78,6 @@
 })();
 
 
-/* =============================
- * BLOCO: TRATAMENTO DE ERROS GERAIS (HTMX 422)
- * (xFiltrox / xPesquisax / xIndicadorx)
- * ============================= */
-(function () {
-  document.body.addEventListener("htmx:responseError", function (evt) {
-    const xhr = evt?.detail?.xhr;
-    if (!xhr) return;
-
-    const indicadorDiv = document.getElementById("mensagens-indicador");
-    const filtroDiv = document.getElementById("mensagens-filtro");
-    const pesquisaDiv = document.getElementById("mensagens-pesquisa");
-
-    if (xhr.status === 422) {
-      const resp = xhr.response || "";
-      const write = (el, def) => {
-        try {
-          const data = JSON.parse(resp);
-          el.innerText = data.detail || def;
-        } catch {
-          el.innerText = resp;
-        }
-      };
-
-      if (resp.includes("xFiltrox")) {
-        write(filtroDiv, "Erro inesperado x1x.");
-      } else if (resp.includes("xPesquisax")) {
-        write(pesquisaDiv, "Erro inesperado x2x.");
-      } else if (resp.includes("xIndicadorx")) {
-        write(indicadorDiv, "Erro inesperado x3x.");
-      }
-    }
-
-    // Limpa mensagens após 8s
-    setTimeout(() => {
-      if (indicadorDiv) indicadorDiv.innerText = "";
-      if (filtroDiv) filtroDiv.innerText = "";
-      if (pesquisaDiv) pesquisaDiv.innerText = "";
-    }, 8000);
-  });
-})();
 
 
 /* =============================
@@ -383,48 +378,45 @@
 /* =============================
  * BLOCO: MENSAGENS (afterSwap filtra justificativa / mostrarSucesso / mostrarErro)
  * ============================= */
-(function () {
-  // Limpar mensagens-registros se não for o parcial de justificativa
-  document.body.addEventListener("htmx:afterSwap", function (evt) {
-    if (evt.detail?.target?.id === "mensagens-registros") {
-      const contemJustificativa = evt.detail.target.querySelector(".form-justificativa");
-      if (!contemJustificativa) {
-        setTimeout(() => {
-          evt.detail.target.innerHTML = "";
-        }, 8000);
-      }
-    }
-  });
-
-  // Eventos customizados: sucesso/erro
-  document.body.addEventListener("mostrarSucesso", function (evt) {
+document.body.addEventListener("mostrarSucesso", function (evt) {
     const mensagem = evt.detail?.value;
-    const indicadorDiv = document.getElementById("mensagens-indicador");
-    const filtroDiv = document.getElementById("mensagens-filtro");
     if (!mensagem) return;
 
-    const html = `<div>${mensagem}</div>`;
-    if (mensagem.toLocaleLowerCase().includes("pesquisa")) {
-      if (filtroDiv) filtroDiv.innerHTML = html;
-    } else {
-      if (indicadorDiv) indicadorDiv.innerHTML = html;
-    }
-    setTimeout(() => {
-      if (indicadorDiv) indicadorDiv.innerHTML = "";
-      if (filtroDiv) filtroDiv.innerHTML = "";
-    }, 8000);
-  });
-
-  document.body.addEventListener("mostrarErro", function (evt) {
+    window.__mostrarToast(mensagem, "sucesso");
+});
+document.body.addEventListener("mostrarErro", function (evt) {
     const mensagem = evt.detail?.value;
-    const indicadorDiv = document.getElementById("mensagens-registros");
-    if (!mensagem || !indicadorDiv) return;
-    indicadorDiv.innerHTML = `<div style="color: red; font-weight: bold;">Erro: ${mensagem}</div>`;
-    setTimeout(() => {
-      indicadorDiv.innerHTML = "";
-    }, 8000);
-  });
-})();
+    if (!mensagem) return;
+
+    window.__mostrarToast(mensagem, "erro");
+});
+
+/* =============================
+ * HTMX: Tratamento unificado para erros 422 (toast)
+ * ============================= */
+document.body.addEventListener("htmx:responseError", function (evt) {
+    const xhr = evt.detail?.xhr;
+    if (!xhr) return;
+
+    // Apenas lida com 422
+    if (xhr.status !== 422) return;
+
+    let mensagem = null;
+
+    // Tenta extrair JSON
+    try {
+        const data = JSON.parse(xhr.response);
+        mensagem = data.detail || data.message || xhr.response;
+    } catch {
+        // Se não for JSON, pega resposta bruta
+        mensagem = xhr.response || "Erro desconhecido (422).";
+    }
+
+    // Exibe no toast global como erro
+    window.__mostrarToast(mensagem, "erro");
+});
+
+
 
 
 /* =============================

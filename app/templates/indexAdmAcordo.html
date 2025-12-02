@@ -17,6 +17,9 @@
     <link rel="icon" type="image/png" href="/static/images/fav.png">
 </head>
 <body data-area="{{ area }}">
+
+    <div id="toast-global" class="toast-container"></div>
+
     <div id="internal-error" class="erro-fixo oculto" role="alert" aria-live="assertive">
     </div>
     <form action="/logout" method="post">
@@ -50,7 +53,7 @@
             <label>Usuário:</label>
             <input type="text" name="username" id="username" value="{{ username or '' }}" readonly>
 
-            <div id="mensagens-filtro" class="mensagens-filtro"></div>
+            <!-- <div id="mensagens-filtro" class="mensagens-filtro"></div> -->
 
             <button
                 type="button"
@@ -110,7 +113,7 @@
                 <button type="submit">Importar Excel</button>
                 </form>
 
-                <div id="upload_result" class="mensagens-import"></div>
+                <!-- <div id="upload_result" class="mensagens-import"></div> -->
             </div>
             {% endif %}
 
@@ -138,7 +141,7 @@
                 </select>
             </div>
 
-            <div id="mensagens-filtro" class="mensagens-filtro"></div>
+            <!-- <div id="mensagens-filtro" class="mensagens-filtro"></div> -->
 
             <button
                 type="button"

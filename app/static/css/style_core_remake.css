@@ -1056,3 +1056,37 @@ body.register-page {
   font-weight: bold;
   padding-top: 100px;
 }
+
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 350px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background: #fff;
+    color: #333;
+    padding: 14px 18px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+    border-left: 6px solid #007bff;
+    font-weight: 500;
+    font-size: 15px;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.35s ease-out;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-sucesso { border-color: #28a745; }
+.toast-erro    { border-color: #dc3545; }
+.toast-aviso   { border-color: #ffc107; }

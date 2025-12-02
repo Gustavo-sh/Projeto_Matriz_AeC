@@ -342,7 +342,7 @@ async def add_registro(
     if not atributo or not nome or not meta or not moeda or not data_inicio or not data_fim or not escala or not tipo_faturamento or not criterio_final:  
         raise HTTPException(
             status_code=422,
-            detail="xIndicadorx: Preencha todos os campos obrigatórios!"
+            detail="Preencha todos os campos obrigatórios!"
     )
     registros.append(novo)
     save_registros(request, registros)
@@ -351,7 +351,7 @@ async def add_registro(
     {"request": request, "registros": registros} 
     )
     response = Response(content=html_content.body, media_type="text/html")
-    response.headers["HX-Trigger"] = '{"mostrarSucesso": "xIndicadorx: Novo registro adicionado com sucesso!"}'
+    response.headers["HX-Trigger"] = '{"mostrarSucesso": "Novo registro adicionado com sucesso!"}'
     return response
 
 @router.post("/pesquisar_mes", response_class=HTMLResponse)
@@ -365,7 +365,7 @@ async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = 
         if not atributo:
             raise HTTPException(
                 status_code=422,
-                detail="xFiltrox: Selecione um atributo primeiro!"
+                detail="Selecione um atributo primeiro!"
             )
 
         username = request.cookies.get("username", "anon")
@@ -426,9 +426,9 @@ async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = 
         response = Response(content=html_content.body, media_type="text/html")
 
         if registros:
-            response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+            response.headers["HX-Trigger"] = '{"mostrarSucesso": "Pesquisa realizada com sucesso!"}'
         else:
-            response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+            response.headers["HX-Trigger"] = '{"mostrarSucesso": "Sua pesquisa não trouxe resultados!"}'
 
         return response
 
@@ -456,9 +456,9 @@ async def pesquisar_acordos(request: Request):
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Pesquisa realizada com sucesso!"}'
     else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Sua pesquisa não trouxe resultados!"}'
     return response
 
 @router.post("/pesquisar_nao_acordos", response_class=HTMLResponse)
@@ -478,9 +478,9 @@ async def pesquisar_nao_acordos(request: Request):
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Pesquisa realizada com sucesso!"}'
     else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Sua pesquisa não trouxe resultados!"}'
     return response
 
 @router.post("/pesquisar_nao_acordos_exop", response_class=HTMLResponse)
@@ -500,9 +500,9 @@ async def pesquisar_nao_acordos_exop(request: Request):
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Pesquisa realizada com sucesso!"}'
     else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Sua pesquisa não trouxe resultados!"}'
     return response
 
 @router.post("/pesquisar_matrizes_administrativas", response_class=HTMLResponse)
@@ -521,9 +521,9 @@ async def matrizes_administrativas_pg_adm(request: Request, tipo: str = Form(...
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Pesquisa realizada com sucesso!"}'
     else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Sua pesquisa não trouxe resultados!"}'
     return response
 
 
@@ -555,9 +555,9 @@ async def all_atributes_operacao(request: Request, tipo_pesquisa: str = Form(...
     )
     response = Response(content=html_content.body, media_type="text/html")
     if len(registros) > 0:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Pesquisa realizada com sucesso!"}'
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Pesquisa realizada com sucesso!"}'
     else:
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xFiltrox: Sua pesquisa não trouxe resultados!"}'
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Sua pesquisa não trouxe resultados!"}'
     return response
 
 @router.post("/submit_table", response_class=HTMLResponse)
@@ -565,18 +565,42 @@ async def submit_table(request: Request):
     registros = load_registros(request)
     username = request.cookies.get("username", "anon")
     if not registros:
-        return "<p>Nenhum registro para submeter.</p>"
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarErro": {"value": "Nenhum registro para submeter."}
+            })
+        })
     num_atendentes = await get_num_atendentes(registros[0]["atributo"]) if "opera" in registros[0]["tipo_matriz"].lower() else None
     if "opera" in registros[0]["tipo_matriz"].lower():
         if num_atendentes == 0 or num_atendentes == '0':
-            return "<p>Não é possível submeter a matriz, pois o atributo selecionado não possui nenhum atendente de nível 1.</p>"
+            return Response(
+            "",
+            headers={
+                "HX-Trigger": json.dumps({
+                    "mostrarErro": {"value": "Não é possível submeter a matriz, pois o atributo selecionado não possui nenhum atendente de nível 1."}
+                })
+            })
     results = None
     try:
         results = await validation_submit_table(registros, username)
     except Exception as e:
-        return f"<p>Erro Inesperado: {e}.</p>" 
+        return Response(
+            "",
+            headers={
+                "HX-Trigger": json.dumps({
+                    "mostrarErro": {"value": f"Erro Inesperado: {e}."}
+                })
+            })
     if isinstance(results, str):
-        return results
+        return Response(
+            "",
+            headers={
+                "HX-Trigger": json.dumps({
+                    "mostrarErro": {"value": results}
+                })
+            })
     validation_conditions, registros = results
     existing_records = await batch_validar_submit_query(validation_conditions)
     for existing_row in existing_records:
@@ -586,13 +610,18 @@ async def submit_table(request: Request):
                 cond['periodo'] == periodo_bd and 
                 cond['id_nome_indicador'] == id_nome_indicador_bd):
                 if validation_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
-                    return (
-                        f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.\nSe deseja alterar essa matriz, gentileza acessar link de alteração de matriz no botão links importantes.</p>"  
-                    )
+                    return Response(
+                    "",
+                    headers={
+                        "HX-Trigger": json.dumps({
+                            "mostrarErro": {"value": f"O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.\nSe deseja alterar essa matriz, gentileza acessar link de alteração de matriz no botão links importantes."}
+                        })
+                    })
+                    
                     
     await save_registros_bd(registros, username, None, None)
     response = Response(
-        content="<p>Tabela submetida com sucesso! A tabela ficará disponível caso queira replica-la para outros atributos.</p>",
+        content="",
         status_code=status.HTTP_200_OK,
         media_type="text/html"
     )
@@ -613,19 +642,19 @@ async def duplicate_search_results(
         if not data_inicio or not data_fim or not periodo:
             raise HTTPException(
                 status_code=422,
-                detail="xPesquisax: Selecione as datas de início e fim antes de duplicar!"
+                detail="Selecione as datas de início e fim antes de duplicar!"
             )
 
         if not registro_ids:
             raise HTTPException(
                 status_code=422,
-                detail="xPesquisax: Selecione pelo menos um registro para duplicar."
+                detail="Selecione pelo menos um registro para duplicar."
             )
         
         if not atributo:
             raise HTTPException(
                 status_code=422,
-                detail="xPesquisax: Selecione o atributo antes de duplicar."
+                detail="Selecione o atributo antes de duplicar."
             )
 
         current_page = request.headers.get("hx-current-url", "desconhecido").lower()
@@ -644,7 +673,7 @@ async def duplicate_search_results(
         if not registros_da_pesquisa:
             raise HTTPException(
                 status_code=422,
-                detail="xPesquisax: Nenhum resultado de pesquisa encontrado. Refaça a pesquisa antes de duplicar."
+                detail="Nenhum resultado de pesquisa encontrado. Refaça a pesquisa antes de duplicar."
             )
 
         ids_selecionados = set(registro_ids)
@@ -657,7 +686,7 @@ async def duplicate_search_results(
         if not registros_a_duplicar:
             raise HTTPException(
                 status_code=422,
-                detail="xPesquisax: Os registros selecionados não foram encontrados."
+                detail="Os registros selecionados não foram encontrados."
             )
 
         registros_atuais = load_registros(request)
@@ -685,7 +714,7 @@ async def duplicate_search_results(
         )
 
         response = Response(content=html_content.body, media_type="text/html")
-        response.headers["HX-Trigger"] = '{"mostrarSucesso": "xPesquisax: Registros duplicados com sucesso!"}'
+        response.headers["HX-Trigger"] = '{"mostrarSucesso": "Registros duplicados com sucesso!"}'
         return response
 
     except HTTPException:
@@ -693,7 +722,7 @@ async def duplicate_search_results(
 
     except Exception as e:
         return Response(
-            content=f"xPesquisax: Erro inesperado ao duplicar registros. ({str(e)})",
+            content=f"Erro inesperado ao duplicar registros. ({str(e)})",
             status_code=500
         )
 
@@ -795,13 +824,13 @@ async def processar_acordo(
     except Exception:
         raise HTTPException(
             status_code=422,
-            detail="xPesquisax: Erro ao acessar o cache da pesquisa."
+            detail="Erro ao acessar o cache da pesquisa."
         )
 
     if not registros_pesquisa:
         raise HTTPException(
             status_code=422,
-            detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa."
+            detail="Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa."
         )
 
     current_page = request.headers.get("hx-current-url", "desconhecido")
@@ -832,12 +861,12 @@ async def processar_acordo(
                     if int(dic.get("da_qualidade", 0)) == 0 or int(dic.get("da_planejamento", 0)) == 0:
                         raise HTTPException(
                             status_code=422,
-                            detail="xPesquisax: Validação da qualidade ou do planejamento está ausente para o atributo selecionado."
+                            detail="Validação da qualidade ou do planejamento está ausente para o atributo selecionado."
                         )
         except Exception as e:
             raise HTTPException(
                 status_code=422,
-                detail=f"xPesquisax: Não foi possível validar os DA's das areas de apoio. ({e})"
+                detail=f"Não foi possível validar os DA's das areas de apoio. ({e})"
             )
                     
         # if role == "adm":
@@ -882,12 +911,12 @@ async def processar_acordo(
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"xPesquisax: Erro ao atualizar os registros ({e})."
+                detail=f"Erro ao atualizar os registros ({e})."
             )
 
     response = Response(content="", media_type="text/html")
     response.headers["HX-Trigger"] = json.dumps({
-        "mostrarSucesso": {"value": "xPesquisax: DA atualizado com sucesso! Irá refletir no sistema quando o tempo da cache expirar."}
+        "mostrarSucesso": {"value": "DA atualizado com sucesso! Irá refletir no sistema quando o tempo da cache expirar."}
     })
     return response
 
@@ -978,21 +1007,21 @@ async def update_meta_moedas(
     if not registro_ids:
         raise HTTPException(
             status_code=422,
-            detail="xPesquisax: Selecione pelo menos um registro para alterar a meta."
+            detail="Selecione pelo menos um registro para alterar a meta."
         )
     if not meta:
         raise HTTPException(
             status_code=422,
-            detail="xPesquisax: Preencha pelo menos o campo meta para efetuar a alteração."
+            detail="Preencha pelo menos o campo meta para efetuar a alteração."
         )
     registros_pesquisa = get_from_cache(cache_key)
     if len(registro_ids) > 1:
         raise HTTPException(
             status_code=422,
-            detail="xPesquisax: Selecione apenas um campo para alterar."
+            detail="Selecione apenas um campo para alterar."
         )
     if not registros_pesquisa:
-        raise HTTPException(status_code=422, detail="xPesquisax: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
+        raise HTTPException(status_code=422, detail="Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
     ids_selecionados = set(registro_ids)
     registros_apos_acao = []
     updates_a_executar = []
@@ -1045,11 +1074,11 @@ async def update_dmm(
     if not dmm:
         raise HTTPException(
             status_code=422,
-            detail="xFiltrox: Coloquei exatamente 5 dmms para efetuar a alteração."
+            detail="Coloquei exatamente 5 dmms para efetuar a alteração."
         )
     registros_pesquisa = get_from_cache(cache_key)
     if not registros_pesquisa:
-        raise HTTPException(status_code=422, detail="xFiltrox: Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
+        raise HTTPException(status_code=422, detail="Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
     current_page = request.headers.get("hx-current-url", "desconhecido").lower()
     path = urlparse(current_page).path.lower()
     show_das = None
@@ -1174,29 +1203,57 @@ async def export_atributos_sem_matriz(request: Request):
 async def upload_excel(request: Request, file: UploadFile = File(...)):
     username = request.cookies.get("username")
     if not file.filename.lower().endswith((".xlsx", ".xls")):
-        content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
-        <p>xImportx: Envie um arquivo Excel (.xlsx ou .xls).</p></div>"""
-        return HTMLResponse(content=content)
+        # content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+        # <p>xImportx: Envie um arquivo Excel (.xlsx ou .xls).</p></div>"""
+        # return HTMLResponse(content=content)
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarErro": {"value": f"Envie um arquivo Excel (.xlsx ou .xls)."}
+            })
+        })
     try:
         content = await file.read()
         df = await run_in_threadpool(pd.read_excel, BytesIO(content))
     except Exception as e:
         await file.close()
-        return HTMLResponse(
-            content=f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
-            <p>xImportx: Erro ao ler o arquivo Excel: {e}</p></div>"""
-        )
+        # return HTMLResponse(
+        #     content=f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+        #     <p>xImportx: Erro ao ler o arquivo Excel: {e}</p></div>"""
+        # )
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarErro": {"value": f"Erro ao ler o arquivo Excel: {e}."}
+            })
+        })
     finally:
         await file.close()
     if df.empty:
-        content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
-        <p>xImportx: O arquivo Excel está vazio.</p></div>"""
-        return HTMLResponse(content=content)
+        # content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+        # <p>xImportx: O arquivo Excel está vazio.</p></div>"""
+        # return HTMLResponse(content=content)
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarErro": {"value": f"O arquivo Excel está vazio."}
+            })
+        })
     df_cols = [c.strip() for c in df.columns]
     if df_cols != EXPECTED_COLUMNS:
-        content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
-        <p>xImportx: As colunas do arquivo não correspondem ao modelo esperado.<br>\nEsperado: {EXPECTED_COLUMNS}<br>Recebido: {df_cols}</p></div>"""
-        return HTMLResponse(content=content)
+        # content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+        # <p>xImportx: As colunas do arquivo não correspondem ao modelo esperado.<br>\nEsperado: {EXPECTED_COLUMNS}<br>Recebido: {df_cols}</p></div>"""
+        # return HTMLResponse(content=content)
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarErro": {"value": f"As colunas do arquivo não correspondem ao modelo esperado.<br>\nEsperado: {EXPECTED_COLUMNS}<br>Recebido: {df_cols}."}
+            })
+        })
     def clean_value(v):
         if isinstance(v, str):
             v = v.strip().replace("–", "-").replace("—", "-")
@@ -1233,16 +1290,37 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
     try:
         import_results = await import_from_excel(records, username)
         if import_results != 'True':
-            content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
-            <p>xImportx: Erro ao inserir os atributos, pois já existem dados para {import_results}</p></div>"""
-            return HTMLResponse(content=content)
+            # content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+            # <p>xImportx: Erro ao inserir os atributos, pois já existem dados para {import_results}</p></div>"""
+            # return HTMLResponse(content=content)
+            return Response(
+            "",
+            headers={
+                "HX-Trigger": json.dumps({
+                    "mostrarErro": {"value": f"Erro ao inserir os atributos, pois já existem dados para {import_results}."}
+                })
+            })
     except Exception as e:
-        content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
-        <p>xImportx: Erro ao inserir os registros na tabela Robbyson.dbo.Matriz_Geral: {e}.</p></div>"""
-        return HTMLResponse(content=content)
-    content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
-    <p>xImportx: Todos os registros foram inseridos na tabela Robbyson.dbo.Matriz_Geral.</p></div>"""
-    return HTMLResponse(content=content)
+        # content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+        # <p>xImportx: Erro ao inserir os registros na tabela Robbyson.dbo.Matriz_Geral: {e}.</p></div>"""
+        # return HTMLResponse(content=content)
+        return Response(
+            "",
+            headers={
+                "HX-Trigger": json.dumps({
+                    "mostrarErro": {"value": f"Erro ao inserir os registros na tabela Robbyson.dbo.Matriz_Geral: {e}."}
+                })
+            })
+    # content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
+    # <p>xImportx: Todos os registros foram inseridos na tabela Robbyson.dbo.Matriz_Geral.</p></div>"""
+    # return HTMLResponse(content=content)
+    return Response(
+    "",
+    headers={
+        "HX-Trigger": json.dumps({
+            "mostrarSucesso": {"value": f"Todos os registros foram inseridos na tabela Robbyson.dbo.Matriz_Geral."}
+        })
+    })
 
 @router.post("/replicar_registros", response_class=HTMLResponse)
 async def replicar_registros(request: Request, atributos_replicar: list[str] = Form(...)):
@@ -1252,32 +1330,67 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
         user = get_current_user(request)
         matricula = user.get("usuario")
     except Exception:
-        return HTMLResponse("<p>Erro: usuário não autenticado.</p>")
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarSucesso": {"value": f"Usuário não autenticado."}
+            })
+        })
 
     atributos_destino = [a.strip() for a in atributos_replicar if a and a.strip()]
     if not atributos_destino:
-        return HTMLResponse("<p>Nenhum atributo selecionado para replicação.</p>")
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarSucesso": {"value": f"Nenhum atributo selecionado para replicação."}
+            })
+        })
 
     registros = load_registros(request)
 
     if not registros:
-        return HTMLResponse("<p>Não há registros carregados no cache para replicar.</p>")
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarSucesso": {"value": f"Não há registros carregados no cache para replicar."}
+            })
+        })
+
 
     if isinstance(registros, str):
         try:
             registros = json.loads(registros)
         except Exception:
-            return HTMLResponse("<p>Erro ao interpretar registros do cache.</p>")
+            return Response(
+            "",
+            headers={
+                "HX-Trigger": json.dumps({
+                    "mostrarSucesso": {"value": f"Erro ao interpretar registros do cache."}
+                })
+            })
 
     if not isinstance(registros, list) or not registros:
-        return HTMLResponse("<p>Cache de registros inválido ou vazio.</p>")
+        return Response(
+            "",
+            headers={
+                "HX-Trigger": json.dumps({
+                    "mostrarSucesso": {"value": f"Cache de registros inválido ou vazio."}
+                })
+            })
 
     atributo_atual = registros[0].get("atributo")
     if not atributo_atual:
-        return HTMLResponse("<p>Erro: não foi possível identificar o atributo atual nos registros.</p>")
+        return Response(
+            "",
+            headers={
+                "HX-Trigger": json.dumps({
+                    "mostrarSucesso": {"value": f"Não foi possível identificar o atributo atual nos registros."}
+                })
+            })
     
-    print(registros)
-
     novos_registros = []
     for destino in atributos_destino:
         for r in registros:
@@ -1299,7 +1412,13 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
             novos_registros.append(novo)
     results = await validation_submit_table(novos_registros, matricula)
     if isinstance(results, str):
-        return results
+        return Response(
+            "",
+            headers={
+                "HX-Trigger": json.dumps({
+                    "mostrarErro": {"value": results}
+                })
+            })
     validation_conditions, registros = results
     existing_records = await batch_validar_submit_query(validation_conditions)
     for existing_row in existing_records:
@@ -1309,18 +1428,38 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
                 cond['periodo'] == periodo_bd and 
                 cond['id_nome_indicador'] == id_nome_indicador_bd):
                 if validation_datas(data_inicio_bd, data_fim_bd, cond["data_inicio_sbmit"], cond["data_fim_submit"]):
-                    return f"<p>O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}.</p>" 
+                    return Response(
+                    "",
+                    headers={
+                        "HX-Trigger": json.dumps({
+                            "mostrarSucesso": {"value": f"O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}."}
+                        })
+                    })
                 
     if not novos_registros:
-        return HTMLResponse("<p>Nenhum registro válido para replicar.</p>")
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarSucesso": {"value": f"Nenhum registro válido para replicar."}
+            })
+        })
 
     try:
         await import_from_excel(novos_registros, matricula)
     except Exception as e:
-        return HTMLResponse(f"<p>Erro ao inserir registros no banco: {e}</p>")
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarSucesso": {"value": f"Erro ao inserir registros no banco: {e}."}
+            })
+        })
 
-    return HTMLResponse(
-        f"<p>Sucesso: {len(registros)} registros replicados do atributo "
-        f"<strong>{atributo_atual}</strong> para "
-        f"<strong>{', '.join(atributos_destino)}</strong>.</p>"
-    )
+    return Response(
+    "",
+    headers={
+        "HX-Trigger": json.dumps({
+            "mostrarSucesso": {"value": f"{len(registros)} registros replicados do atributo {atributo_atual} para {', '.join(atributos_destino)}."}
+        })
+    })

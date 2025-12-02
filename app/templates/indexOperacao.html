@@ -17,6 +17,10 @@
     <link rel="icon" type="image/png" href="/static/images/fav.png">
 </head>
 <body>
+
+    <div id="toast-global" class="toast-container"></div>
+
+
     <div id="internal-error" class="erro-fixo oculto" role="alert" aria-live="assertive">
     </div>
     <form action="/logout" method="post">
@@ -107,7 +111,7 @@
                 </select>
             </div>
 
-            <div id="mensagens-filtro" class="mensagens-filtro"></div>
+            <!-- <div id="mensagens-filtro" class="mensagens-filtro"></div> -->
 
             <button
                 type="button"
@@ -267,7 +271,7 @@
                     <input type="hidden" id="atributo_hidden" name="atributo" value="">
                 </div>
 
-                <div class="mensagens-indicador" id="mensagens-indicador"></div>
+                <!-- <div class="mensagens-indicador" id="mensagens-indicador"></div> -->
 
                 <div class="form-submit">
                     <button type="submit" class="button-submit-form">Enviar</button>
@@ -374,9 +378,9 @@
                     <input type="hidden" name="tipo_pesquisa" id="duplicar_tipo_pesquisa" value="">
                 </div>
 
-                <div class="mensagens-pesquisa" id="mensagens-pesquisa"></div>
+                <!-- <div class="mensagens-pesquisa" id="mensagens-pesquisa"></div> -->
 
-                <button type="submit" class="btn-duplicar-tabela" hx-on::htmx:responseError="document.getElementById('mensagens-pesquisa').innerText = JSON.parse(event.detail.xhr.response).detail">Duplicar Registros para Matriz</button>
+                <button type="submit" class="btn-duplicar-tabela">Duplicar Registros para Matriz</button>
             </form>
         </div>
 
@@ -426,7 +430,7 @@
             
             
         </div>
-        <div id="mensagens-registros" class="mensagens-registros"></div>
+        <!-- <div id="mensagens-registros" class="mensagens-registros"></div> -->
 
             <div class="clear_registros">
                 <button
@@ -442,8 +446,7 @@
             <div class="submit-tabela">
             <button
                     hx-post="/submit_table"
-                    hx-target="#mensagens-registros"
-                    hx-swap="innerHTML"
+                    hx-swap="none"
                     hx-confirm="Deseja realmente submeter as informações para banco de dados?">
                     Submeter Tabela
                 </button>
@@ -465,8 +468,7 @@
                         hx-post="/replicar_registros"
                         hx-confirm="Deseja realmente replicar os registros para os atributos selecionados?"
                         hx-include="#atributos_replicar"
-                        hx-target="#mensagens-registros"
-                        hx-swap="innerHTML">
+                        hx-swap="none">
                     Replicar registros
                 </button>
             </div>
