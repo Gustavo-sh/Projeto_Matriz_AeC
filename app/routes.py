@@ -40,6 +40,15 @@ EXPECTED_COLUMNS = [
         'planejamento', 'da_planejamento', 'data_da_planejamento', 'exop', 'da_exop', 'data_da_exop'
 ]
 
+EXPECTED_COLUMNS_IMPORT = [
+    'atributo', 'id_nome_indicador', 'meta', 'moedas', 'tipo_indicador', 
+        'acumulado', 'esquema_acumulado', 'tipo_matriz', 'data_inicio', 
+        'data_fim', 'periodo', 'escala', 'tipo_de_faturamento', 
+        'descricao', 'ativo', 'chamado', 'criterio', 'gerente', 'possui_dmm', 'dmm', 'submetido_por', 
+        'data_submetido_por', 'qualidade', 'da_qualidade', 'data_da_qualidade', 
+        'planejamento', 'da_planejamento', 'data_da_planejamento', 'exop', 'da_exop', 'data_da_exop'
+]
+
 # EXPECTED_COLUMNS = [
 #     'atributo', 'id_nome_indicador', 'meta_sugerida', 'resultado', 'atingimento', 'meta', 'moedas', 'tipo_indicador', 
 #         'acumulado', 'esquema_acumulado', 'tipo_matriz', 'data_inicio', 
@@ -1243,7 +1252,7 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
             })
         })
     df_cols = [c.strip() for c in df.columns]
-    if df_cols != EXPECTED_COLUMNS:
+    if df_cols != EXPECTED_COLUMNS_IMPORT:
         # content = f"""<div id="upload_result" hx-swap-oob="true" class=mensagens-import>
         # <p>xImportx: As colunas do arquivo não correspondem ao modelo esperado.<br>\nEsperado: {EXPECTED_COLUMNS}<br>Recebido: {df_cols}</p></div>"""
         # return HTMLResponse(content=content)
@@ -1251,7 +1260,7 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
         "",
         headers={
             "HX-Trigger": json.dumps({
-                "mostrarErro": {"value": f"As colunas do arquivo não correspondem ao modelo esperado.<br>\nEsperado: {EXPECTED_COLUMNS}<br>Recebido: {df_cols}."}
+                "mostrarErro": {"value": f"As colunas do arquivo não correspondem ao modelo esperado.<br>\nEsperado: {EXPECTED_COLUMNS_IMPORT}<br>Recebido: {df_cols}."}
             })
         })
     def clean_value(v):

@@ -198,11 +198,7 @@
                     <label>Tipo Indicador:</label>
                     <input type="text" name="tipo_indicador" id="formato_input" value="" readonly>
 
-                    <label>Acumulado:</label>
-                    <input type="text" name="acumulado" id="acumulado_input" value="" readonly>
-
-                    <label>Esquema Acumulado:</label>
-                    <input type="text" name="esquema_acumulado" id="esquema_input" value="" readonly>
+                    
 
                     <label>Tipo Matriz:</label>
                     <input type="text" name="tipo_matriz" id="tipomatriz_select" value="" readonly>
@@ -268,14 +264,20 @@
                     <label>Gerente:</label>
                     <input type="text" name="gerente" id="gerente_input" value="" readonly>
 
-                    <label>Possui DMM: *</label>
+                    <label>Acumulado:</label>
+                    <input type="text" name="acumulado" id="acumulado_input" value="" readonly>
+
+                    <label>Esquema Acumulado:</label>
+                    <input type="text" name="esquema_acumulado" id="esquema_input" value="" readonly>
+
+                    <!-- <label>Possui DMM: *</label>
                     <div class="radio-group">
                         <label><input type="radio" name="possuiDmm" value="Sim"> Sim</label>
                         <label><input type="radio" name="possuiDmm" value="Não" checked> Não</label>
                     </div>
                     
                     <label>DMM:</label>
-                    <input type="text" id="dmm" name="dmm" placeholder="Selecione as datas, caso haja">
+                    <input type="text" id="dmm" name="dmm" placeholder="Selecione as datas, caso haja"> -->
 
                     <input type="hidden" id="atributo_hidden" name="atributo" value="">
                 </div>
@@ -327,8 +329,8 @@
                             <!-- <th>Area</th>
                             <th>Responsavel</th> -->
                             <th>Gerente</th>
-                            <th>Possui DMM</th>
-                            <th>DMM</th>
+                            <!-- <th>Possui DMM</th>
+                            <th>DMM</th> -->
                             <th>Submetido Por</th>
                             <th>Data Sub Por</th>
                             <th>Qualidade</th>
@@ -412,7 +414,7 @@
                     <input type="text" name="periodo" id="periodo_duplicar" class="flatpickr-input-data" placeholder="Selecione data-inicio" value="" readonly>
                 </label>
 
-                <label>Possui DMM: *
+                <!-- <label>Possui DMM: *
                     <div class="radio-group" id="possuiDmmRadio">
                         <label><input type="radio" name="possuiDmmDuplicar" id="sim_duplicar" value="Sim"> Sim</label>
                         <label><input type="radio" name="possuiDmmDuplicar" value="Não" checked> Não</label>
@@ -421,14 +423,14 @@
 
                 <label>DMM:
                     <input type="text" id="dmm_duplicar" name="dmm" class="flatpickr-input-data" placeholder="Selecione as datas, caso haja">
-                </label>
+                </label> -->
             </div>
 
             <form hx-post="/duplicate_search_results" 
                 hx-target="#registros" 
                 hx-swap="innerHTML"
                 hx-trigger="submit" 
-                hx-include="#pesquisa-form-data, #data_inicio_duplicar, #data_fim_duplicar, #periodo_duplicar, #tabela-pesquisa input[name='registro_ids']:checked, #dmm_duplicar, #possuiDmmRadio">
+                hx-include="#pesquisa-form-data, #data_inicio_duplicar, #data_fim_duplicar, #periodo_duplicar, #tabela-pesquisa input[name='registro_ids']:checked">
                 
                 <div id="pesquisa-form-data" style="display:none;">
                     <input type="hidden" name="atributo" id="duplicar_atributo" value="">
@@ -476,8 +478,8 @@
                         <!-- <th>Area</th>
                         <th>Responsavel</th> -->
                         <th>Gerente</th>
-                        <th>Possui DMM</th>
-                        <th>DMM</th>
+                        <!-- <th>Possui DMM</th>
+                        <th>DMM</th> -->
                     </tr>
                 </thead>
                 <tbody id="registros">
