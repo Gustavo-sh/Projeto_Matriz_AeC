@@ -232,43 +232,45 @@ async def validation_meta_moedas(registros, meta, moedas, role):
     #     return f"xPesquisax: Usuário com perfil de Qualidade não pode alterar registros de outras áreas! indicador:{registros["id_nome_indicador"]}"
     # elif "planejamento" in role.lower() and (area != "planejamento" and area != ""):
     #     return f"xPesquisax: Usuário com perfil de Planejamento não pode alterar registros de outras áreas! indicador:{registros["id_nome_indicador"]}"
+    if moedas < 3 and moedas > 0:
+        return f"A monetização mínima é de 3 moedas. O indicador {registros['id_nome_indicador']} possui {moedas} moedas."
     if registros["id_nome_indicador"].lower() == r"901 - % disponibilidade" and int(meta) != 94:
-        return f"xPesquisax: Não é permitido alterar a meta do indicador 901 - % disponibilidade!"
+        return f"Não é permitido alterar a meta do indicador 901 - % disponibilidade!"
     if tipo == "Hora":
         try:
             if len(meta.split(":")) != 3:
-                return f"xPesquisax: Erro de meta para indicador tipo hora! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}. O modelo correto é HH:MM:SS"
+                return f"Erro de meta para indicador tipo hora! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}. O modelo correto é HH:MM:SS"
         except ValueError:
-            return f"xPesquisax: Erro de valor meta! indicador:{registros["id_nome_indicador"]}, meta:{meta}"
+            return f"Erro de valor meta! indicador:{registros["id_nome_indicador"]}, meta:{meta}"
     elif tipo == "Inteiro":
         try:
             int(meta)
         except ValueError:
-            return f"xPesquisax: Meta deve ser um valor inteiro! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
+            return f"Meta deve ser um valor inteiro! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
     elif tipo == "Decimal":
         try:
             float(meta)
         except ValueError:
-            return f"xPesquisax: Meta deve ser um valor decimal! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
+            return f"Meta deve ser um valor decimal! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
     elif tipo == "Percentual":
         try:
             float(meta)
         except ValueError:
-            return f"xPesquisax: Meta deve ser um número válido! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
+            return f"Meta deve ser um número válido! indicador:{registros["id_nome_indicador"]}, meta informada:{meta}"
     try:
         if moedas != "":
             int(moedas)
     except ValueError:
-        return f"xPesquisax: Moedas deve ser um número inteiro! indicador: {registros["id_nome_indicador"]}, moedas informada: {moedas}"
+        return f"Moedas deve ser um número inteiro! indicador: {registros["id_nome_indicador"]}, moedas informada: {moedas}"
     return None
 
 async def validation_dmm(dmm):
     try:
         qtd_dmm = len(dmm.split(","))
         if qtd_dmm != 5:
-            return f"xFiltrox: Selecione extamente 5 dmms! Dmms selecionados: {qtd_dmm}"
+            return f"Selecione extamente 5 dmms! Dmms selecionados: {qtd_dmm}"
     except Exception as e:
-        return f"xFiltrox: Erro na validação de dmm: {e}"
+        return f"Erro na validação de dmm: {e}"
     return None
 
 def validation_datas(data_inicio_bd, data_fim_bd, data_inicio_sbmit, data_fim_submit):
