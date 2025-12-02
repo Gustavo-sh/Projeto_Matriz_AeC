@@ -350,49 +350,64 @@ window.__mostrarToast = function (mensagem, tipo = "sucesso") {
   window.handleAtributoChange = handleAtributoChange;
 })();
 
+/* =============================
+ * NORMALIZADOR UNIVERSAL
+ * ============================= */
+function normalizarMensagem(msg) {
+    if (msg == null) return "";
+
+    if (typeof msg === "string") return msg;
+
+    // Caso seja { value: { detail: "..." } }
+    if (msg.value && typeof msg.value === "object") {
+        return msg.value.detail || JSON.stringify(msg.value);
+    }
+
+    // Caso seja { detail: "..." }
+    if (msg.detail && typeof msg.detail === "string") {
+        return msg.detail;
+    }
+
+    // Caso seja 422 com lista de erros
+    if (Array.isArray(msg.detail)) {
+        return msg.detail.map(e => e.msg || JSON.stringify(e)).join("<br>");
+    }
+
+    // Fallback
+    return JSON.stringify(msg);
+}
 
 /* =============================
- * BLOCO: MENSAGENS (afterSwap filtra justificativa / mostrarSucesso / mostrarErro)
+ * MOSTRAR SUCESSO / ERRO E 422
  * ============================= */
 document.body.addEventListener("mostrarSucesso", function (evt) {
-    const mensagem = evt.detail?.value;
+    let mensagem = normalizarMensagem(evt.detail?.value);
     if (!mensagem) return;
 
     window.__mostrarToast(mensagem, "sucesso");
 });
+
 document.body.addEventListener("mostrarErro", function (evt) {
-    const mensagem = evt.detail?.value;
+    let mensagem = normalizarMensagem(evt.detail?.value);
     if (!mensagem) return;
 
     window.__mostrarToast(mensagem, "erro");
 });
 
-/* =============================
- * HTMX: Tratamento unificado para erros 422 (toast)
- * ============================= */
 document.body.addEventListener("htmx:responseError", function (evt) {
     const xhr = evt.detail?.xhr;
-    if (!xhr) return;
+    if (!xhr || xhr.status !== 422) return;
 
-    // Apenas lida com 422
-    if (xhr.status !== 422) return;
+    let mensagem;
 
-    let mensagem = null;
-
-    // Tenta extrair JSON
     try {
-        const data = JSON.parse(xhr.response);
-        mensagem = data.detail || data.message || xhr.response;
+        mensagem = normalizarMensagem(JSON.parse(xhr.response));
     } catch {
-        // Se não for JSON, pega resposta bruta
-        mensagem = xhr.response || "Erro desconhecido (422).";
+        mensagem = xhr.response || "Erro 422 desconhecido.";
     }
 
-    // Exibe no toast global como erro
     window.__mostrarToast(mensagem, "erro");
 });
-
-
 
 /* =============================
  * INDICADORES: change -> preenche campos e tipo do meta

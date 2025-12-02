@@ -1323,9 +1323,28 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
     })
 
 @router.post("/replicar_registros", response_class=HTMLResponse)
-async def replicar_registros(request: Request, atributos_replicar: list[str] = Form(...)):
+async def replicar_registros(request: Request, atributos_replicar: list[str] = Form(None)):
     user = None
     matricula = None
+    registros = load_registros(request)
+
+    if not registros:
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarErro": {"value": f"Não há registros carregados no cache para replicar."}
+            })
+        })
+    if not atributos_replicar:
+        return Response(
+        "",
+        headers={
+            "HX-Trigger": json.dumps({
+                "mostrarErro": {"value": f"Nenhum atributo selecionado para replicação."}
+            })
+        })
+    print("passou", atributos_replicar)
     try:
         user = get_current_user(request)
         matricula = user.get("usuario")
@@ -1334,7 +1353,7 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
         "",
         headers={
             "HX-Trigger": json.dumps({
-                "mostrarSucesso": {"value": f"Usuário não autenticado."}
+                "mostrarErro": {"value": f"Usuário não autenticado."}
             })
         })
 
@@ -1344,21 +1363,9 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
         "",
         headers={
             "HX-Trigger": json.dumps({
-                "mostrarSucesso": {"value": f"Nenhum atributo selecionado para replicação."}
+                "mostrarErro": {"value": f"Nenhum atributo selecionado para replicação."}
             })
         })
-
-    registros = load_registros(request)
-
-    if not registros:
-        return Response(
-        "",
-        headers={
-            "HX-Trigger": json.dumps({
-                "mostrarSucesso": {"value": f"Não há registros carregados no cache para replicar."}
-            })
-        })
-
 
     if isinstance(registros, str):
         try:
@@ -1368,7 +1375,7 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
             "",
             headers={
                 "HX-Trigger": json.dumps({
-                    "mostrarSucesso": {"value": f"Erro ao interpretar registros do cache."}
+                    "mostrarErro": {"value": f"Erro ao interpretar registros do cache."}
                 })
             })
 
@@ -1377,7 +1384,7 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
             "",
             headers={
                 "HX-Trigger": json.dumps({
-                    "mostrarSucesso": {"value": f"Cache de registros inválido ou vazio."}
+                    "mostrarErro": {"value": f"Cache de registros inválido ou vazio."}
                 })
             })
 
@@ -1387,7 +1394,7 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
             "",
             headers={
                 "HX-Trigger": json.dumps({
-                    "mostrarSucesso": {"value": f"Não foi possível identificar o atributo atual nos registros."}
+                    "mostrarErro": {"value": f"Não foi possível identificar o atributo atual nos registros."}
                 })
             })
     
@@ -1432,7 +1439,7 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
                     "",
                     headers={
                         "HX-Trigger": json.dumps({
-                            "mostrarSucesso": {"value": f"O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}."}
+                            "mostrarErro": {"value": f"O indicador {cond['id_nome_indicador']} ja foi submetido para o periodo - {cond['periodo']} e atributo - {cond['atributo']}."}
                         })
                     })
                 
@@ -1441,7 +1448,7 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
         "",
         headers={
             "HX-Trigger": json.dumps({
-                "mostrarSucesso": {"value": f"Nenhum registro válido para replicar."}
+                "mostrarErro": {"value": f"Nenhum registro válido para replicar."}
             })
         })
 
@@ -1452,7 +1459,7 @@ async def replicar_registros(request: Request, atributos_replicar: list[str] = F
         "",
         headers={
             "HX-Trigger": json.dumps({
-                "mostrarSucesso": {"value": f"Erro ao inserir registros no banco: {e}."}
+                "mostrarErro": {"value": f"Erro ao inserir registros no banco: {e}."}
             })
         })
 
