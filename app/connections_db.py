@@ -697,7 +697,7 @@ async def get_atributos_adm():
     return resultados
 
 async def get_atributos_apoio(area):
-    cache_key = "atributos_apoio"
+    cache_key = f"atributos_apoio:{area}"
     cached = get_from_cache(cache_key)
     if cached:
         return cached
@@ -846,7 +846,7 @@ async def get_acordos_apoio():
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(f"""
-                select * from matriz_geral (nolock) where ((da_qualidade = 1) or (da_planejamento = 1)) and (da_exop = 0)
+                select * from matriz_geral (nolock) where ((da_qualidade = 1) and (da_planejamento = 1)) and (da_exop = 0)
             """)
             resultados = cur.fetchall()
             cur.close()

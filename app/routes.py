@@ -865,7 +865,7 @@ async def processar_acordo(
         username = user.get("usuario")
 
         try:
-            if role == "adm":
+            if role == "adm" and trava_da_exop[0].get("tipo_matriz").lower().strip() == "operacional":
                 for dic in trava_da_exop:
                     if int(dic.get("da_qualidade", 0)) == 0 or int(dic.get("da_planejamento", 0)) == 0:
                         raise HTTPException(
