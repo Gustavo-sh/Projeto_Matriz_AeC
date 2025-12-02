@@ -824,3 +824,11 @@ document.body.addEventListener("htmx:responseError", function (evt) {
   });
 
 })();
+
+(function () {
+  document.body.addEventListener("htmx:afterRequest", function (evt) {
+    if (evt?.detail?.xhr?.status === 401) {
+      window.location.href = "/login";
+    }
+  });
+})();
