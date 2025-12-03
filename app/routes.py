@@ -1083,9 +1083,11 @@ async def update_dmm(
     if not dmm:
         raise HTTPException(
             status_code=422,
-            detail="Coloquei exatamente 5 dmms para efetuar a alteração."
+            detail="Coloque exatamente 5 dmms para efetuar a alteração."
         )
     registros_pesquisa = get_from_cache(cache_key)
+    if int(registros_pesquisa[0].get("da_exop")) == 1:
+        raise HTTPException(status_code=422, detail="Não é possivel alterar o DMM de uma matriz que já tem DA da exop.")
     if not registros_pesquisa:
         raise HTTPException(status_code=422, detail="Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
     current_page = request.headers.get("hx-current-url", "desconhecido").lower()
