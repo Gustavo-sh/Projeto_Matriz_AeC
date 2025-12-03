@@ -835,8 +835,8 @@ async def get_matrizes_nao_cadastradas():
     set_cache(cache_key, registros, CACHE_TTL)
     return registros
 
-async def get_acordos_apoio():
-    cache_key = f"acordos_apoio"
+async def get_acordos_apoio(atributo):
+    cache_key = f"acordos_apoio:{atributo}"
     cached = get_from_cache(cache_key)
     if cached:
         return cached
@@ -846,8 +846,8 @@ async def get_acordos_apoio():
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(f"""
-                select * from matriz_geral (nolock) where ((da_qualidade = 1) and (da_planejamento = 1)) and (da_exop = 0)
-            """)
+                select * from matriz_geral (nolock) where ((da_qualidade = 1) and (da_planejamento = 1)) and (da_exop = 0) and atributo = ?
+            """, (atributo,))
             resultados = cur.fetchall()
             cur.close()
             return resultados
@@ -858,6 +858,30 @@ async def get_acordos_apoio():
         "criterio": row[16] or '', "area": row[17] or '', "responsavel": row[18] or '', "gerente": row[19] or '', "possui_dmm": row[20] or '', "dmm": row[21] or '',
         "submetido_por": row[22], "data_submetido_por": row[23], "qualidade": row[24], "da_qualidade": row[25], "data_da_qualidade": row[26],
         "planejamento": row[27], "da_planejamento": row[28], "data_da_planejamento": row[29], "exop": row[30], "da_exop": row[31], "data_da_exop": row[32], "id": str(uuid.uuid4())
+    } for row in resultados]
+    CACHE_TTL = timedelta(minutes=1)
+    set_cache(cache_key, registros, CACHE_TTL)
+    return registros
+
+async def get_atributos_da_apoio():
+    cache_key = f"atributos_da_apoio"
+    cached = get_from_cache(cache_key)
+    if cached:
+        return cached
+    resultados = None
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+                select distinct atributo from matriz_geral (nolock) where ((da_qualidade = 1) and (da_planejamento = 1)) and (da_exop = 0)
+            """)
+            resultados = cur.fetchall()
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    registros = [{
+        "atributo": row[0]
     } for row in resultados]
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros, CACHE_TTL)

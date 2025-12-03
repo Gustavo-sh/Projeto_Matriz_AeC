@@ -18,7 +18,7 @@ from app.cache import (
 )
 from app.connections_db import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd,
-    get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, get_num_atendentes, import_from_excel, 
+    get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, get_num_atendentes, import_from_excel, get_atributos_da_apoio,
     get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, update_meta_moedas_bd, get_nao_acordos_exop,
     get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm, get_matrizes_nao_cadastradas, get_matrizes_alteradas_apoio, update_dmm_bd, query_mes, 
     get_factibilidade, insert_log_meta_moedas,
@@ -303,6 +303,7 @@ async def index_adm(request: Request):
     username = request.cookies.get("username")
     indicadores = await get_indicadores()
     atributos = await get_atributos_adm()
+    atributos_da = await get_atributos_da_apoio()
     registros = load_registros(request)
     return templates.TemplateResponse("indexAdmAcordo.html", {
         "request": request,
@@ -310,6 +311,7 @@ async def index_adm(request: Request):
         "indicadores": indicadores,
         "username": username,
         "atributos": atributos,
+        "atributos_da": atributos_da,
         "role_": user.get("role")
     })
 
@@ -447,12 +449,13 @@ async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = 
             status_code=500
         )
 
-
-@router.post("/pesquisar_acordos", response_class=HTMLResponse)
-async def pesquisar_acordos(request: Request):
+@router.get("/pesquisar_acordos_apoio", response_class=HTMLResponse)
+async def pesquisar_acordos(request: Request, atributos_acordo: str | None = Query(None)):
+    if not atributos_acordo:
+        raise HTTPException(status_code=422, detail="Informe um atributo para efetuar a pesquisa.")
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
-    registros = await get_acordos_apoio()
+    registros = await get_acordos_apoio(atributos_acordo)
     path = urlparse(current_page).path.lower()
     show_das = None
     if "cadastro" in path:

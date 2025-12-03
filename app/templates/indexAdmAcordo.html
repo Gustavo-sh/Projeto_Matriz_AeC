@@ -55,13 +55,21 @@
 
             <!-- <div id="mensagens-filtro" class="mensagens-filtro"></div> -->
 
+            <label>Atributos com De Acordo:</label>
+            <select name="atributos_acordo" id="acordos_select">
+                <option value="">Selecione</option>
+                {% for at in atributos_da %}
+                    <option value="{{ at['atributo'] }}">{{ at['atributo'] }}</option>
+                {% endfor %}
+            </select>
+
             <button
                 type="button"
-                hx-post="/pesquisar_acordos" 
+                hx-get="/pesquisar_acordos_apoio" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']">
-                Pesquisar Acordos Areas de Apoio
+                hx-include="[id='acordos_select']">
+                Pesquisar Atributo com De Acordo
             </button>
 
             <button
@@ -109,8 +117,8 @@
                     hx-swap="innerHTML"
                     enctype="multipart/form-data"
                     style="margin-left:100px;">
-                <input type="file" name="file" accept=".xlsx,.xls" required>
-                <button type="submit">Importar Excel</button>
+                    <input type="file" name="file" accept=".xlsx,.xls" required>
+                    <button type="submit">Importar Excel</button>
                 </form>
 
                 <!-- <div id="upload_result" class="mensagens-import"></div> -->
@@ -197,7 +205,7 @@
                 <input type="text" id="dmm_apoio" name="dmm_apoio" placeholder="Selecione as datas, caso haja">
                 <button type="submit">Alterar DMM</button>
             </div>
-        </form>
+        </form> 
     </div>
 
     <div class="registros">
