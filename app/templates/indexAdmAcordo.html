@@ -140,14 +140,47 @@
 
         <div class="user-info">
             <h4>Pesquisas por Atributo</h4>  
-            <div id="atributos-container">
-                <label>Atributo: *</label>
-                <select name="atributo" id="atributo_select" onchange="handleAtributoChange(this)">
+            <div id="filtros-cascata">
+
+                <label>Gerente:</label>
+                <select id="select-gerente">
+                    <option value="">Todos</option>
+                    {% for g in gerentes %}
+                        <option value="{{ g['gerente'] }}">{{ g['gerente'] }}</option>
+                    {% endfor %}
+                </select>
+
+                <label>Operação:</label>
+                <select id="select-operacao">
+                    <option value="">Todos</option>
+                    {% for o in operacoes %}
+                        <option value="{{ o['operacao'] }}">{{ o['operacao'] }}</option>
+                    {% endfor %}
+                </select>
+
+                <label>Atributo Cascata: *</label>
+                <select name="atributo_cascata" id="atributo_select_cascata">
+                    <option value="">Todos</option>
+                    {% for at in atributos %}
+                        <option value="{{ at['atributo'] }}"
+                                data-gerente="{{ at['gerente'] }}"
+                                data-operacao="{{ at['operacao'] }}"
+                                data-tipo="{{ at['tipo'] }}">
+                            {{ at['atributo'] }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <label>Atributo Smart: *</label>
+                <select name="atributo" id="atributo_select">
                     <option value="">Selecione ou pesquise...</option>
                     {% for at in atributos %}
                         <option value="{{ at['atributo'] }}"
-                        data-gerente="{{ at['gerente'] }}"
-                        data-tipo="{{ at['tipo'] }}">{{ at['atributo'] }}</option>
+                                data-gerente="{{ at['gerente'] }}"
+                                data-operacao="{{ at['operacao'] }}"
+                                data-tipo="{{ at['tipo'] }}">
+                            {{ at['atributo'] }}
+                        </option>
                     {% endfor %}
                 </select>
             </div>
@@ -160,7 +193,7 @@
                 hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']"
+                hx-include="[id='atributo_select'], [id='atributo_select_cascata']"
                 hx-vals='{"mes": "m0"}'>
                 Pesquisar Mes Atual
             </button>
@@ -171,7 +204,7 @@
                 hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']"
+                hx-include="[id='atributo_select'], [id='atributo_select_cascata']"
                 hx-vals='{"mes": "m1"}'>
                 Pesquisar Mes Anterior
             </button>
@@ -182,7 +215,7 @@
                 hx-post="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
-                hx-include="[id='atributo_select']"
+                hx-include="[id='atributo_select'], [id='atributo_select_cascata']"
                 hx-vals='{"mes": "m+1"}'>
                 Pesquisar Mes Seguinte
             </button>

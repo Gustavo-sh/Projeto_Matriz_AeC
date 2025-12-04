@@ -62,6 +62,7 @@ window.__mostrarToast = function (mensagem, tipo = "sucesso") {
     const cacheKey = document.getElementById("cache_key_pesquisa");
     const atributoAtual = document.getElementById("atributo_select")?.value || "";
     const atributoAcordo = document.getElementById("acordos_select")?.value || "";
+    const atributoCascata = document.getElementById("atributo_select_cascata")?.value || "";
 
     if (cacheKey) {
     if (url.includes("/pesquisar_acordos_apoio")) {
@@ -73,15 +74,25 @@ window.__mostrarToast = function (mensagem, tipo = "sucesso") {
     else if (url.includes("/pesquisar_acordos")) {
         cacheKey.value = "acordos_apoio";
     }
-}
+    }
 
-    console.log("chamou a cache key:: "+cacheKey.value);
-    console.log(url);
+    if (cacheKey.value != "") {
+      console.log("Usou cache_key presetada >> "+cacheKey.value);
+    }
+    
+
+    dt = null;
+    if (atributoAtual != "") {
+      dt = { tipo: tipoPesquisaHidden.value, atributo: atributoAtual };
+    } else {
+      dt = { tipo: tipoPesquisaHidden.value, atributo: atributoCascata };
+      console.log("Usou atributo cascata")
+    }
 
     // Dispara construção da cache key
     document.body.dispatchEvent(
       new CustomEvent("buildCacheKey", {
-        detail: { tipo: tipoPesquisaHidden.value, atributo: atributoAtual },
+        detail: dt,
       })
     );
   });
@@ -135,11 +146,77 @@ window.__mostrarToast = function (mensagem, tipo = "sucesso") {
       if (cacheKeyInput && tipo && atributo) {
         const novaCacheKey = `pesquisa_${tipo}:${atributo}:${page}`;
         cacheKeyInput.value = novaCacheKey;
-        console.log("[ADM Acordo] cache_key atualizada:", novaCacheKey);
+        console.log("Cache_key atualizada:", novaCacheKey);
       }
     });
   });
 })();
+
+(function () {
+    const gerenteSelect = document.getElementById("select-gerente");
+    const operacaoSelect = document.getElementById("select-operacao");
+    const atributoSelect = document.getElementById("atributo_select_cascata");
+
+    if (!gerenteSelect || !operacaoSelect || !atributoSelect) {
+    return;  // Sai sem quebrar outras páginas
+}
+
+    // Copiamos as options originais
+    const operacoesOriginais = Array.from(operacaoSelect.options).slice(1);
+    const atributosOriginais = Array.from(atributoSelect.options).slice(1);
+
+    function filtrarOperacoes() {
+        const gerente = gerenteSelect.value.toLowerCase();
+
+        operacaoSelect.innerHTML = `<option value="">Todos</option>`;
+
+        const filtradas = operacoesOriginais.filter(opt => {
+            // pegar todas operações que pertencem ao gerente via ATTRIBUTOS
+            // pois o select de operacao sozinho NÃO possui dataset
+            const op = opt.value.toLowerCase();
+
+            // EXISTE operação associada a esse gerente?
+            return (
+                gerente === "" ||
+                atributosOriginais.some(attr =>
+                    attr.dataset.gerente?.toLowerCase() === gerente &&
+                    attr.dataset.operacao?.toLowerCase() === op
+                )
+            );
+        });
+
+        filtradas.forEach(opt => operacaoSelect.appendChild(opt));
+    }
+
+    function filtrarAtributos() {
+        const gerente = gerenteSelect.value.toLowerCase();
+        const operacao = operacaoSelect.value.toLowerCase();
+
+        atributoSelect.innerHTML = `<option value="">Todos</option>`;
+
+        const filtrados = atributosOriginais.filter(opt => {
+            const g = opt.dataset.gerente?.toLowerCase() ?? "";
+            const o = opt.dataset.operacao?.toLowerCase() ?? "";
+
+            return (
+                (gerente === "" || g === gerente) &&
+                (operacao === "" || o === operacao)
+            );
+        });
+
+        filtrados.forEach(opt => atributoSelect.appendChild(opt));
+    }
+
+    // Cascata
+    gerenteSelect.addEventListener("change", () => {
+        filtrarOperacoes();
+        filtrarAtributos();
+    });
+
+    operacaoSelect.addEventListener("change", filtrarAtributos);
+
+})();
+
 
 /* =============================
  * HELPERS GERAIS

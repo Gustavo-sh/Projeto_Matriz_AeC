@@ -5,6 +5,9 @@ from app.database import get_db_connection
 import asyncio 
 from datetime import timedelta
 
+MATRIZ_GERAL = 'Robbyson.dbo.Matriz_Geral (nolock)'
+HOMINUM = 'rlt.hmn (nolock)'
+
 async def get_user_bd(username):
     cache_key = "user: " + username
     cached = get_from_cache(cache_key)
@@ -648,9 +651,18 @@ async def get_atributos_adm():
             into #base_hmn
             from rlt.hmn (nolock) 
             where data = convert(date, getdate()-1)
+            and tipohierarquia = 'operação' and nivelhierarquico = 'operacional'
+            and funcaorm not like '%analista%' and FuncaoRM not like '%auxiliar%'
+            and situacaohominum in ('ativo', 'treinamento')
             and atributo is not null
-            and ((TipoHierarquia = 'OPERAÇÃO' and NivelHierarquico = 'OPERACIONAL') or (tipohierarquia = 'ADMINISTRAÇÃO' and nivelhierarquico = 'OPERACIONAL'))
-            group by atributo, TipoHierarquia
+            group by atributo
+            union all
+            select distinct atributo, count(matricula) as atendentes
+            from rlt.hmn (nolock) 
+            where data = convert(date, getdate()-1)
+            and atributo is not null
+            and ((tipohierarquia = 'ADMINISTRAÇÃO' and nivelhierarquico = 'OPERACIONAL'))
+            group by atributo
 
             ;WITH gerentes_rank AS (
                 SELECT 
@@ -671,24 +683,25 @@ async def get_atributos_adm():
                                 WHEN GERENTE IS NOT NULL THEN 3
                                 ELSE 4
                             END
-                    ) AS rn
+                    ) AS rn,
+                    operacaohominum
                 FROM rlt.hmn (NOLOCK)
                 WHERE data = CONVERT(date, GETDATE()-1)
                 AND atributo IN (SELECT atributo FROM #base_hmn)
             )
 
-            SELECT atributo, Gerente, TipoHierarquia
+            SELECT atributo, Gerente, TipoHierarquia, operacaohominum
             into #temph
             FROM gerentes_rank
             WHERE rn = 1
             AND Gerente IS NOT NULL;
 
-            select atributo, gerente, tipohierarquia from #temph where atributo not in (select distinct atributo from dbo.matriz_geral (nolock) where da_exop = 1 and periodo >= dateadd(d,1,eomonth(GETDATE())))
+            select atributo, gerente, tipohierarquia, operacaohominum from #temph where atributo not in (select distinct atributo from dbo.matriz_geral (nolock) where da_exop = 1 and periodo >= dateadd(d,1,eomonth(GETDATE())))
 
             drop table #base_hmn
             drop table #temph
             """)
-            resultados = [{"atributo": i[0], "gerente": i[1], "tipo": i[2]} for i in cur.fetchall()]
+            resultados = [{"atributo": i[0], "gerente": i[1], "tipo": i[2], "operacao": i[3]} for i in cur.fetchall()]
             cur.close()
             return resultados
     resultados = await loop.run_in_executor(None, _sync_db_call)
@@ -1106,6 +1119,83 @@ async def get_atributos_gerente(tipo, atributos, username):
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros, CACHE_TTL)
     return registros
+
+async def get_gerentes():
+    cache_key = f"gerentes"
+    cached = get_from_cache(cache_key)
+    resultados = None
+    if cached:
+        return cached
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+                set nocount on
+                select distinct gerente
+                into #gerentes
+                from {HOMINUM} where data = convert(date, getdate()-1) 
+                and gerente is not null
+                and operacaohominum is not null
+                and atributo is not null
+                union all
+                select distinct GERENTEPLENO
+                from {HOMINUM} where data = convert(date, getdate()-1) 
+                and GERENTEPLENO is not null
+                and operacaohominum is not null
+                and atributo is not null
+                union all
+                select distinct gerentesenior
+                from {HOMINUM} where data = convert(date, getdate()-1) 
+                and gerentesenior is not null
+                and operacaohominum is not null
+                and atributo is not null
+                union all
+                select distinct gerente_executivo
+                from {HOMINUM} where data = convert(date, getdate()-1) 
+                and gerente_executivo is not null
+                and operacaohominum is not null
+                and atributo is not null
+
+                select gerente from #gerentes order by gerente
+
+                drop table #gerentes
+            """)
+            resultados = cur.fetchall()
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    registros = [{
+        "gerente": row[0]
+    } for row in resultados]
+    CACHE_TTL = timedelta(hours=24)
+    set_cache(cache_key, registros, CACHE_TTL)
+    return registros
+
+async def get_operacoes():
+    cache_key = f"operacoes"
+    cached = get_from_cache(cache_key)
+    resultados = None
+    if cached:
+        return cached
+    loop = asyncio.get_event_loop()
+    def _sync_db_call():
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"""
+                select distinct operacaohominum from {HOMINUM} where data = convert(date, getdate()-1) and operacaohominum is not null order by operacaohominum
+            """)
+            resultados = cur.fetchall()
+            cur.close()
+            return resultados
+    resultados = await loop.run_in_executor(None, _sync_db_call)
+    registros = [{
+        "operacao": row[0]
+    } for row in resultados]
+    CACHE_TTL = timedelta(hours=24)
+    set_cache(cache_key, registros, CACHE_TTL)
+    return registros
+
 
 async def get_matrizes_administrativas_pg_adm(tipo):
     cache_key = f"matrizes_administrativas_pg_adm:{tipo}"

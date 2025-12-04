@@ -17,7 +17,7 @@ from app.cache import (
     get_from_cache, set_cache, load_registros, save_registros, set_session, get_current_user
 )
 from app.connections_db import (
-    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd,
+    get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_operacoes, get_gerentes,
     get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, get_num_atendentes, import_from_excel, get_atributos_da_apoio,
     get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, update_meta_moedas_bd, get_nao_acordos_exop,
     get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm, get_matrizes_nao_cadastradas, get_matrizes_alteradas_apoio, update_dmm_bd, query_mes, 
@@ -305,6 +305,8 @@ async def index_adm(request: Request):
     atributos = await get_atributos_adm()
     atributos_da = await get_atributos_da_apoio()
     registros = load_registros(request)
+    gerentes = await get_gerentes()
+    operacoes = await get_operacoes()
     return templates.TemplateResponse("indexAdmAcordo.html", {
         "request": request,
         "registros": registros,
@@ -312,7 +314,9 @@ async def index_adm(request: Request):
         "username": username,
         "atributos": atributos,
         "atributos_da": atributos_da,
-        "role_": user.get("role")
+        "role_": user.get("role"),
+        "gerentes": gerentes,
+        "operacoes": operacoes
     })
 
 @router.post("/add", response_class=HTMLResponse)
@@ -366,18 +370,19 @@ async def add_registro(
     return response
 
 @router.post("/pesquisar_mes", response_class=HTMLResponse)
-async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = Form(...)):
+async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = Form(...), atributo_cascata: str = Form(None)):
     try:
         registros = []
 
-        current_page = request.headers.get("hx-current-url", "desconhecido")
-        path = urlparse(current_page).path.lower()
-
-        if not atributo:
+        atributo_submit = atributo if atributo != "" else atributo_cascata
+        if (atributo_submit == ""):
             raise HTTPException(
                 status_code=422,
                 detail="Selecione um atributo primeiro!"
             )
+
+        current_page = request.headers.get("hx-current-url", "desconhecido")
+        path = urlparse(current_page).path.lower()
 
         username = request.cookies.get("username", "anon")
 
@@ -402,11 +407,10 @@ async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = 
 
         show_checkbox = True
         if mes == "m+1":
-            show_checkbox = False
-            if "/matriz/apoio" in path or "/matriz/adm" in path:
-                show_checkbox = True
+            if ("/matriz/apoio" not in path) and ("/matriz/adm" not in path):
+                show_checkbox = False
 
-        registros = await query_mes(atributo, username, page, area, mes)
+        registros = await query_mes(atributo_submit, username, page, area, mes)
 
         registros = [
             dic for dic in registros
@@ -446,7 +450,7 @@ async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = 
     except Exception as e:
         return Response(
             content=f"Erro inesperado: {str(e)}",
-            status_code=500
+            status_code=422
         )
 
 @router.get("/pesquisar_acordos_apoio", response_class=HTMLResponse)
@@ -735,7 +739,7 @@ async def duplicate_search_results(
     except Exception as e:
         return Response(
             content=f"Erro inesperado ao duplicar registros. ({str(e)})",
-            status_code=500
+            status_code=422
         )
 
 
@@ -922,7 +926,7 @@ async def processar_acordo(
             await update_da_adm_apoio(updates_a_executar, role, status_acao, username)
         except Exception as e:
             raise HTTPException(
-                status_code=500,
+                status_code=422,
                 detail=f"Erro ao atualizar os registros ({e})."
             )
 
@@ -1129,7 +1133,7 @@ def clear_registros_route(request: Request):
         return ""
     except Exception as e:
         print(f"Erro ao limpar registros: {e}")
-        return HTMLResponse(content=f"<div style='color: red;'>Erro interno ao limpar os registros: {e}</div>", status_code=500)
+        return HTMLResponse(content=f"<div style='color: red;'>Erro interno ao limpar os registros: {e}</div>", status_code=422)
     
 @router.get("/export_table")
 async def export_table(request: Request,  atributo: str = Query(...), tipo: str | None = Query(None, alias="duplicar_tipo_pesquisa"), cache_key: str = Query(None, alias="cache_key")):
