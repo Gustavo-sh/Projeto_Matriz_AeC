@@ -48,20 +48,35 @@ window.__mostrarToast = function (mensagem, tipo = "sucesso") {
     const xhr = evt.detail?.xhr;
     if (!xhr || !(xhr.status >= 200 && xhr.status < 300)) return;
 
-    const url = evt.detail?.elt?.getAttribute("hx-post") || xhr.responseURL || "";
+    const url =
+    evt.detail?.elt?.getAttribute("hx-post") ||
+    evt.detail?.elt?.getAttribute("hx-get") ||
+    evt.detail?.elt?.getAttribute("hx-put") ||
+    evt.detail?.elt?.getAttribute("hx-delete") ||
+    evt.detail?.elt?.getAttribute("hx-patch") ||
+    xhr.responseURL ||
+    "";
     if (!url) return;
 
     const tipoPesquisaHidden = document.getElementById("duplicar_tipo_pesquisa");
     const cacheKey = document.getElementById("cache_key_pesquisa");
     const atributoAtual = document.getElementById("atributo_select")?.value || "";
+    const atributoAcordo = document.getElementById("acordos_select")?.value || "";
 
-    if (url.includes("/pesquisar_nao_acordos")) {
-      if (cacheKey) cacheKey.value = "nao_acordos_apoio";
-    } else if (url.includes("/pesquisar_acordos")) {
-      if (cacheKey) cacheKey.value = "acordos_apoio";
-    } else if (url.includes("/pesquisar_nao_acordos")) {
-      if (cacheKey) cacheKey.value = "nao_acordos_apoio";
+    if (cacheKey) {
+    if (url.includes("/pesquisar_acordos_apoio")) {
+        cacheKey.value = `acordos_apoio:${atributoAcordo}`;
+    } 
+    else if (url.includes("/pesquisar_nao_acordos")) {
+        cacheKey.value = "nao_acordos_apoio";
     }
+    else if (url.includes("/pesquisar_acordos")) {
+        cacheKey.value = "acordos_apoio";
+    }
+}
+
+    console.log("chamou a cache key:: "+cacheKey.value);
+    console.log(url);
 
     // Dispara construção da cache key
     document.body.dispatchEvent(

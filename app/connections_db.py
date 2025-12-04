@@ -683,7 +683,7 @@ async def get_atributos_adm():
             WHERE rn = 1
             AND Gerente IS NOT NULL;
 
-            select atributo, gerente, tipohierarquia from #temph
+            select atributo, gerente, tipohierarquia from #temph where atributo not in (select distinct atributo from dbo.matriz_geral (nolock) where da_exop = 1 and periodo >= dateadd(d,1,eomonth(GETDATE())))
 
             drop table #base_hmn
             drop table #temph
