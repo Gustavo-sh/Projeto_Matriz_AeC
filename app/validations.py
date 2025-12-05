@@ -66,7 +66,7 @@ async def validation_submit_table(registros, username):
                                     'planejamento': '', 'da_planejamento': 3, 'data_da_planejamento': '', 'exop': '', 'da_exop': 0, 'data_da_exop': '', 'justificativa': '', 'da_superintendente': '', 'id': uuid.uuid4()})
                 atributo_inicial = dic["atributo"]
                 atributo_trade = True
-                moedas = 30
+                #moedas = 30
         except ValueError:
             return "<p>Erro: Moeda deve ser um valor inteiro, valor informado: " + moeda_val + ", para o indicador: " + dic["id_nome_indicador"] + ".</p>"
         try:
@@ -232,8 +232,9 @@ async def validation_meta_moedas(registros, meta, moedas, role):
     #     return f"xPesquisax: Usuário com perfil de Qualidade não pode alterar registros de outras áreas! indicador:{registros["id_nome_indicador"]}"
     # elif "planejamento" in role.lower() and (area != "planejamento" and area != ""):
     #     return f"xPesquisax: Usuário com perfil de Planejamento não pode alterar registros de outras áreas! indicador:{registros["id_nome_indicador"]}"
-    if moedas < 3 and moedas > 0:
-        return f"A monetização mínima é de 3 moedas. O indicador {registros['id_nome_indicador']} possui {moedas} moedas."
+    if moedas != "":
+        if int(moedas) < 3 and int(moedas) > 0:
+            return f"A monetização mínima é de 3 moedas. O indicador {registros['id_nome_indicador']} possui {moedas} moedas."
     if registros["id_nome_indicador"].lower() == r"901 - % disponibilidade" and int(meta) != 94:
         return f"Não é permitido alterar a meta do indicador 901 - % disponibilidade!"
     if tipo == "Hora":
