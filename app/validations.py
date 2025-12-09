@@ -24,6 +24,7 @@ async def validation_submit_table(registros, username):
     atributo_trade = False
     resultados_indicadores_m3 = await get_resultados_indicadores_m3()
     indicadores_processados = set()
+    indicadores_duplicados = []
     if erro_dmm:
         return erro_dmm
     for dic in registros:
@@ -113,6 +114,11 @@ async def validation_submit_table(registros, username):
                 float(dic["meta"])
             except ValueError:
                 return "<p>Erro: Meta deve ser um valor numérico.</p>"
+        chave_duplicada = (dic["atributo"], dic["id_nome_indicador"], dic["data_inicio"], dic["data_fim"])
+        if chave_duplicada in indicadores_duplicados:
+            return "<p>Indicador duplicado encontrado - Atributo: " + dic["atributo"] + ", Indicador: " + dic["id_nome_indicador"] + ", Período: " + dic["data_inicio"] + " a " + dic["data_fim"] + ".</p>"
+        else:
+            indicadores_duplicados.append((dic["atributo"], dic["id_nome_indicador"], dic["data_inicio"], dic["data_fim"]))
         validation_conditions.append({
             "atributo": dic["atributo"],
             "periodo": dic["periodo"],

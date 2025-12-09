@@ -444,7 +444,7 @@ async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, role, user
         with get_db_connection() as conn:
             cur = conn.cursor()
             for update_item in lista_de_updates:
-                atributo, periodo, id_nome_indicador = update_item
+                atributo, periodo, id_nome_indicador, data_inicio = update_item
                 if moedas != '':
                     cur.execute(f"""
                     UPDATE dbo.Matriz_Geral
@@ -454,8 +454,9 @@ async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, role, user
                     WHERE 
                         Atributo = ? AND 
                         periodo = ? AND 
-                        id_nome_indicador = ?
-                """, (meta, moedas, atributo, periodo, id_nome_indicador))
+                        id_nome_indicador = ? AND
+                        data_inicio = ?
+                """, (meta, moedas, atributo, periodo, id_nome_indicador, data_inicio))
                 else:
                     if role_defined == "qualidade":
                         cur.execute(f"""
@@ -468,8 +469,9 @@ async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, role, user
                         WHERE 
                             Atributo = ? AND 
                             periodo = ? AND 
-                            id_nome_indicador = ?
-                    """, (meta, username, agora, atributo, periodo, id_nome_indicador))
+                            id_nome_indicador = ? and
+                            data_inicio = ?
+                    """, (meta, username, agora, atributo, periodo, id_nome_indicador, data_inicio))
                     elif role_defined == "planejamento":
                         cur.execute(f"""
                         UPDATE dbo.Matriz_Geral
@@ -481,8 +483,9 @@ async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, role, user
                         WHERE 
                             Atributo = ? AND 
                             periodo = ? AND 
-                            id_nome_indicador = ?
-                    """, (meta, username, agora, atributo, periodo, id_nome_indicador))
+                            id_nome_indicador = ? and
+                            data_inicio = ?
+                    """, (meta, username, agora, atributo, periodo, id_nome_indicador, data_inicio))
                     cur.execute(f"""
                     UPDATE dbo.Matriz_Geral
                     SET 
@@ -490,8 +493,9 @@ async def update_meta_moedas_bd(lista_de_updates: list, meta, moedas, role, user
                     WHERE 
                         Atributo = ? AND 
                         periodo = ? AND 
-                        id_nome_indicador = ?
-                    """, (meta, atributo, periodo, id_nome_indicador))
+                        id_nome_indicador = ? AND
+                        data_inicio = ?
+                    """, (meta, atributo, periodo, id_nome_indicador, data_inicio))
             conn.commit() 
             cur.close()
     await loop.run_in_executor(None, _sync_db_call)
@@ -696,7 +700,7 @@ async def get_atributos_adm():
             WHERE rn = 1
             AND Gerente IS NOT NULL;
 
-            select atributo, gerente, tipohierarquia, operacaohominum from #temph where atributo not in (select distinct atributo from dbo.matriz_geral (nolock) where da_exop = 1 and periodo >= dateadd(d,1,eomonth(GETDATE())))
+            select atributo, gerente, tipohierarquia, operacaohominum from #temph
 
             drop table #base_hmn
             drop table #temph

@@ -1060,7 +1060,8 @@ async def update_meta_moedas(
             atributo = r.get("atributo")
             id_nome_indicador = r.get("id_nome_indicador") 
             periodo = r.get("periodo")
-            updates_a_executar.append((atributo, periodo, id_nome_indicador)) 
+            data_inicio = r.get("data_inicio")
+            updates_a_executar.append((atributo, periodo, id_nome_indicador, data_inicio)) 
             registros_selecionados.append(r)
     if updates_a_executar:
         await update_meta_moedas_bd(updates_a_executar, meta, moedas, role, username) 
