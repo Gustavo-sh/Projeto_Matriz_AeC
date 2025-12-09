@@ -1039,7 +1039,6 @@ async def update_meta_moedas(
     if not registros_pesquisa:
         raise HTTPException(status_code=422, detail="Cache de pesquisa não encontrado ou expirado. Refaça a pesquisa.")
     ids_selecionados = set(registro_ids)
-    registros_apos_acao = []
     updates_a_executar = []
     registros_selecionados = []
     current_page = request.headers.get("hx-current-url", "desconhecido").lower()
@@ -1050,10 +1049,7 @@ async def update_meta_moedas(
     else:
         show_das = True
     for r in registros_pesquisa:
-        if str(r.get("id")) not in ids_selecionados:
-            if r.get("id_nome_indicador").lower() != "48 - presença":
-                registros_apos_acao.append(r)
-        else:
+        if str(r.get("id")) in ids_selecionados:
             erro = await validation_meta_moedas(r, meta, moedas, role)
             if erro:
                 raise HTTPException(status_code=422, detail=erro)
@@ -1066,13 +1062,17 @@ async def update_meta_moedas(
     if updates_a_executar:
         await update_meta_moedas_bd(updates_a_executar, meta, moedas, role, username) 
         await insert_log_meta_moedas(registros_selecionados, meta, username)
+    for r in registros_pesquisa:
+        if str(r.get("id")) in ids_selecionados:
+            r["meta"] = meta
+            r["moedas"] = moedas
     CACHE_TTL = timedelta(minutes=1)
-    set_cache(cache_key, registros_apos_acao, CACHE_TTL)
+    set_cache(cache_key, registros_pesquisa, CACHE_TTL)
     return templates.TemplateResponse(
         "_pesquisa.html", 
         {
             "request": request, 
-            "registros": registros_apos_acao,
+            "registros": registros_pesquisa,
             "show_checkbox": True,
             "show_das": show_das
         }
