@@ -72,6 +72,23 @@
                 Pesquisar Atributo com De Acordo
             </button>
 
+            <label>Atributos Não Acordos Exop:</label>
+            <select name="atributos_nao_acordos_exop" id="nao_acordos_exop_select">
+                <option value="">Selecione</option>
+                {% for at in atributos_na_exop %}
+                    <option value="{{ at['atributo'] }}">{{ at['atributo'] }}</option>
+                {% endfor %}
+            </select>
+
+            <button
+                type="button"
+                hx-post="/pesquisar_nao_acordos_exop" 
+                hx-target="#tabela-pesquisa" 
+                hx-swap="innerHTML"
+                hx-include="[id='nao_acordos_exop_select']">
+                Pesquisar Atributo com Não Acordos Exop
+            </button>
+
             <button
                 type="button"
                 hx-post="/pesquisar_nao_acordos" 
@@ -79,15 +96,6 @@
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
                 Pesquisar Não Acordos Areas de Apoio
-            </button>
-
-            <button
-                type="button"
-                hx-post="/pesquisar_nao_acordos_exop" 
-                hx-target="#tabela-pesquisa" 
-                hx-swap="innerHTML"
-                hx-include="[id='atributo_select']">
-                Pesquisar Não Acordos Exop
             </button>
 
             <button

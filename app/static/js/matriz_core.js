@@ -350,6 +350,7 @@ window.__mostrarToast = function (mensagem, tipo = "sucesso") {
     "#escala_select",
     "#atributos_replicar",
     "#acordos_select",
+    "#nao_acordos_exop_select",
   ];
 
   function initChoices(selector) {

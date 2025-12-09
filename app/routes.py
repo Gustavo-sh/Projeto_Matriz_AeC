@@ -18,7 +18,7 @@ from app.cache import (
 )
 from app.connections_db import (
     get_indicadores, get_funcao, get_resultados, get_atributos_matricula, get_user_bd, save_user_bd, save_registros_bd, get_operacoes, get_gerentes,
-    get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, get_num_atendentes, import_from_excel, get_atributos_da_apoio,
+    get_atributos_adm, update_da_adm_apoio, batch_validar_submit_query, get_num_atendentes, import_from_excel, get_atributos_da_apoio, get_atributos_na_exop,
     get_acordos_apoio, get_nao_acordos_apoio, get_atributos_apoio, get_atributos_gerente, update_meta_moedas_bd, get_nao_acordos_exop,
     get_all_atributos_cadastro_apoio, get_matrizes_administrativas_pg_adm, get_matrizes_nao_cadastradas, get_matrizes_alteradas_apoio, update_dmm_bd, query_mes, 
     get_factibilidade, insert_log_meta_moedas,
@@ -304,6 +304,7 @@ async def index_adm(request: Request):
     indicadores = await get_indicadores()
     atributos = await get_atributos_adm()
     atributos_da = await get_atributos_da_apoio()
+    atributos_na_exop = await get_atributos_na_exop()
     registros = load_registros(request)
     gerentes = await get_gerentes()
     operacoes = await get_operacoes()
@@ -316,7 +317,8 @@ async def index_adm(request: Request):
         "atributos_da": atributos_da,
         "role_": user.get("role"),
         "gerentes": gerentes,
-        "operacoes": operacoes
+        "operacoes": operacoes,
+        "atributos_na_exop": atributos_na_exop
     })
 
 @router.post("/add", response_class=HTMLResponse)
@@ -500,10 +502,13 @@ async def pesquisar_nao_acordos(request: Request):
     return response
 
 @router.post("/pesquisar_nao_acordos_exop", response_class=HTMLResponse)
-async def pesquisar_nao_acordos_exop(request: Request):
+async def pesquisar_nao_acordos_exop(request: Request, atributos_nao_acordos_exop: str = Form(...)):
+    if not atributos_nao_acordos_exop:
+        raise HTTPException(status_code=422, detail="Informe um atributo na caixa acima para efetuar a pesquisa.")
     registros = []
+    print(atributos_nao_acordos_exop)
     current_page = request.headers.get("hx-current-url", "desconhecido")
-    registros = await get_nao_acordos_exop()
+    registros = await get_nao_acordos_exop(atributos_nao_acordos_exop)
     path = urlparse(current_page).path.lower()
     show_das = None
     if "cadastro" in path:
