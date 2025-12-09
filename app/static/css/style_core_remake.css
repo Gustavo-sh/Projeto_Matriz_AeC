@@ -976,8 +976,8 @@ body.register-page {
 #app-launcher-panel {
   position: fixed;
   top: 0;
-  left: -1200px;       /* escondido inicialmente */
-  width: 1200px;
+  left: -1500px;       /* escondido inicialmente */
+  width: 1500px;
   height: 100%;
   background: white;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.25);
