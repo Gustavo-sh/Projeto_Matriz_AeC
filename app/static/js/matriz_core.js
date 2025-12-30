@@ -63,17 +63,23 @@ window.__mostrarToast = function (mensagem, tipo = "sucesso") {
     const atributoAtual = document.getElementById("atributo_select")?.value || "";
     const atributoAcordo = document.getElementById("acordos_select")?.value || "";
     const atributoCascata = document.getElementById("atributo_select_cascata")?.value || "";
+    const atributoNaoAcordoExop = document.getElementById("nao_acordos_exop_select")?.value || "";
 
     if (cacheKey) {
     if (url.includes("/pesquisar_acordos_apoio")) {
         cacheKey.value = `acordos_apoio:${atributoAcordo}`;
     } 
+    else if (url.includes("/pesquisar_nao_acordos_exop")) {
+        cacheKey.value = `nao_acordos_exop:${atributoNaoAcordoExop}`;
+        console.log("Setou cache key nao_acordos_exop");
+    }
     else if (url.includes("/pesquisar_nao_acordos")) {
         cacheKey.value = "nao_acordos_apoio";
     }
     else if (url.includes("/pesquisar_acordos")) {
         cacheKey.value = "acordos_apoio";
     }
+
     }
 
     if (cacheKey.value != "") {
@@ -866,6 +872,8 @@ document.body.addEventListener("htmx:responseError", function (evt) {
   const panel = document.getElementById("app-launcher-panel");
   const backdrop = document.getElementById("launcher-backdrop");
   const closeBtn = document.getElementById("close-launcher");
+
+  if (!btn || !panel || !backdrop || !closeBtn) return;
 
   // Abre
   btn.addEventListener("click", () => {

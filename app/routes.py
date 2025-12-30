@@ -1069,8 +1069,12 @@ async def update_meta_moedas(
         await insert_log_meta_moedas(registros_selecionados, meta, username)
     for r in registros_pesquisa:
         if str(r.get("id")) in ids_selecionados:
-            r["meta"] = meta
-            r["moedas"] = moedas
+            if meta != "":
+                r["meta"] = meta
+            if moedas != "":
+                r["moedas"] = moedas
+        if r["id_nome_indicador"].lower() == "48 - presença":
+            registros_pesquisa.remove(r)
     CACHE_TTL = timedelta(minutes=1)
     set_cache(cache_key, registros_pesquisa, CACHE_TTL)
     return templates.TemplateResponse(
