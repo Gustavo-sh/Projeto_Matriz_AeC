@@ -90,8 +90,10 @@ async def validation_submit_table(registros, username):
         if nome_val == r"6 - % absenteísmo" and (moeda_val != 0 or meta_val == "" or meta_val == 0):
             return "<p>Absenteísmo não pode ter moedas e deve ter uma meta diferente de zero.</p>"
         if nome_val == r"901 - % disponibilidade":
-            if (moeda_val < 8 or int(meta_val) != 94) and not is_exception_atribute:
-                return "<p>Disponibilidade não pode ter menos que 8 moedas e deve ter 94 de meta.</p>"
+            if int(meta_val) != 94:
+                return "<p>Disponibilidade deve ter 94 de meta.</p>"
+            if (moeda_val < 8) and not is_exception_atribute:
+                return "<p>Disponibilidade não pode ter menos que 8 moedas.</p>"
             disp_in = True
             if moeda_val > 0:
                 disp_mon = True
