@@ -1147,42 +1147,42 @@ def clear_registros_route(request: Request):
     
 @router.get("/export_table")
 async def export_table(request: Request,  atributo: str = Query(...), tipo: str | None = Query(None, alias="duplicar_tipo_pesquisa"), cache_key: str = Query(None, alias="cache_key")):
-    user = get_current_user(request)
-    username = user.get("usuario")
-    if not user:
-        raise HTTPException(status_code=401, detail="Sessão inválida")
-    if not tipo:
-        raise HTTPException(status_code=422, detail="O tipo de pesquisa não foi recebido.")
+    # user = get_current_user(request)
+    # username = user.get("usuario")
+    # if not user:
+    #     raise HTTPException(status_code=401, detail="Sessão inválida")
+    # if not tipo:
+    #     raise HTTPException(status_code=422, detail="O tipo de pesquisa não foi recebido.")
     
-    current_page = request.headers.get("hx-current-url", "desconhecido")
-    page = None
-    path = urlparse(current_page).path.lower()
-    if "cadastro" in path:
-        page = "cadastro"
-    else:
-        page = "demais"
-    possible_keys = []
-    if tipo == "m0_all" or tipo == "m1_all" or tipo == "m+1_all":
-        possible_keys = [f"all_atributos:{tipo}:{username}"]
-    elif tipo in ["m0_all_apoio", "m1_all_apoio", "m+1_all_apoio"]:
-        possible_keys = [f"matrizes_administrativas:{tipo}:{username}"]
-    elif tipo in ["m0_administrativas", "m+1_administrativas"]:
-        possible_keys = [f"matrizes_administrativas_pg_adm:{tipo}"]
-    else:
-        if not atributo:
-            raise HTTPException(status_code=422, detail="Informe o parâmetro 'atributo' para exportar.")
-        if cache_key:
-            possible_keys = [cache_key]
-        else:
-            tipo_map = {
-                "m0": f"pesquisa_m0:{atributo}:{page}",
-                "m1": f"pesquisa_m1:{atributo}:{page}",
-                "m+1": f"pesquisa_m+1:{atributo}:{page}"
-            }
-            key = tipo_map.get(tipo)
-            possible_keys = [key]
+    # current_page = request.headers.get("hx-current-url", "desconhecido")
+    # page = None
+    # path = urlparse(current_page).path.lower()
+    # if "cadastro" in path:
+    #     page = "cadastro"
+    # else:
+    #     page = "demais"
+    # possible_keys = []
+    # if tipo == "m0_all" or tipo == "m1_all" or tipo == "m+1_all":
+    #     possible_keys = [f"all_atributos:{tipo}:{username}"]
+    # elif tipo in ["m0_all_apoio", "m1_all_apoio", "m+1_all_apoio"]:
+    #     possible_keys = [f"matrizes_administrativas:{tipo}:{username}"]
+    # elif tipo in ["m0_administrativas", "m+1_administrativas"]:
+    #     possible_keys = [f"matrizes_administrativas_pg_adm:{tipo}"]
+    # else:
+    #     if not atributo:
+    #         raise HTTPException(status_code=422, detail="Informe o parâmetro 'atributo' para exportar.")
+    #     if cache_key:
+    #         possible_keys = [cache_key]
+    #     else:
+    #         tipo_map = {
+    #             "m0": f"pesquisa_m0:{atributo}:{page}",
+    #             "m1": f"pesquisa_m1:{atributo}:{page}",
+    #             "m+1": f"pesquisa_m+1:{atributo}:{page}"
+    #         }
+    #         key = tipo_map.get(tipo)
+    #         possible_keys = [key]
 
-    registros_pesquisa = get_from_cache(possible_keys[0])
+    registros_pesquisa = get_from_cache(cache_key)
 
     if not registros_pesquisa:
         raise HTTPException(status_code=422, detail="Nenhum resultado de pesquisa encontrado no cache. Execute a pesquisa primeiro.")
@@ -1205,6 +1205,67 @@ async def export_table(request: Request,  atributo: str = Query(...), tipo: str 
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={'Content-Disposition': f'attachment; filename="{filename}"'}
     )
+
+# @router.get("/export_table")
+# async def export_table(request: Request,  atributo: str = Query(...), tipo: str | None = Query(None, alias="duplicar_tipo_pesquisa"), cache_key: str = Query(None, alias="cache_key")):
+#     user = get_current_user(request)
+#     username = user.get("usuario")
+#     if not user:
+#         raise HTTPException(status_code=401, detail="Sessão inválida")
+#     if not tipo:
+#         raise HTTPException(status_code=422, detail="O tipo de pesquisa não foi recebido.")
+    
+#     current_page = request.headers.get("hx-current-url", "desconhecido")
+#     page = None
+#     path = urlparse(current_page).path.lower()
+#     if "cadastro" in path:
+#         page = "cadastro"
+#     else:
+#         page = "demais"
+#     possible_keys = []
+#     if tipo == "m0_all" or tipo == "m1_all" or tipo == "m+1_all":
+#         possible_keys = [f"all_atributos:{tipo}:{username}"]
+#     elif tipo in ["m0_all_apoio", "m1_all_apoio", "m+1_all_apoio"]:
+#         possible_keys = [f"matrizes_administrativas:{tipo}:{username}"]
+#     elif tipo in ["m0_administrativas", "m+1_administrativas"]:
+#         possible_keys = [f"matrizes_administrativas_pg_adm:{tipo}"]
+#     else:
+#         if not atributo:
+#             raise HTTPException(status_code=422, detail="Informe o parâmetro 'atributo' para exportar.")
+#         if cache_key:
+#             possible_keys = [cache_key]
+#         else:
+#             tipo_map = {
+#                 "m0": f"pesquisa_m0:{atributo}:{page}",
+#                 "m1": f"pesquisa_m1:{atributo}:{page}",
+#                 "m+1": f"pesquisa_m+1:{atributo}:{page}"
+#             }
+#             key = tipo_map.get(tipo)
+#             possible_keys = [key]
+
+#     registros_pesquisa = get_from_cache(possible_keys[0])
+
+#     if not registros_pesquisa:
+#         raise HTTPException(status_code=422, detail="Nenhum resultado de pesquisa encontrado no cache. Execute a pesquisa primeiro.")
+
+#     colunas = EXPECTED_COLUMNS
+#     df = pd.DataFrame(registros_pesquisa)
+#     final_cols = [c for c in colunas if c in df.columns]
+#     df = df[final_cols]
+#     colunas_to_drop = ['qualidade', 'da_qualidade', 'data_da_qualidade', 
+#         'planejamento', 'da_planejamento', 'data_da_planejamento']
+#     if "apoio" in tipo:
+#         df = df.drop(columns=colunas_to_drop)
+#     output = BytesIO()
+#     df.to_excel(output, index=False, sheet_name='Pesquisa', engine='openpyxl')
+#     output.seek(0)
+
+#     filename = f"pesquisa_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+#     return StreamingResponse(
+#         output,
+#         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+#         headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+#     )
 
 @router.get("/export_atributos_sem_matriz")
 async def export_atributos_sem_matriz(request: Request):
