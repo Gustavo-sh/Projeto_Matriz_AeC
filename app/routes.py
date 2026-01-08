@@ -371,8 +371,11 @@ async def add_registro(
     response.headers["HX-Trigger"] = '{"mostrarSucesso": "Novo registro adicionado com sucesso!"}'
     return response
 
-@router.post("/pesquisar_mes", response_class=HTMLResponse)
-async def pesquisar_mes(request: Request, atributo: str = Form(...), mes: str = Form(...), atributo_cascata: str = Form(None)):
+@router.get("/pesquisar_mes", response_class=HTMLResponse)
+async def pesquisar_mes(request: Request,
+    atributo: str | None = Query(None),
+    mes: str = Query(...),
+    atributo_cascata: str | None = Query(None)):
     try:
         registros = []
 
@@ -479,7 +482,7 @@ async def pesquisar_acordos(request: Request, atributos_acordo: str | None = Que
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "Sua pesquisa não trouxe resultados!"}'
     return response
 
-@router.post("/pesquisar_nao_acordos", response_class=HTMLResponse)
+@router.get("/pesquisar_nao_acordos", response_class=HTMLResponse)
 async def pesquisar_nao_acordos(request: Request):
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
@@ -501,8 +504,12 @@ async def pesquisar_nao_acordos(request: Request):
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "Sua pesquisa não trouxe resultados!"}'
     return response
 
-@router.post("/pesquisar_nao_acordos_exop", response_class=HTMLResponse)
-async def pesquisar_nao_acordos_exop(request: Request, atributos_nao_acordos_exop: str = Form(...)):
+@router.get("/sentry-debug")
+async def trigger_error():
+    division_by_zero = 1 / 0
+
+@router.get("/pesquisar_nao_acordos_exop", response_class=HTMLResponse)
+async def pesquisar_nao_acordos_exop(request: Request, atributos_nao_acordos_exop: str = Query(...)):
     if not atributos_nao_acordos_exop:
         raise HTTPException(status_code=422, detail="Informe um atributo na caixa acima para efetuar a pesquisa.")
     registros = []
@@ -526,8 +533,8 @@ async def pesquisar_nao_acordos_exop(request: Request, atributos_nao_acordos_exo
         response.headers["HX-Trigger"] = '{"mostrarSucesso": "Sua pesquisa não trouxe resultados!"}'
     return response
 
-@router.post("/pesquisar_matrizes_administrativas", response_class=HTMLResponse)
-async def matrizes_administrativas_pg_adm(request: Request, tipo: str = Form(...)):
+@router.get("/pesquisar_matrizes_administrativas", response_class=HTMLResponse)
+async def matrizes_administrativas_pg_adm(request: Request, tipo: str = Query(...)):
     current_page = request.headers.get("hx-current-url", "desconhecido")
     registros = await get_matrizes_administrativas_pg_adm(tipo)
     path = urlparse(current_page).path.lower()
@@ -548,8 +555,8 @@ async def matrizes_administrativas_pg_adm(request: Request, tipo: str = Form(...
     return response
 
 
-@router.post("/all_atributes_operacao", response_class=HTMLResponse)
-async def all_atributes_operacao(request: Request, tipo_pesquisa: str = Form(...)):
+@router.get("/all_atributes_operacao", response_class=HTMLResponse)
+async def all_atributes_operacao(request: Request, tipo_pesquisa: str = Query(...)):
     registros = []
     current_page = request.headers.get("hx-current-url", "desconhecido")
     username = request.cookies.get("username", "anon")

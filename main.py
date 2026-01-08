@@ -5,11 +5,24 @@ from datetime import datetime
 from app.routes import router
 from app.database import init_db_pool
 from app.connections_db import get_resultados_indicadores_m3, get_excecoes_disponibilidade
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk import metrics
 
+sentry_sdk.init(
+    dsn="https://f793ba89c1855cace9ff1e3834468ded@o4510676437172224.ingest.us.sentry.io/4510676438679552",
+    integrations=[FastApiIntegration()],
+    send_default_pii=True,  # 🔥 ISSO habilita IP e usuário
+    environment="producao",
+    traces_sample_rate=0.2,
+)
+
+metrics.count("checkout.failed", 1)
+metrics.gauge("queue.depth", 42)
+metrics.distribution("cart.amount_usd", 187.5)
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(router)
-
 SESSION_TIMEOUT = 10 * 60
 
 @app.on_event("startup")

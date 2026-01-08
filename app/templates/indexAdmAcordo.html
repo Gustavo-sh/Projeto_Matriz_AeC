@@ -82,7 +82,7 @@
 
             <button
                 type="button"
-                hx-post="/pesquisar_nao_acordos_exop" 
+                hx-get="/pesquisar_nao_acordos_exop" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='nao_acordos_exop_select']">
@@ -91,7 +91,7 @@
 
             <button
                 type="button"
-                hx-post="/pesquisar_nao_acordos" 
+                hx-get="/pesquisar_nao_acordos" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select']">
@@ -101,7 +101,7 @@
             <button
                 id="m0_administrativas"
                 type="button"
-                hx-post="/pesquisar_matrizes_administrativas" 
+                hx-get="/pesquisar_matrizes_administrativas" 
                 hx-target="#tabela-pesquisa"
                 hx-swap="innerHTML"
                 hx-vals='{"tipo": "m0_administrativas"}'>
@@ -111,7 +111,7 @@
             <button
                 id="m+1_administrativas"
                 type="button"
-                hx-post="/pesquisar_matrizes_administrativas" 
+                hx-get="/pesquisar_matrizes_administrativas" 
                 hx-target="#tabela-pesquisa"
                 hx-swap="innerHTML"
                 hx-vals='{"tipo": "m+1_administrativas"}'>
@@ -197,7 +197,7 @@
             <button
                 type="button"
                 id="btn-m0"
-                hx-post="/pesquisar_mes" 
+                hx-get="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select'], [id='atributo_select_cascata']"
@@ -208,7 +208,7 @@
             <button
                 type="button"
                 id="btn-m1"
-                hx-post="/pesquisar_mes" 
+                hx-get="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select'], [id='atributo_select_cascata']"
@@ -219,7 +219,7 @@
             <button
                 type="button"
                 id="btn-mmais1"
-                hx-post="/pesquisar_mes" 
+                hx-get="/pesquisar_mes" 
                 hx-target="#tabela-pesquisa" 
                 hx-swap="innerHTML"
                 hx-include="[id='atributo_select'], [id='atributo_select_cascata']"
